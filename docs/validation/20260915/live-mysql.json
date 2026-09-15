@@ -1,0 +1,14 @@
+{
+  "schemaVersion" : 1,
+  "command" : "mysql",
+  "at" : "2026-09-15T02:22:02.134671100Z",
+  "details" : {
+    "databaseProduct" : "MySQL",
+    "databaseVersion" : "8.0.46",
+    "checks" : [ "concurrent_creation_and_payload_idempotency", "single_worker_claim_and_stale_fence_rejected", "control_cas_and_failed_transaction_rollback", "expired_lease_rejected_after_delayed_save", "exact_model_usage_and_worker_reconstruction", "approval_restart_unknown_cancel_and_receipt_reconciliation" ],
+    "passedChecks" : 6,
+    "modelWasScripted" : true,
+    "businessTablesAccessed" : false
+  },
+  "status" : "PASSED"
+}

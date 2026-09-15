@@ -1,0 +1,18 @@
+{
+  "schemaVersion" : 1,
+  "command" : "mcp-read",
+  "at" : "2026-09-15T02:10:29.350374Z",
+  "details" : {
+    "runId" : "1dbef434-d3bb-45c4-a61b-051dca5acab7",
+    "runStatus" : "COMPLETED",
+    "modelCalls" : 0,
+    "toolCalls" : 1,
+    "chargedTokens" : 0,
+    "hostDeclaredReadOnly" : true,
+    "toolKey" : "mcp:live-acceptance:get_file_contents",
+    "contractDigest" : "9a274c4d6fd48acb6f5ab8c0e3aee37928e5827a17311935feb84a05c19ad393",
+    "argumentsDigest" : "c04cdf6d17ab4ffe4c87de35aa5995d2744c9b928180f22015bc3fdeefcb2918",
+    "outputDigest" : "e5a40c5406503225bd4bdf6f8c374d3898a2674a6fe890a8e80221ef18e5c48a"
+  },
+  "status" : "PASSED"
+}

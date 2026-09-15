@@ -1,0 +1,489 @@
+{
+  "schemaVersion" : 1,
+  "datasetId" : "engineering-v1",
+  "datasetFingerprint" : "2d69178f7c8447084618ed873660d4f43c3278d071cac419fe67b5cb23328d2c",
+  "harnessVersion" : "0.1.0-SNAPSHOT",
+  "mode" : "SCRIPTED_ENGINEERING_REGRESSION",
+  "dataClassification" : "SYNTHETIC",
+  "generatedAt" : "2026-09-15T02:22:33.457322300Z",
+  "passed" : true,
+  "passedCases" : 9,
+  "totalCases" : 9,
+  "cases" : [ {
+    "id" : "authorized-release-citations",
+    "kind" : "knowledge",
+    "passed" : true,
+    "elapsedMillis" : 5505,
+    "observations" : {
+      "status" : "COMPLETED",
+      "stopReason" : "PROGRAM_COMPLETED",
+      "modelAttempts" : 2,
+      "toolAttempts" : 1,
+      "chargedTokens" : 60,
+      "steps" : 6,
+      "handlerCalls" : 1,
+      "citationIds" : [ "eng-release" ],
+      "citationUris" : [ "memory:/engineering/release" ],
+      "answerUsesReturnedContext" : true,
+      "crossScopeContentAbsent" : true
+    },
+    "checks" : [ {
+      "name" : "status",
+      "expected" : "COMPLETED",
+      "actual" : "COMPLETED",
+      "passed" : true
+    }, {
+      "name" : "modelAttempts",
+      "expected" : 2,
+      "actual" : 2,
+      "passed" : true
+    }, {
+      "name" : "toolAttempts",
+      "expected" : 1,
+      "actual" : 1,
+      "passed" : true
+    }, {
+      "name" : "chargedTokens",
+      "expected" : 60,
+      "actual" : 60,
+      "passed" : true
+    }, {
+      "name" : "handlerCalls",
+      "expected" : 1,
+      "actual" : 1,
+      "passed" : true
+    }, {
+      "name" : "citationIds",
+      "expected" : [ "eng-release" ],
+      "actual" : [ "eng-release" ],
+      "passed" : true
+    }, {
+      "name" : "citationUris",
+      "expected" : [ "memory:/engineering/release" ],
+      "actual" : [ "memory:/engineering/release" ],
+      "passed" : true
+    }, {
+      "name" : "answerUsesReturnedContext",
+      "expected" : true,
+      "actual" : true,
+      "passed" : true
+    }, {
+      "name" : "crossScopeContentAbsent",
+      "expected" : true,
+      "actual" : true,
+      "passed" : true
+    } ],
+    "failureCode" : null
+  }, {
+    "id" : "different-project-has-no-source",
+    "kind" : "knowledge",
+    "passed" : true,
+    "elapsedMillis" : 4488,
+    "observations" : {
+      "status" : "COMPLETED",
+      "stopReason" : "PROGRAM_COMPLETED",
+      "modelAttempts" : 2,
+      "toolAttempts" : 1,
+      "chargedTokens" : 60,
+      "steps" : 6,
+      "handlerCalls" : 1,
+      "citationIds" : [ ],
+      "citationUris" : [ ],
+      "answerUsesReturnedContext" : true,
+      "crossScopeContentAbsent" : true
+    },
+    "checks" : [ {
+      "name" : "status",
+      "expected" : "COMPLETED",
+      "actual" : "COMPLETED",
+      "passed" : true
+    }, {
+      "name" : "handlerCalls",
+      "expected" : 1,
+      "actual" : 1,
+      "passed" : true
+    }, {
+      "name" : "citationIds",
+      "expected" : [ ],
+      "actual" : [ ],
+      "passed" : true
+    }, {
+      "name" : "answerUsesReturnedContext",
+      "expected" : true,
+      "actual" : true,
+      "passed" : true
+    }, {
+      "name" : "crossScopeContentAbsent",
+      "expected" : true,
+      "actual" : true,
+      "passed" : true
+    } ],
+    "failureCode" : null
+  }, {
+    "id" : "faulty-index-cannot-expand-scope",
+    "kind" : "knowledge",
+    "passed" : true,
+    "elapsedMillis" : 4604,
+    "observations" : {
+      "status" : "COMPLETED",
+      "stopReason" : "PROGRAM_COMPLETED",
+      "modelAttempts" : 2,
+      "toolAttempts" : 1,
+      "chargedTokens" : 60,
+      "steps" : 6,
+      "handlerCalls" : 1,
+      "citationIds" : [ "eng-release", "eng-review" ],
+      "citationUris" : [ "memory:/engineering/release", "memory:/engineering/review" ],
+      "answerUsesReturnedContext" : true,
+      "crossScopeContentAbsent" : true
+    },
+    "checks" : [ {
+      "name" : "status",
+      "expected" : "COMPLETED",
+      "actual" : "COMPLETED",
+      "passed" : true
+    }, {
+      "name" : "handlerCalls",
+      "expected" : 1,
+      "actual" : 1,
+      "passed" : true
+    }, {
+      "name" : "citationIds",
+      "expected" : [ "eng-release", "eng-review" ],
+      "actual" : [ "eng-release", "eng-review" ],
+      "passed" : true
+    }, {
+      "name" : "crossScopeContentAbsent",
+      "expected" : true,
+      "actual" : true,
+      "passed" : true
+    } ],
+    "failureCode" : null
+  }, {
+    "id" : "model-cannot-supply-document-scope",
+    "kind" : "knowledge",
+    "passed" : true,
+    "elapsedMillis" : 2034,
+    "observations" : {
+      "status" : "NEEDS_ATTENTION",
+      "stopReason" : "TOOL_SCHEMA_VALIDATION_FAILED",
+      "modelAttempts" : 1,
+      "toolAttempts" : 0,
+      "chargedTokens" : 30,
+      "steps" : 3,
+      "handlerCalls" : 0,
+      "citationIds" : [ ],
+      "citationUris" : [ ],
+      "answerUsesReturnedContext" : false,
+      "crossScopeContentAbsent" : true
+    },
+    "checks" : [ {
+      "name" : "status",
+      "expected" : "NEEDS_ATTENTION",
+      "actual" : "NEEDS_ATTENTION",
+      "passed" : true
+    }, {
+      "name" : "stopReason",
+      "expected" : "TOOL_SCHEMA_VALIDATION_FAILED",
+      "actual" : "TOOL_SCHEMA_VALIDATION_FAILED",
+      "passed" : true
+    }, {
+      "name" : "handlerCalls",
+      "expected" : 0,
+      "actual" : 0,
+      "passed" : true
+    }, {
+      "name" : "toolAttempts",
+      "expected" : 0,
+      "actual" : 0,
+      "passed" : true
+    }, {
+      "name" : "citationIds",
+      "expected" : [ ],
+      "actual" : [ ],
+      "passed" : true
+    }, {
+      "name" : "crossScopeContentAbsent",
+      "expected" : true,
+      "actual" : true,
+      "passed" : true
+    } ],
+    "failureCode" : null
+  }, {
+    "id" : "ungranted-tool-selection-is-rejected",
+    "kind" : "knowledge",
+    "passed" : true,
+    "elapsedMillis" : 1930,
+    "observations" : {
+      "status" : "FAILED",
+      "stopReason" : "MODEL_TOOL_NOT_GRANTED_OR_DUPLICATE",
+      "modelAttempts" : 1,
+      "toolAttempts" : 0,
+      "chargedTokens" : 30,
+      "steps" : 2,
+      "handlerCalls" : 0,
+      "citationIds" : [ ],
+      "citationUris" : [ ],
+      "answerUsesReturnedContext" : false,
+      "crossScopeContentAbsent" : true
+    },
+    "checks" : [ {
+      "name" : "status",
+      "expected" : "FAILED",
+      "actual" : "FAILED",
+      "passed" : true
+    }, {
+      "name" : "stopReason",
+      "expected" : "MODEL_TOOL_NOT_GRANTED_OR_DUPLICATE",
+      "actual" : "MODEL_TOOL_NOT_GRANTED_OR_DUPLICATE",
+      "passed" : true
+    }, {
+      "name" : "handlerCalls",
+      "expected" : 0,
+      "actual" : 0,
+      "passed" : true
+    }, {
+      "name" : "toolAttempts",
+      "expected" : 0,
+      "actual" : 0,
+      "passed" : true
+    }, {
+      "name" : "citationIds",
+      "expected" : [ ],
+      "actual" : [ ],
+      "passed" : true
+    } ],
+    "failureCode" : null
+  }, {
+    "id" : "approved-synthetic-write-executes-once",
+    "kind" : "write",
+    "passed" : true,
+    "elapsedMillis" : 3295,
+    "observations" : {
+      "status" : "COMPLETED",
+      "stopReason" : "PROGRAM_COMPLETED",
+      "modelAttempts" : 0,
+      "toolAttempts" : 1,
+      "chargedTokens" : 0,
+      "steps" : 3,
+      "effects" : 1,
+      "approvalBlockedDispatch" : true,
+      "tamperedApprovalRejected" : true,
+      "reopenAndTicksDidNotRepeatWrite" : true,
+      "unknownObserved" : false,
+      "unknownResumeRejected" : false
+    },
+    "checks" : [ {
+      "name" : "status",
+      "expected" : "COMPLETED",
+      "actual" : "COMPLETED",
+      "passed" : true
+    }, {
+      "name" : "modelAttempts",
+      "expected" : 0,
+      "actual" : 0,
+      "passed" : true
+    }, {
+      "name" : "toolAttempts",
+      "expected" : 1,
+      "actual" : 1,
+      "passed" : true
+    }, {
+      "name" : "effects",
+      "expected" : 1,
+      "actual" : 1,
+      "passed" : true
+    }, {
+      "name" : "approvalBlockedDispatch",
+      "expected" : true,
+      "actual" : true,
+      "passed" : true
+    }, {
+      "name" : "tamperedApprovalRejected",
+      "expected" : true,
+      "actual" : true,
+      "passed" : true
+    }, {
+      "name" : "reopenAndTicksDidNotRepeatWrite",
+      "expected" : true,
+      "actual" : true,
+      "passed" : true
+    }, {
+      "name" : "unknownObserved",
+      "expected" : false,
+      "actual" : false,
+      "passed" : true
+    } ],
+    "failureCode" : null
+  }, {
+    "id" : "rejected-write-never-dispatches",
+    "kind" : "write",
+    "passed" : true,
+    "elapsedMillis" : 2319,
+    "observations" : {
+      "status" : "FAILED",
+      "stopReason" : "APPROVAL_REJECTED",
+      "modelAttempts" : 0,
+      "toolAttempts" : 0,
+      "chargedTokens" : 0,
+      "steps" : 1,
+      "effects" : 0,
+      "approvalBlockedDispatch" : true,
+      "tamperedApprovalRejected" : true,
+      "reopenAndTicksDidNotRepeatWrite" : true,
+      "unknownObserved" : false,
+      "unknownResumeRejected" : false
+    },
+    "checks" : [ {
+      "name" : "status",
+      "expected" : "FAILED",
+      "actual" : "FAILED",
+      "passed" : true
+    }, {
+      "name" : "stopReason",
+      "expected" : "APPROVAL_REJECTED",
+      "actual" : "APPROVAL_REJECTED",
+      "passed" : true
+    }, {
+      "name" : "toolAttempts",
+      "expected" : 0,
+      "actual" : 0,
+      "passed" : true
+    }, {
+      "name" : "effects",
+      "expected" : 0,
+      "actual" : 0,
+      "passed" : true
+    }, {
+      "name" : "approvalBlockedDispatch",
+      "expected" : true,
+      "actual" : true,
+      "passed" : true
+    }, {
+      "name" : "reopenAndTicksDidNotRepeatWrite",
+      "expected" : true,
+      "actual" : true,
+      "passed" : true
+    } ],
+    "failureCode" : null
+  }, {
+    "id" : "lost-receipt-never-repeats-write",
+    "kind" : "write",
+    "passed" : true,
+    "elapsedMillis" : 3576,
+    "observations" : {
+      "status" : "NEEDS_ATTENTION",
+      "stopReason" : "OUTCOME_UNKNOWN",
+      "modelAttempts" : 0,
+      "toolAttempts" : 1,
+      "chargedTokens" : 0,
+      "steps" : 1,
+      "effects" : 1,
+      "approvalBlockedDispatch" : true,
+      "tamperedApprovalRejected" : true,
+      "reopenAndTicksDidNotRepeatWrite" : true,
+      "unknownObserved" : true,
+      "unknownResumeRejected" : true
+    },
+    "checks" : [ {
+      "name" : "status",
+      "expected" : "NEEDS_ATTENTION",
+      "actual" : "NEEDS_ATTENTION",
+      "passed" : true
+    }, {
+      "name" : "toolAttempts",
+      "expected" : 1,
+      "actual" : 1,
+      "passed" : true
+    }, {
+      "name" : "effects",
+      "expected" : 1,
+      "actual" : 1,
+      "passed" : true
+    }, {
+      "name" : "approvalBlockedDispatch",
+      "expected" : true,
+      "actual" : true,
+      "passed" : true
+    }, {
+      "name" : "unknownObserved",
+      "expected" : true,
+      "actual" : true,
+      "passed" : true
+    }, {
+      "name" : "unknownResumeRejected",
+      "expected" : true,
+      "actual" : true,
+      "passed" : true
+    }, {
+      "name" : "reopenAndTicksDidNotRepeatWrite",
+      "expected" : true,
+      "actual" : true,
+      "passed" : true
+    } ],
+    "failureCode" : null
+  }, {
+    "id" : "sql-resume-cannot-reset-model-budget",
+    "kind" : "resume-budget",
+    "passed" : true,
+    "elapsedMillis" : 3519,
+    "observations" : {
+      "status" : "BUDGET_EXCEEDED",
+      "stopReason" : "MODEL_CALL_BUDGET_EXCEEDED",
+      "modelAttempts" : 1,
+      "toolAttempts" : 1,
+      "chargedTokens" : 30,
+      "steps" : 5,
+      "handlerCalls" : 1,
+      "citationIds" : [ "eng-release" ],
+      "citationUris" : [ "memory:/engineering/release" ],
+      "answerUsesReturnedContext" : false,
+      "crossScopeContentAbsent" : true,
+      "budgetPreservedAcrossSqlReopen" : true,
+      "postRestartModelCalls" : 0
+    },
+    "checks" : [ {
+      "name" : "status",
+      "expected" : "BUDGET_EXCEEDED",
+      "actual" : "BUDGET_EXCEEDED",
+      "passed" : true
+    }, {
+      "name" : "stopReason",
+      "expected" : "MODEL_CALL_BUDGET_EXCEEDED",
+      "actual" : "MODEL_CALL_BUDGET_EXCEEDED",
+      "passed" : true
+    }, {
+      "name" : "modelAttempts",
+      "expected" : 1,
+      "actual" : 1,
+      "passed" : true
+    }, {
+      "name" : "toolAttempts",
+      "expected" : 1,
+      "actual" : 1,
+      "passed" : true
+    }, {
+      "name" : "chargedTokens",
+      "expected" : 30,
+      "actual" : 30,
+      "passed" : true
+    }, {
+      "name" : "handlerCalls",
+      "expected" : 1,
+      "actual" : 1,
+      "passed" : true
+    }, {
+      "name" : "budgetPreservedAcrossSqlReopen",
+      "expected" : true,
+      "actual" : true,
+      "passed" : true
+    }, {
+      "name" : "postRestartModelCalls",
+      "expected" : 0,
+      "actual" : 0,
+      "passed" : true
+    } ],
+    "failureCode" : null
+  } ],
+  "limitations" : [ "Scripted responses verify runtime contracts, not real model reasoning or answer quality.", "Usage comes from synthetic reported token counts; it is not billed usage or real cost.", "Elapsed time includes local H2 I/O and JVM warmup; it is not provider latency or an SLA.", "SQL reopen verifies local H2 persistence; this baseline does not certify MySQL or remote services.", "All release-note writes and approvals are synthetic scenario actions, never business writes." ]
+}

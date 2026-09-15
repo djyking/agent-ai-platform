@@ -1,0 +1,20 @@
+{
+  "schemaVersion" : 1,
+  "command" : "model",
+  "at" : "2026-09-15T02:10:29.227903400Z",
+  "details" : {
+    "runId" : "0a2ae49e-75f9-414e-aac0-de5f27d5f2a5",
+    "runStatus" : "COMPLETED",
+    "modelCalls" : 2,
+    "toolCalls" : 1,
+    "chargedTokens" : 767,
+    "provider" : "deepseek",
+    "modelName" : "deepseek-v4-pro",
+    "usageKnown" : true,
+    "reportedKnownTokens" : 767,
+    "syntheticInput" : true,
+    "outputTokensPerCallCap" : 128,
+    "nativeToolRoundTrip" : true
+  },
+  "status" : "PASSED"
+}

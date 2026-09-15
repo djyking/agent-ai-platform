@@ -1,0 +1,14 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+  <modelVersion>4.0.0</modelVersion>
+  <parent><groupId>io.github.djyking</groupId><artifactId>agent-ai-platform</artifactId><version>0.1.0-SNAPSHOT</version></parent>
+  <artifactId>harness-validation</artifactId>
+  <dependencies>
+    <dependency><groupId>io.github.djyking</groupId><artifactId>harness-core</artifactId><version>${project.version}</version></dependency>
+    <dependency><groupId>io.github.djyking</groupId><artifactId>harness-storage-jdbc</artifactId><version>${project.version}</version></dependency>
+    <dependency><groupId>io.github.djyking</groupId><artifactId>harness-adapters</artifactId><version>${project.version}</version></dependency>
+    <dependency><groupId>com.mysql</groupId><artifactId>mysql-connector-j</artifactId><version>8.4.0</version></dependency>
+    <dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><scope>test</scope></dependency>
+    <dependency><groupId>com.h2database</groupId><artifactId>h2</artifactId><scope>test</scope></dependency>
+  </dependencies>
+  <build><plugins><plugin><groupId>org.codehaus.mojo</groupId><artifactId>exec-maven-plugin</artifactId><version>3.5.1</version><configuration><mainClass>io.github.djyking.harness.validation.ValidationMain</mainClass></configuration></plugin></plugins></build>
+</project>

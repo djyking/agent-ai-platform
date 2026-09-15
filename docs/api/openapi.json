@@ -1,0 +1,2767 @@
+{
+  "openapi": "3.1.0",
+  "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
+  "info": {
+    "title": "Agent AI Platform — Stage 2 Execution API (design contract)",
+    "version": "0.1.0-draft.1",
+    "description": "Design-only contract, 2026-09-15. No platform HTTP service exists yet. Internal project/application execution entry point on top of the embedded Harness. See ../phase2-api-design.md for atomicity gaps and acceptance gates."
+  },
+  "servers": [
+    {
+      "url": "https://agent-platform.example.invalid",
+      "description": "Documentation placeholder; not a live endpoint."
+    }
+  ],
+  "security": [
+    {
+      "AccessToken": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Runs",
+      "description": "Asynchronous execution and public ledger projections."
+    },
+    {
+      "name": "Approvals",
+      "description": "Exact tool approval and human input."
+    },
+    {
+      "name": "Reconciliation",
+      "description": "Verified outcome recording, never implicit remote write replay."
+    }
+  ],
+  "paths": {
+    "/v1/projects/{projectId}/runs": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Project"
+        }
+      ],
+      "get": {
+        "operationId": "listRuns",
+        "tags": [
+          "Runs"
+        ],
+        "summary": "List authorized runs",
+        "description": "Requires runs:list. By default, only runs owned by the authenticated application/effective subject in this project are visible; cross-owner listing requires an explicit project-scoped runs:admin grant. Filters and cursor scope are revalidated on each page.",
+        "responses": {
+          "200": {
+            "description": "Authorized public projection.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunPage"
+                },
+                "example": {
+                  "items": [
+                    {
+                      "id": "51cf0f17-0d6a-4d04-bafb-417d558027f2",
+                      "releaseRef": {
+                        "agentId": "ops-readonly",
+                        "releaseId": "bc2d667e-dfd8-4c09-9a38-c083344a5da7",
+                        "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                      },
+                      "status": "QUEUED",
+                      "revision": "1",
+                      "createdAt": "2026-09-15T02:00:00Z",
+                      "deadline": "2026-09-15T02:10:00Z"
+                    }
+                  ],
+                  "nextCursor": null
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          },
+          "410": {
+            "$ref": "#/components/responses/E410"
+          },
+          "429": {
+            "$ref": "#/components/responses/E429"
+          },
+          "503": {
+            "$ref": "#/components/responses/E503"
+          },
+          "default": {
+            "$ref": "#/components/responses/Internal"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Status"
+          }
+        ]
+      },
+      "post": {
+        "operationId": "createRun",
+        "tags": [
+          "Runs"
+        ],
+        "summary": "Create a run from an immutable published release",
+        "description": "Requires runs:create. Resolves only approved deployment manifests in this project. Atomically records ownership, effective configuration/limits, initial run and request-idempotency result before returning. No execution inside HTTP request.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Idempotency"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRunRequest"
+              },
+              "example": {
+                "releaseRef": {
+                  "agentId": "ops-readonly",
+                  "releaseId": "bc2d667e-dfd8-4c09-9a38-c083344a5da7",
+                  "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                },
+                "inputs": {
+                  "question": "查询沙箱服务的状态"
+                },
+                "limits": {
+                  "maxTokens": 20000,
+                  "lifetimeSeconds": 600
+                },
+                "clientReference": "sandbox-check-20260915-01"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Durable command accepted; follow Location and query the run.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Location": {
+                "$ref": "#/components/headers/Location"
+              },
+              "Retry-After": {
+                "$ref": "#/components/headers/RetryAfter"
+              },
+              "Idempotency-Replayed": {
+                "$ref": "#/components/headers/Replay"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcceptedRun"
+                },
+                "example": {
+                  "run": {
+                    "id": "51cf0f17-0d6a-4d04-bafb-417d558027f2",
+                    "status": "QUEUED",
+                    "revision": "1",
+                    "controls": {
+                      "pauseRequested": false,
+                      "cancelRequested": false
+                    }
+                  },
+                  "acceptedAt": "2026-09-15T02:00:00Z",
+                  "statusUrl": "/v1/projects/ops-dev/runs/51cf0f17-0d6a-4d04-bafb-417d558027f2"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          },
+          "409": {
+            "$ref": "#/components/responses/E409"
+          },
+          "413": {
+            "$ref": "#/components/responses/E413"
+          },
+          "415": {
+            "$ref": "#/components/responses/E415"
+          },
+          "422": {
+            "$ref": "#/components/responses/E422"
+          },
+          "429": {
+            "$ref": "#/components/responses/E429"
+          },
+          "503": {
+            "$ref": "#/components/responses/E503"
+          },
+          "default": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
+    "/v1/projects/{projectId}/runs/{runId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Project"
+        },
+        {
+          "$ref": "#/components/parameters/Run"
+        }
+      ],
+      "get": {
+        "operationId": "getRun",
+        "tags": [
+          "Runs"
+        ],
+        "summary": "Read one run",
+        "description": "Requires runs:read and run ownership by the application/effective subject, or explicit project-wide runs:admin. ETag is the concurrency token for subsequent commands.",
+        "responses": {
+          "200": {
+            "description": "Authorized public projection.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Retry-After": {
+                "$ref": "#/components/headers/RetryAfter"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunView"
+                },
+                "example": {
+                  "id": "51cf0f17-0d6a-4d04-bafb-417d558027f2",
+                  "projectId": "ops-dev",
+                  "releaseRef": {
+                    "agentId": "ops-readonly",
+                    "releaseId": "bc2d667e-dfd8-4c09-9a38-c083344a5da7",
+                    "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                  },
+                  "status": "QUEUED",
+                  "revision": "1",
+                  "createdAt": "2026-09-15T02:00:00Z",
+                  "deadline": "2026-09-15T02:10:00Z",
+                  "controls": {
+                    "pauseRequested": false,
+                    "cancelRequested": false
+                  },
+                  "usage": {
+                    "chargedTokens": 0,
+                    "modelCalls": 0,
+                    "toolCalls": 0,
+                    "steps": 0,
+                    "accounting": "CONSERVATIVE_LEDGER"
+                  },
+                  "limits": {
+                    "maxTokens": 20000,
+                    "maxModelCalls": 4,
+                    "maxToolCalls": 8,
+                    "maxSteps": 40,
+                    "lifetimeSeconds": 600
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          },
+          "429": {
+            "$ref": "#/components/responses/E429"
+          },
+          "503": {
+            "$ref": "#/components/responses/E503"
+          },
+          "default": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
+    "/v1/projects/{projectId}/runs/{runId}/events": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Project"
+        },
+        {
+          "$ref": "#/components/parameters/Run"
+        }
+      ],
+      "get": {
+        "operationId": "listRunEvents",
+        "tags": [
+          "Runs"
+        ],
+        "summary": "Poll durable public events using a cursor",
+        "description": "Requires runs:events:read plus run visibility. First request omits cursor and starts at earliest retained event; 410 when preceding required history is unavailable. No SSE, token deltas or arbitrary core event attributes in v1.",
+        "responses": {
+          "200": {
+            "description": "Authorized public projection.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "Retry-After": {
+                "$ref": "#/components/headers/RetryAfter"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventPage"
+                },
+                "example": {
+                  "items": [
+                    {
+                      "sequence": "1",
+                      "type": "RUN_CREATED",
+                      "at": "2026-09-15T02:00:00Z",
+                      "status": "QUEUED"
+                    }
+                  ],
+                  "nextCursor": "c1.example_signed_event_cursor",
+                  "hasMore": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          },
+          "410": {
+            "$ref": "#/components/responses/E410"
+          },
+          "429": {
+            "$ref": "#/components/responses/E429"
+          },
+          "503": {
+            "$ref": "#/components/responses/E503"
+          },
+          "default": {
+            "$ref": "#/components/responses/Internal"
+          }
+        },
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Cursor"
+          },
+          {
+            "$ref": "#/components/parameters/EventLimit"
+          }
+        ]
+      }
+    },
+    "/v1/projects/{projectId}/runs/{runId}/pause": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Project"
+        },
+        {
+          "$ref": "#/components/parameters/Run"
+        }
+      ],
+      "post": {
+        "operationId": "pauseRun",
+        "tags": [
+          "Runs"
+        ],
+        "summary": "Pause a run",
+        "description": "Requires runs:control and run ownership or runs:admin. Records intent; dispatch already started cannot be undone. Preserve any known result or UNKNOWN before settling PAUSED.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Idempotency"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ControlRequest"
+              },
+              "example": {}
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Durable command accepted; follow Location and query the run.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Location": {
+                "$ref": "#/components/headers/Location"
+              },
+              "Retry-After": {
+                "$ref": "#/components/headers/RetryAfter"
+              },
+              "Idempotency-Replayed": {
+                "$ref": "#/components/headers/Replay"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcceptedRun"
+                },
+                "example": {
+                  "run": {
+                    "id": "51cf0f17-0d6a-4d04-bafb-417d558027f2",
+                    "status": "PAUSED",
+                    "revision": "12",
+                    "controls": {
+                      "pauseRequested": true,
+                      "cancelRequested": false
+                    }
+                  },
+                  "acceptedAt": "2026-09-15T02:00:00Z",
+                  "statusUrl": "/v1/projects/ops-dev/runs/51cf0f17-0d6a-4d04-bafb-417d558027f2"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          },
+          "409": {
+            "$ref": "#/components/responses/E409"
+          },
+          "412": {
+            "$ref": "#/components/responses/E412"
+          },
+          "413": {
+            "$ref": "#/components/responses/E413"
+          },
+          "415": {
+            "$ref": "#/components/responses/E415"
+          },
+          "422": {
+            "$ref": "#/components/responses/E422"
+          },
+          "428": {
+            "$ref": "#/components/responses/E428"
+          },
+          "429": {
+            "$ref": "#/components/responses/E429"
+          },
+          "503": {
+            "$ref": "#/components/responses/E503"
+          },
+          "default": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
+    "/v1/projects/{projectId}/runs/{runId}/cancel": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Project"
+        },
+        {
+          "$ref": "#/components/parameters/Run"
+        }
+      ],
+      "post": {
+        "operationId": "cancelRun",
+        "tags": [
+          "Runs"
+        ],
+        "summary": "Cancel a run",
+        "description": "Requires runs:control and run ownership or runs:admin. Records irreversible cancellation intent. Already-dispatched work may still finish remotely; UNKNOWN stays NEEDS_ATTENTION and reconcilable, not silently CANCELLED.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Idempotency"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ControlRequest"
+              },
+              "example": {}
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Durable command accepted; follow Location and query the run.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Location": {
+                "$ref": "#/components/headers/Location"
+              },
+              "Retry-After": {
+                "$ref": "#/components/headers/RetryAfter"
+              },
+              "Idempotency-Replayed": {
+                "$ref": "#/components/headers/Replay"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcceptedRun"
+                },
+                "example": {
+                  "run": {
+                    "id": "51cf0f17-0d6a-4d04-bafb-417d558027f2",
+                    "status": "CANCELLED",
+                    "revision": "14",
+                    "controls": {
+                      "pauseRequested": false,
+                      "cancelRequested": true
+                    }
+                  },
+                  "acceptedAt": "2026-09-15T02:00:00Z",
+                  "statusUrl": "/v1/projects/ops-dev/runs/51cf0f17-0d6a-4d04-bafb-417d558027f2"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          },
+          "409": {
+            "$ref": "#/components/responses/E409"
+          },
+          "412": {
+            "$ref": "#/components/responses/E412"
+          },
+          "413": {
+            "$ref": "#/components/responses/E413"
+          },
+          "415": {
+            "$ref": "#/components/responses/E415"
+          },
+          "422": {
+            "$ref": "#/components/responses/E422"
+          },
+          "428": {
+            "$ref": "#/components/responses/E428"
+          },
+          "429": {
+            "$ref": "#/components/responses/E429"
+          },
+          "503": {
+            "$ref": "#/components/responses/E503"
+          },
+          "default": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
+    "/v1/projects/{projectId}/runs/{runId}/resume": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Project"
+        },
+        {
+          "$ref": "#/components/parameters/Run"
+        }
+      ],
+      "post": {
+        "operationId": "resumeRun",
+        "tags": [
+          "Runs"
+        ],
+        "summary": "Resume a run",
+        "description": "Requires runs:control and run ownership or runs:admin. Only a resumable PAUSED/NEEDS_ATTENTION run with no cancellation, no unresolved invocation and unexpired deadline. Preserves all budget and attempt counts; does not retry UNKNOWN writes or models.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Idempotency"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ControlRequest"
+              },
+              "example": {}
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Durable command accepted; follow Location and query the run.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Location": {
+                "$ref": "#/components/headers/Location"
+              },
+              "Retry-After": {
+                "$ref": "#/components/headers/RetryAfter"
+              },
+              "Idempotency-Replayed": {
+                "$ref": "#/components/headers/Replay"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcceptedRun"
+                },
+                "example": {
+                  "run": {
+                    "id": "51cf0f17-0d6a-4d04-bafb-417d558027f2",
+                    "status": "QUEUED",
+                    "revision": "14",
+                    "controls": {
+                      "pauseRequested": false,
+                      "cancelRequested": false
+                    }
+                  },
+                  "acceptedAt": "2026-09-15T02:00:00Z",
+                  "statusUrl": "/v1/projects/ops-dev/runs/51cf0f17-0d6a-4d04-bafb-417d558027f2"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          },
+          "409": {
+            "$ref": "#/components/responses/E409"
+          },
+          "412": {
+            "$ref": "#/components/responses/E412"
+          },
+          "413": {
+            "$ref": "#/components/responses/E413"
+          },
+          "415": {
+            "$ref": "#/components/responses/E415"
+          },
+          "422": {
+            "$ref": "#/components/responses/E422"
+          },
+          "428": {
+            "$ref": "#/components/responses/E428"
+          },
+          "429": {
+            "$ref": "#/components/responses/E429"
+          },
+          "503": {
+            "$ref": "#/components/responses/E503"
+          },
+          "default": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
+    "/v1/projects/{projectId}/runs/{runId}/approval": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Project"
+        },
+        {
+          "$ref": "#/components/parameters/Run"
+        }
+      ],
+      "get": {
+        "operationId": "getCurrentApproval",
+        "tags": [
+          "Approvals"
+        ],
+        "summary": "Read the current exact approval or human-input request",
+        "description": "Requires approvals:read on this assigned run/approval; run-owner access is not required when the assignment explicitly grants the review projection. Ordinary runs:read does not reveal review fields. Missing current approval returns 404.",
+        "responses": {
+          "200": {
+            "description": "Authorized public projection.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApprovalView"
+                },
+                "example": {
+                  "id": "f0fa273e-9dbd-46ba-90d2-4e8c24cf3911",
+                  "runId": "51cf0f17-0d6a-4d04-bafb-417d558027f2",
+                  "runRevision": "9",
+                  "kind": "TOOL",
+                  "status": "PENDING",
+                  "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                  "expiresAt": "2026-09-15T02:10:00Z",
+                  "reviewComplete": true,
+                  "summary": "创建沙箱演示工单",
+                  "fields": [
+                    {
+                      "name": "environment",
+                      "value": "sandbox",
+                      "masked": false
+                    },
+                    {
+                      "name": "operation",
+                      "value": "create_demo_ticket",
+                      "masked": false
+                    }
+                  ],
+                  "inputRequired": false
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          },
+          "429": {
+            "$ref": "#/components/responses/E429"
+          },
+          "503": {
+            "$ref": "#/components/responses/E503"
+          },
+          "default": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
+    "/v1/projects/{projectId}/runs/{runId}/approvals/{approvalId}/decision": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Project"
+        },
+        {
+          "$ref": "#/components/parameters/Run"
+        },
+        {
+          "$ref": "#/components/parameters/Approval"
+        }
+      ],
+      "post": {
+        "operationId": "decideApproval",
+        "tags": [
+          "Approvals"
+        ],
+        "summary": "Approve or reject the exact current approval",
+        "description": "Requires approvals:decide and an eligible reviewer assignment. Validate approval ID, digest, run revision, expiry and review completeness in the state transition. Human input is literal text; it is not itself a tool-write approval. The server records the authenticated deciding subject, never a request-supplied actor.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Idempotency"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApprovalDecisionRequest"
+              },
+              "example": {
+                "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "decision": "APPROVE",
+                "reason": "已核验仅限沙箱目标"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Durable command accepted; follow Location and query the run.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Location": {
+                "$ref": "#/components/headers/Location"
+              },
+              "Retry-After": {
+                "$ref": "#/components/headers/RetryAfter"
+              },
+              "Idempotency-Replayed": {
+                "$ref": "#/components/headers/Replay"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcceptedRun"
+                },
+                "example": {
+                  "run": {
+                    "id": "51cf0f17-0d6a-4d04-bafb-417d558027f2",
+                    "status": "QUEUED",
+                    "revision": "10",
+                    "controls": {
+                      "pauseRequested": false,
+                      "cancelRequested": false
+                    }
+                  },
+                  "acceptedAt": "2026-09-15T02:00:00Z",
+                  "statusUrl": "/v1/projects/ops-dev/runs/51cf0f17-0d6a-4d04-bafb-417d558027f2"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          },
+          "409": {
+            "$ref": "#/components/responses/E409"
+          },
+          "412": {
+            "$ref": "#/components/responses/E412"
+          },
+          "413": {
+            "$ref": "#/components/responses/E413"
+          },
+          "415": {
+            "$ref": "#/components/responses/E415"
+          },
+          "422": {
+            "$ref": "#/components/responses/E422"
+          },
+          "428": {
+            "$ref": "#/components/responses/E428"
+          },
+          "429": {
+            "$ref": "#/components/responses/E429"
+          },
+          "503": {
+            "$ref": "#/components/responses/E503"
+          },
+          "default": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
+    "/v1/projects/{projectId}/runs/{runId}/unknown-invocation": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Project"
+        },
+        {
+          "$ref": "#/components/parameters/Run"
+        }
+      ],
+      "get": {
+        "operationId": "getUnknownInvocation",
+        "tags": [
+          "Reconciliation"
+        ],
+        "summary": "Read an unresolved remote outcome",
+        "description": "Requires runs:reconcile:read plus run ownership or runs:admin. 404 when no persisted UNKNOWN exists. MODEL UNKNOWN is visible but cannot be resolved by the tool endpoint.",
+        "responses": {
+          "200": {
+            "description": "Authorized public projection.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnknownInvocationView"
+                },
+                "example": {
+                  "runId": "51cf0f17-0d6a-4d04-bafb-417d558027f2",
+                  "runRevision": "12",
+                  "invocationRef": "inv_45e397558b",
+                  "kind": "TOOL",
+                  "invocationDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                  "reconcilable": true,
+                  "cancelRequested": false,
+                  "summary": "沙箱工单写入响应中断，需核验远端回执"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          },
+          "429": {
+            "$ref": "#/components/responses/E429"
+          },
+          "503": {
+            "$ref": "#/components/responses/E503"
+          },
+          "default": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    },
+    "/v1/projects/{projectId}/runs/{runId}/tool-reconciliations": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Project"
+        },
+        {
+          "$ref": "#/components/parameters/Run"
+        }
+      ],
+      "post": {
+        "operationId": "reconcileTool",
+        "tags": [
+          "Reconciliation"
+        ],
+        "summary": "Apply independently verified evidence for the exact UNKNOWN tool",
+        "description": "Requires runs:reconcile plus run ownership or runs:admin and access to the trusted evidence record. No remote tool invocation takes place. Verified outcome and receipt are derived on the server and committed with the original unknown invocation. Result is PAUSED, or CANCELLED if cancellation was already requested. Resume is a separate command and still respects deadline/budget.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Idempotency"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ToolReconciliationRequest"
+              },
+              "example": {
+                "invocationRef": "inv_45e397558b",
+                "invocationDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "evidenceRef": "evidence_sandbox_ticket_0042",
+                "reason": "已通过授权的只读对账器核验沙箱工单编号"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Durable command accepted; follow Location and query the run.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              },
+              "Cache-Control": {
+                "$ref": "#/components/headers/NoStore"
+              },
+              "ETag": {
+                "$ref": "#/components/headers/ETag"
+              },
+              "Location": {
+                "$ref": "#/components/headers/Location"
+              },
+              "Retry-After": {
+                "$ref": "#/components/headers/RetryAfter"
+              },
+              "Idempotency-Replayed": {
+                "$ref": "#/components/headers/Replay"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcceptedRun"
+                },
+                "example": {
+                  "run": {
+                    "id": "51cf0f17-0d6a-4d04-bafb-417d558027f2",
+                    "status": "PAUSED",
+                    "revision": "13",
+                    "controls": {
+                      "pauseRequested": true,
+                      "cancelRequested": false
+                    }
+                  },
+                  "acceptedAt": "2026-09-15T02:00:00Z",
+                  "statusUrl": "/v1/projects/ops-dev/runs/51cf0f17-0d6a-4d04-bafb-417d558027f2"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          },
+          "409": {
+            "$ref": "#/components/responses/E409"
+          },
+          "412": {
+            "$ref": "#/components/responses/E412"
+          },
+          "413": {
+            "$ref": "#/components/responses/E413"
+          },
+          "415": {
+            "$ref": "#/components/responses/E415"
+          },
+          "422": {
+            "$ref": "#/components/responses/E422"
+          },
+          "428": {
+            "$ref": "#/components/responses/E428"
+          },
+          "429": {
+            "$ref": "#/components/responses/E429"
+          },
+          "503": {
+            "$ref": "#/components/responses/E503"
+          },
+          "default": {
+            "$ref": "#/components/responses/Internal"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "AccessToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "opaque-or-JWT-access-token",
+        "description": "Deployment identity integration validates issuer/audience/expiry and resolves application, effective subject, allowed project(s), operation grants and resource scope. No identity/permissions supplied in JSON are accepted."
+      }
+    },
+    "parameters": {
+      "Project": {
+        "name": "projectId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/Identifier"
+        },
+        "description": "Resource selector only. Server verifies the token's project/application grants; this field cannot assign the request's identity or permissions."
+      },
+      "Run": {
+        "name": "runId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/Uuid"
+        }
+      },
+      "Approval": {
+        "name": "approvalId",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "$ref": "#/components/schemas/Uuid"
+        }
+      },
+      "Idempotency": {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "minLength": 16,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9._:-]+$"
+        },
+        "description": "Mandatory for every POST. Scope = authenticated project + application + effective request subject + HTTP method + canonical route + key. Same key/body replays accepted response after reauthorization; different body is 409. See design for retention and concurrent submissions."
+      },
+      "IfMatch": {
+        "name": "If-Match",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "pattern": "^\"r1\\.[A-Za-z0-9_-]{20,512}\"$"
+        },
+        "description": "Exactly one strong, opaque run ETag obtained from a current Run/approval/UNKNOWN read in the same access scope. Atomic run-revision condition; '*' and lists are rejected. 428 when absent, 412 when stale. An already accepted idempotency replay is resolved before checking this condition."
+      },
+      "Cursor": {
+        "name": "cursor",
+        "in": "query",
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "description": "Opaque signed cursor bound to project, application, subject, authorization scope and canonical filters. No caller-chosen raw ledger sequence."
+      },
+      "Limit": {
+        "name": "limit",
+        "in": "query",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 20
+        }
+      },
+      "EventLimit": {
+        "name": "limit",
+        "in": "query",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200,
+          "default": 50
+        }
+      },
+      "Status": {
+        "name": "status",
+        "in": "query",
+        "schema": {
+          "$ref": "#/components/schemas/RunStatus"
+        },
+        "description": "Optional filter captured by the cursor; the same filter must accompany every continuation request."
+      }
+    },
+    "headers": {
+      "RequestId": {
+        "description": "Server-generated correlation identifier. Inbound IDs are validated or replaced; never authorization material.",
+        "schema": {
+          "$ref": "#/components/schemas/Identifier"
+        }
+      },
+      "ETag": {
+        "description": "Opaque signed run concurrency token. Bound to project, run, revision, authorization/projection scope and response-projection digest. Distinct read views may have distinct tokens for the same run revision; derived expiry or visibility changes must also change that view's ETag. It is not a lease or write authorization.",
+        "schema": {
+          "type": "string",
+          "pattern": "^\"r1\\.[A-Za-z0-9_-]{20,512}\"$"
+        },
+        "example": "\"r1.b3BhcXVlX3J1bl9yZXZpc2lvbl90b2tlbg\""
+      },
+      "Location": {
+        "description": "Relative URL of the run status resource.",
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      },
+      "RetryAfter": {
+        "description": "Minimum seconds before polling or retrying a permitted request.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3600
+        }
+      },
+      "Replay": {
+        "description": "true if this is a replay of a previously committed POST; body and ETag describe the original acceptance snapshot.",
+        "schema": {
+          "type": "boolean"
+        }
+      },
+      "NoStore": {
+        "description": "Sensitive response must not be cached.",
+        "schema": {
+          "type": "string",
+          "const": "no-store"
+        }
+      }
+    },
+    "responses": {
+      "E400": {
+        "description": "Malformed syntax/header/cursor, unknown request fields, duplicate keys or unsupported precondition form.",
+        "headers": {
+          "X-Request-Id": {
+            "$ref": "#/components/headers/RequestId"
+          },
+          "Cache-Control": {
+            "$ref": "#/components/headers/NoStore"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "INVALID_REQUEST",
+                "message": "Request syntax or header is invalid.",
+                "requestId": "req_90212238",
+                "retryDisposition": "NEVER"
+              }
+            }
+          }
+        }
+      },
+      "E401": {
+        "description": "Missing, invalid or expired credential. Includes WWW-Authenticate: Bearer.",
+        "headers": {
+          "X-Request-Id": {
+            "$ref": "#/components/headers/RequestId"
+          },
+          "Cache-Control": {
+            "$ref": "#/components/headers/NoStore"
+          },
+          "WWW-Authenticate": {
+            "schema": {
+              "type": "string",
+              "const": "Bearer"
+            }
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "UNAUTHENTICATED",
+                "message": "Valid authentication is required.",
+                "requestId": "req_90212238",
+                "retryDisposition": "NEVER"
+              }
+            }
+          }
+        }
+      },
+      "E403": {
+        "description": "Authenticated caller lacks the operation grant within an already-authorized project.",
+        "headers": {
+          "X-Request-Id": {
+            "$ref": "#/components/headers/RequestId"
+          },
+          "Cache-Control": {
+            "$ref": "#/components/headers/NoStore"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "FORBIDDEN",
+                "message": "Operation is not permitted.",
+                "requestId": "req_90212238",
+                "retryDisposition": "NEVER"
+              }
+            }
+          }
+        }
+      },
+      "E404": {
+        "description": "Resource not found OR inaccessible project/run/release/approval/evidence. Do not disclose which.",
+        "headers": {
+          "X-Request-Id": {
+            "$ref": "#/components/headers/RequestId"
+          },
+          "Cache-Control": {
+            "$ref": "#/components/headers/NoStore"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "NOT_FOUND",
+                "message": "Resource is unavailable.",
+                "requestId": "req_90212238",
+                "retryDisposition": "NEVER"
+              }
+            }
+          }
+        }
+      },
+      "E409": {
+        "description": "Idempotency conflict/in-progress, incompatible run state, UNKNOWN outcome, stale approval, incomplete review or mismatched/unverified evidence.",
+        "headers": {
+          "X-Request-Id": {
+            "$ref": "#/components/headers/RequestId"
+          },
+          "Cache-Control": {
+            "$ref": "#/components/headers/NoStore"
+          },
+          "Retry-After": {
+            "$ref": "#/components/headers/RetryAfter"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "INVALID_STATE",
+                "message": "Command is unavailable in the current state.",
+                "requestId": "req_90212238",
+                "retryDisposition": "NEVER"
+              }
+            }
+          }
+        }
+      },
+      "E410": {
+        "description": "Cursor expired or its retained event range has been removed; no silent omission of historical events.",
+        "headers": {
+          "X-Request-Id": {
+            "$ref": "#/components/headers/RequestId"
+          },
+          "Cache-Control": {
+            "$ref": "#/components/headers/NoStore"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "CURSOR_EXPIRED",
+                "message": "Cursor or required history is no longer available.",
+                "requestId": "req_90212238",
+                "retryDisposition": "NEVER"
+              }
+            }
+          }
+        }
+      },
+      "E412": {
+        "description": "Run revision/access scope changed. Re-read before deciding whether to issue a new command.",
+        "headers": {
+          "X-Request-Id": {
+            "$ref": "#/components/headers/RequestId"
+          },
+          "Cache-Control": {
+            "$ref": "#/components/headers/NoStore"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "PRECONDITION_FAILED",
+                "message": "Run changed; reload before issuing a new command.",
+                "requestId": "req_90212238",
+                "retryDisposition": "NEVER"
+              }
+            }
+          }
+        }
+      },
+      "E413": {
+        "description": "Request exceeds 65,536 UTF-8 bytes.",
+        "headers": {
+          "X-Request-Id": {
+            "$ref": "#/components/headers/RequestId"
+          },
+          "Cache-Control": {
+            "$ref": "#/components/headers/NoStore"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "PAYLOAD_TOO_LARGE",
+                "message": "Request exceeds the allowed byte limit.",
+                "requestId": "req_90212238",
+                "retryDisposition": "NEVER"
+              }
+            }
+          }
+        }
+      },
+      "E415": {
+        "description": "Expected application/json.",
+        "headers": {
+          "X-Request-Id": {
+            "$ref": "#/components/headers/RequestId"
+          },
+          "Cache-Control": {
+            "$ref": "#/components/headers/NoStore"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "UNSUPPORTED_MEDIA_TYPE",
+                "message": "Content-Type must be application/json.",
+                "requestId": "req_90212238",
+                "retryDisposition": "NEVER"
+              }
+            }
+          }
+        }
+      },
+      "E422": {
+        "description": "Valid JSON fails request schema, published input contract or release digest validation.",
+        "headers": {
+          "X-Request-Id": {
+            "$ref": "#/components/headers/RequestId"
+          },
+          "Cache-Control": {
+            "$ref": "#/components/headers/NoStore"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "INPUT_INVALID",
+                "message": "Input does not satisfy the published contract.",
+                "requestId": "req_90212238",
+                "retryDisposition": "NEVER"
+              }
+            }
+          }
+        }
+      },
+      "E428": {
+        "description": "A state-changing command requires If-Match.",
+        "headers": {
+          "X-Request-Id": {
+            "$ref": "#/components/headers/RequestId"
+          },
+          "Cache-Control": {
+            "$ref": "#/components/headers/NoStore"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "PRECONDITION_REQUIRED",
+                "message": "A current run If-Match value is required.",
+                "requestId": "req_90212238",
+                "retryDisposition": "NEVER"
+              }
+            }
+          }
+        }
+      },
+      "E429": {
+        "description": "Project/application queue, quota or rate limit exceeded. Request was not accepted; honor Retry-After.",
+        "headers": {
+          "X-Request-Id": {
+            "$ref": "#/components/headers/RequestId"
+          },
+          "Cache-Control": {
+            "$ref": "#/components/headers/NoStore"
+          },
+          "Retry-After": {
+            "$ref": "#/components/headers/RetryAfter"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "QUOTA_EXCEEDED",
+                "message": "Project or application quota is currently unavailable.",
+                "requestId": "req_90212238",
+                "retryDisposition": "SAME_KEY_ONLY"
+              }
+            }
+          }
+        }
+      },
+      "E503": {
+        "description": "Unavailable before confirmed acceptance, or acceptance status is uncertain. POST may only be retried with the same key and same body.",
+        "headers": {
+          "X-Request-Id": {
+            "$ref": "#/components/headers/RequestId"
+          },
+          "Cache-Control": {
+            "$ref": "#/components/headers/NoStore"
+          },
+          "Retry-After": {
+            "$ref": "#/components/headers/RetryAfter"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "TEMPORARILY_UNAVAILABLE",
+                "message": "Acceptance is unconfirmed; preserve the original idempotency key.",
+                "requestId": "req_90212238",
+                "retryDisposition": "SAME_KEY_ONLY"
+              }
+            }
+          }
+        }
+      },
+      "Internal": {
+        "description": "Unexpected server failure. Sanitized response. If POST acceptance is uncertain, only same-key/body retries are allowed.",
+        "headers": {
+          "X-Request-Id": {
+            "$ref": "#/components/headers/RequestId"
+          },
+          "Cache-Control": {
+            "$ref": "#/components/headers/NoStore"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "code": "INTERNAL_ERROR",
+                "message": "Request could not be confirmed.",
+                "requestId": "req_90212238",
+                "retryDisposition": "SAME_KEY_ONLY"
+              }
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Uuid": {
+        "type": "string",
+        "format": "uuid"
+      },
+      "Identifier": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128,
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+      },
+      "Digest": {
+        "type": "string",
+        "pattern": "^sha256:[a-f0-9]{64}$",
+        "description": "Transport form: sha256 prefix plus lowercase hex. Core Json.hash uses raw hex; DTO mapping adds/removes only the validated algorithm prefix without recomputing approval content."
+      },
+      "Revision": {
+        "type": "string",
+        "pattern": "^(0|[1-9][0-9]*)$",
+        "description": "Decimal string of the authoritative ledger revision; not a JavaScript number. Send the opaque ETag, not this field, in If-Match."
+      },
+      "JsonValue": {
+        "description": "JSON value. Entire HTTP request <= 65,536 UTF-8 bytes; nesting depth <= 16, enforced by service in addition to this schema. Published input/output schemas and field-level authorization also apply.",
+        "anyOf": [
+          {
+            "type": "null"
+          },
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "string",
+            "maxLength": 16384
+          },
+          {
+            "type": "array",
+            "maxItems": 64,
+            "items": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          },
+          {
+            "type": "object",
+            "maxProperties": 64,
+            "propertyNames": {
+              "maxLength": 128
+            },
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            }
+          }
+        ]
+      },
+      "ReleaseRef": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "agentId": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "releaseId": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "digest": {
+            "$ref": "#/components/schemas/Digest"
+          }
+        },
+        "required": [
+          "agentId",
+          "releaseId",
+          "digest"
+        ],
+        "description": "Immutable, pre-provisioned published release in the authenticated project. UUID and digest must identify the same release. No latest aliases, inline definitions, models, tools, credentials or endpoints."
+      },
+      "RunLimits": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "maxTokens": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000000
+          },
+          "maxModelCalls": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "maxToolCalls": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5000
+          },
+          "maxSteps": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000
+          },
+          "lifetimeSeconds": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 604800
+          }
+        },
+        "required": [],
+        "description": "Requested ceilings only. Effective limits are the minimum of caller ceiling, release policy and project/application grants. Omitted values use release/project defaults."
+      },
+      "CreateRunRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "releaseRef": {
+            "$ref": "#/components/schemas/ReleaseRef"
+          },
+          "inputs": {
+            "type": "object",
+            "maxProperties": 64,
+            "propertyNames": {
+              "maxLength": 128
+            },
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "description": "Validated against the immutable release input schema. Only declared variables accepted; no credential material or runtime configuration."
+          },
+          "limits": {
+            "$ref": "#/components/schemas/RunLimits"
+          },
+          "clientReference": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "description": "Optional non-secret business correlation label; never trusted as identity, permission or idempotency key."
+          }
+        },
+        "required": [
+          "releaseRef",
+          "inputs"
+        ],
+        "examples": [
+          {
+            "releaseRef": {
+              "agentId": "ops-readonly",
+              "releaseId": "bc2d667e-dfd8-4c09-9a38-c083344a5da7",
+              "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            "inputs": {
+              "question": "查询沙箱服务的状态"
+            },
+            "limits": {
+              "maxTokens": 20000,
+              "lifetimeSeconds": 600
+            },
+            "clientReference": "sandbox-check-20260915-01"
+          }
+        ]
+      },
+      "RunStatus": {
+        "type": "string",
+        "enum": [
+          "QUEUED",
+          "RUNNING",
+          "PAUSED",
+          "WAITING_APPROVAL",
+          "WAITING_INPUT",
+          "COMPLETED",
+          "FAILED",
+          "CANCELLED",
+          "EXPIRED",
+          "BUDGET_EXCEEDED",
+          "NEEDS_ATTENTION"
+        ]
+      },
+      "RunUsage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "chargedTokens": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "modelCalls": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "toolCalls": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "steps": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "accounting": {
+            "type": "string",
+            "enum": [
+              "CONSERVATIVE_LEDGER"
+            ],
+            "description": "Includes unresolved reservations. This is not an exact provider invoice or a hard billing cap."
+          }
+        },
+        "required": [
+          "chargedTokens",
+          "modelCalls",
+          "toolCalls",
+          "steps",
+          "accounting"
+        ]
+      },
+      "Controls": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "pauseRequested": {
+            "type": "boolean"
+          },
+          "cancelRequested": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "pauseRequested",
+          "cancelRequested"
+        ]
+      },
+      "OutputView": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "AVAILABLE",
+              "REDACTED",
+              "OMITTED"
+            ]
+          },
+          "value": {
+            "$ref": "#/components/schemas/JsonValue"
+          }
+        },
+        "required": [
+          "visibility"
+        ],
+        "description": "Only the published output projection is returned. value is present only when visibility=AVAILABLE. No internal history, tool receipts or provider errors. Aggregate output <=64KiB; larger output must be projected/redacted or withheld, never silently truncated as valid JSON.",
+        "if": {
+          "properties": {
+            "visibility": {
+              "const": "AVAILABLE"
+            }
+          },
+          "required": [
+            "visibility"
+          ]
+        },
+        "then": {
+          "required": [
+            "value"
+          ]
+        },
+        "else": {
+          "not": {
+            "required": [
+              "value"
+            ]
+          }
+        }
+      },
+      "Attention": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "OUTCOME_UNKNOWN",
+              "STATE_VERSION_INCOMPATIBLE",
+              "PROGRAM_UNAVAILABLE",
+              "OTHER_REQUIRES_OPERATOR"
+            ]
+          },
+          "invocationKind": {
+            "type": "string",
+            "enum": [
+              "MODEL",
+              "TOOL"
+            ]
+          },
+          "invocationRef": {
+            "$ref": "#/components/schemas/Identifier"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "description": "No retry is implied. Tool UNKNOWN may use the dedicated reconciliation endpoint; model UNKNOWN has no public resolution operation in v1."
+      },
+      "RunView": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "projectId": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "releaseRef": {
+            "$ref": "#/components/schemas/ReleaseRef"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RunStatus"
+          },
+          "revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "deadline": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "controls": {
+            "$ref": "#/components/schemas/Controls"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/RunUsage"
+          },
+          "limits": {
+            "$ref": "#/components/schemas/EffectiveRunLimits"
+          },
+          "clientReference": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "reasonCode": {
+            "type": "string",
+            "pattern": "^[A-Z0-9_]{1,100}$"
+          },
+          "output": {
+            "$ref": "#/components/schemas/OutputView"
+          },
+          "attention": {
+            "$ref": "#/components/schemas/Attention"
+          }
+        },
+        "required": [
+          "id",
+          "projectId",
+          "releaseRef",
+          "status",
+          "revision",
+          "createdAt",
+          "deadline",
+          "controls",
+          "usage",
+          "limits"
+        ],
+        "examples": [
+          {
+            "id": "51cf0f17-0d6a-4d04-bafb-417d558027f2",
+            "projectId": "ops-dev",
+            "releaseRef": {
+              "agentId": "ops-readonly",
+              "releaseId": "bc2d667e-dfd8-4c09-9a38-c083344a5da7",
+              "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            "status": "QUEUED",
+            "revision": "1",
+            "createdAt": "2026-09-15T02:00:00Z",
+            "deadline": "2026-09-15T02:10:00Z",
+            "controls": {
+              "pauseRequested": false,
+              "cancelRequested": false
+            },
+            "usage": {
+              "chargedTokens": 0,
+              "modelCalls": 0,
+              "toolCalls": 0,
+              "steps": 0,
+              "accounting": "CONSERVATIVE_LEDGER"
+            },
+            "limits": {
+              "maxTokens": 20000,
+              "maxModelCalls": 4,
+              "maxToolCalls": 8,
+              "maxSteps": 40,
+              "lifetimeSeconds": 600
+            }
+          }
+        ]
+      },
+      "RunSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "releaseRef": {
+            "$ref": "#/components/schemas/ReleaseRef"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RunStatus"
+          },
+          "revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "deadline": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "clientReference": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "id",
+          "releaseRef",
+          "status",
+          "revision",
+          "createdAt",
+          "deadline"
+        ]
+      },
+      "RunPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/RunSummary"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 2048
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "description": "Keyset order createdAt DESC,id DESC under a fixed created-before watermark. Membership authorization is rechecked on every page; status reflects page-read time, not a repeatable snapshot.",
+        "examples": [
+          {
+            "items": [
+              {
+                "id": "51cf0f17-0d6a-4d04-bafb-417d558027f2",
+                "releaseRef": {
+                  "agentId": "ops-readonly",
+                  "releaseId": "bc2d667e-dfd8-4c09-9a38-c083344a5da7",
+                  "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                },
+                "status": "QUEUED",
+                "revision": "1",
+                "createdAt": "2026-09-15T02:00:00Z",
+                "deadline": "2026-09-15T02:10:00Z"
+              }
+            ],
+            "nextCursor": null
+          }
+        ]
+      },
+      "EventView": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "sequence": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "RUN_CREATED",
+              "RUN_STATUS_CHANGED",
+              "CONTROL_ACCEPTED",
+              "APPROVAL_REQUESTED",
+              "APPROVAL_DECIDED",
+              "INVOCATION_STARTED",
+              "INVOCATION_FINISHED",
+              "INVOCATION_UNKNOWN",
+              "TOOL_RECONCILED"
+            ]
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RunStatus"
+          },
+          "invocationRef": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "reasonCode": {
+            "type": "string",
+            "pattern": "^[A-Z0-9_]{1,100}$"
+          }
+        },
+        "required": [
+          "sequence",
+          "type",
+          "at"
+        ],
+        "description": "Allowlisted public projection of durable events. No arbitrary core attributes, prompts, arguments, outputs, actor claims, exception messages or lease/fence fields."
+      },
+      "EventPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 200,
+            "items": {
+              "$ref": "#/components/schemas/EventView"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor",
+          "hasMore"
+        ],
+        "description": "Ascending ledger sequence. nextCursor always continues after the last scanned internal event, including filtered events. Persist it even for empty pages; poll again with it when hasMore=false.",
+        "examples": [
+          {
+            "items": [
+              {
+                "sequence": "1",
+                "type": "RUN_CREATED",
+                "at": "2026-09-15T02:00:00Z",
+                "status": "QUEUED"
+              }
+            ],
+            "nextCursor": "c1.example_signed_event_cursor",
+            "hasMore": false
+          }
+        ]
+      },
+      "AcceptedRun": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "run": {
+            "$ref": "#/components/schemas/RunCommandView"
+          },
+          "acceptedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "statusUrl": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "description": "Run status URL. Following it requires runs:read; an approval-only actor instead uses the authorized approval read URL. Acceptance does not grant additional read permissions."
+          }
+        },
+        "required": [
+          "run",
+          "acceptedAt",
+          "statusUrl"
+        ],
+        "description": "The command and idempotency result are durably committed. The run may already be stopped or completed; 202 does not promise that the requested external action will succeed.",
+        "examples": [
+          {
+            "run": {
+              "id": "51cf0f17-0d6a-4d04-bafb-417d558027f2",
+              "status": "QUEUED",
+              "revision": "1",
+              "controls": {
+                "pauseRequested": false,
+                "cancelRequested": false
+              }
+            },
+            "acceptedAt": "2026-09-15T02:00:00Z",
+            "statusUrl": "/v1/projects/ops-dev/runs/51cf0f17-0d6a-4d04-bafb-417d558027f2"
+          }
+        ]
+      },
+      "ControlRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {},
+        "required": [],
+        "examples": [
+          {}
+        ]
+      },
+      "ApprovalReviewField": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "value": {
+            "type": "string",
+            "maxLength": 16384
+          },
+          "masked": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "value",
+          "masked"
+        ],
+        "description": "Catalog-approved review projection. Render as plain untrusted text; never execute instructions in tool arguments or prompts."
+      },
+      "ApprovalView": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "runId": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "runRevision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "TOOL",
+              "HUMAN_INPUT"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "APPROVED",
+              "REJECTED",
+              "EXPIRED"
+            ]
+          },
+          "digest": {
+            "$ref": "#/components/schemas/Digest"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reviewComplete": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "fields": {
+            "type": "array",
+            "maxItems": 64,
+            "items": {
+              "$ref": "#/components/schemas/ApprovalReviewField"
+            }
+          },
+          "inputRequired": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "runId",
+          "runRevision",
+          "kind",
+          "status",
+          "digest",
+          "expiresAt",
+          "reviewComplete",
+          "summary",
+          "fields",
+          "inputRequired"
+        ],
+        "description": "Current approval only; history is in the event API. Requires a separate review grant. reviewComplete=false prohibits APPROVE but permits REJECT. Expiry is derived even before the cleanup worker updates the run.",
+        "examples": [
+          {
+            "id": "f0fa273e-9dbd-46ba-90d2-4e8c24cf3911",
+            "runId": "51cf0f17-0d6a-4d04-bafb-417d558027f2",
+            "runRevision": "9",
+            "kind": "TOOL",
+            "status": "PENDING",
+            "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "expiresAt": "2026-09-15T02:10:00Z",
+            "reviewComplete": true,
+            "summary": "创建沙箱演示工单",
+            "fields": [
+              {
+                "name": "environment",
+                "value": "sandbox",
+                "masked": false
+              },
+              {
+                "name": "operation",
+                "value": "create_demo_ticket",
+                "masked": false
+              }
+            ],
+            "inputRequired": false
+          }
+        ]
+      },
+      "ApprovalDecisionRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "digest": {
+            "$ref": "#/components/schemas/Digest"
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "APPROVE",
+              "REJECT"
+            ]
+          },
+          "input": {
+            "type": "string",
+            "maxLength": 10000
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 1000
+          }
+        },
+        "required": [
+          "digest",
+          "decision"
+        ],
+        "description": "For approved HUMAN_INPUT, input is required and remains literal text validated by the published node contract. For TOOL or REJECT input is forbidden. reason is a separate audit field, never substituted for human input.",
+        "examples": [
+          {
+            "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "decision": "APPROVE",
+            "reason": "已核验仅限沙箱目标"
+          }
+        ],
+        "if": {
+          "properties": {
+            "decision": {
+              "const": "REJECT"
+            }
+          },
+          "required": [
+            "decision"
+          ]
+        },
+        "then": {
+          "not": {
+            "required": [
+              "input"
+            ]
+          }
+        }
+      },
+      "UnknownInvocationView": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "runId": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "runRevision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "invocationRef": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "TOOL",
+              "MODEL"
+            ]
+          },
+          "invocationDigest": {
+            "$ref": "#/components/schemas/Digest"
+          },
+          "reconcilable": {
+            "type": "boolean"
+          },
+          "cancelRequested": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "runId",
+          "runRevision",
+          "invocationRef",
+          "kind",
+          "invocationDigest",
+          "reconcilable",
+          "cancelRequested",
+          "summary"
+        ],
+        "description": "Only returned for a persisted UNKNOWN invocation. invocationDigest binds run, local invocation, contract and arguments/request. No raw arguments or model request. MODEL always reconcilable=false.",
+        "examples": [
+          {
+            "runId": "51cf0f17-0d6a-4d04-bafb-417d558027f2",
+            "runRevision": "12",
+            "invocationRef": "inv_45e397558b",
+            "kind": "TOOL",
+            "invocationDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "reconcilable": true,
+            "cancelRequested": false,
+            "summary": "沙箱工单写入响应中断，需核验远端回执"
+          }
+        ]
+      },
+      "ToolReconciliationRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "invocationRef": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "invocationDigest": {
+            "$ref": "#/components/schemas/Digest"
+          },
+          "evidenceRef": {
+            "$ref": "#/components/schemas/Identifier"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          }
+        },
+        "required": [
+          "invocationRef",
+          "invocationDigest",
+          "evidenceRef",
+          "reason"
+        ],
+        "description": "Reference to an immutable, independently verified evidence record in this project. Server resolves authentic remote receipt and output. Client may not assert success, supply ToolResult, provider endpoint, credentials or arbitrary evidence URL. The exact run/invocation/contract/arguments and remote target must match.",
+        "examples": [
+          {
+            "invocationRef": "inv_45e397558b",
+            "invocationDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "evidenceRef": "evidence_sandbox_ticket_0042",
+            "reason": "已通过授权的只读对账器核验沙箱工单编号"
+          }
+        ]
+      },
+      "Error": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "INVALID_REQUEST",
+                  "UNAUTHENTICATED",
+                  "FORBIDDEN",
+                  "NOT_FOUND",
+                  "RELEASE_UNAVAILABLE",
+                  "RELEASE_DIGEST_MISMATCH",
+                  "IDEMPOTENCY_CONFLICT",
+                  "IDEMPOTENCY_IN_PROGRESS",
+                  "INVALID_STATE",
+                  "OUTCOME_UNKNOWN",
+                  "APPROVAL_STALE",
+                  "APPROVAL_REVIEW_INCOMPLETE",
+                  "EVIDENCE_NOT_VERIFIED",
+                  "EVIDENCE_MISMATCH",
+                  "PRECONDITION_FAILED",
+                  "PRECONDITION_REQUIRED",
+                  "CURSOR_INVALID",
+                  "CURSOR_EXPIRED",
+                  "PAYLOAD_TOO_LARGE",
+                  "UNSUPPORTED_MEDIA_TYPE",
+                  "INPUT_INVALID",
+                  "QUOTA_EXCEEDED",
+                  "TEMPORARILY_UNAVAILABLE",
+                  "INTERNAL_ERROR"
+                ]
+              },
+              "message": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "description": "Sanitized fixed message; no submitted values, raw exceptions, credentials or cross-project identifiers."
+              },
+              "requestId": {
+                "$ref": "#/components/schemas/Identifier"
+              },
+              "retryDisposition": {
+                "type": "string",
+                "enum": [
+                  "NEVER",
+                  "SAME_KEY_ONLY",
+                  "READ_AFTER_DELAY"
+                ],
+                "description": "Request recovery only, never tool replay. SAME_KEY_ONLY requires the original POST key/body; for a GET using this shared response it means READ_AFTER_DELAY without an idempotency key."
+              },
+              "details": {
+                "type": "array",
+                "maxItems": 20,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "field": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
+                    "code": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 64
+                    }
+                  },
+                  "required": [
+                    "field",
+                    "code"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "code",
+              "message",
+              "requestId",
+              "retryDisposition"
+            ]
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "examples": [
+          {
+            "error": {
+              "code": "PRECONDITION_FAILED",
+              "message": "Run changed; reload before issuing a new command.",
+              "requestId": "req_90212238",
+              "retryDisposition": "NEVER"
+            }
+          }
+        ]
+      },
+      "RunCommandView": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RunStatus"
+          },
+          "revision": {
+            "$ref": "#/components/schemas/Revision"
+          },
+          "controls": {
+            "$ref": "#/components/schemas/Controls"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "revision",
+          "controls"
+        ],
+        "description": "Minimal command checkpoint; deliberately contains no outputs, release contents or review fields. An approval-only actor is not thereby granted permission to read the full run."
+      },
+      "EffectiveRunLimits": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "maxTokens": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000000
+          },
+          "maxModelCalls": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "maxToolCalls": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5000
+          },
+          "maxSteps": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000
+          },
+          "lifetimeSeconds": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 604800
+          }
+        },
+        "required": [
+          "maxTokens",
+          "maxModelCalls",
+          "maxToolCalls",
+          "maxSteps",
+          "lifetimeSeconds"
+        ],
+        "description": "All authoritative effective ceilings after release/project/application policy is applied. These values are immutable for this run."
+      }
+    }
+  }
+}

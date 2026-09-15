@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "id": "engineering-v1",
+  "classification": "SYNTHETIC",
+  "documents": [
+    {"id":"eng-release", "scope":"engineering", "title":"Release checklist", "uri":"memory:/engineering/release", "text":"Release checklist: passing tests, reviewed changes, and a rollback plan are required."},
+    {"id":"eng-review", "scope":"engineering", "title":"Review policy", "uri":"memory:/engineering/review", "text":"Review policy: one independent reviewer checks correctness and compatibility."},
+    {"id":"finance-private", "scope":"finance", "title":"Release budget", "uri":"memory:/finance/private", "text":"FORBIDDEN_SYNTHETIC_FINANCE release budget data must not enter engineering context."}
+  ],
+  "scenarios": [
+    {
+      "id":"authorized-release-citations", "kind":"knowledge", "project":"engineering",
+      "question":"What does the release checklist require?", "toolName":"engineering_knowledge", "arguments":{"query":"release"},
+      "expectations":{"status":"COMPLETED","modelAttempts":2,"toolAttempts":1,"chargedTokens":60,"handlerCalls":1,"citationIds":["eng-release"],"citationUris":["memory:/engineering/release"],"answerUsesReturnedContext":true,"crossScopeContentAbsent":true}
+    },
+    {
+      "id":"different-project-has-no-source", "kind":"knowledge", "project":"support",
+      "question":"What does the release checklist require?", "toolName":"engineering_knowledge", "arguments":{"query":"release"},
+      "expectations":{"status":"COMPLETED","handlerCalls":1,"citationIds":[],"answerUsesReturnedContext":true,"crossScopeContentAbsent":true}
+    },
+    {
+      "id":"faulty-index-cannot-expand-scope", "kind":"knowledge", "project":"engineering", "faultyRetriever":true,
+      "question":"What is our development process?", "toolName":"engineering_knowledge", "arguments":{"query":"release review"},
+      "expectations":{"status":"COMPLETED","handlerCalls":1,"citationIds":["eng-release","eng-review"],"crossScopeContentAbsent":true}
+    },
+    {
+      "id":"model-cannot-supply-document-scope", "kind":"knowledge", "project":"engineering",
+      "question":"Find the release checklist", "toolName":"engineering_knowledge", "arguments":{"query":"release","scope":"finance"},
+      "expectations":{"status":"NEEDS_ATTENTION","stopReason":"TOOL_SCHEMA_VALIDATION_FAILED","handlerCalls":0,"toolAttempts":0,"citationIds":[],"crossScopeContentAbsent":true}
+    },
+    {
+      "id":"ungranted-tool-selection-is-rejected", "kind":"knowledge", "project":"engineering",
+      "question":"Find the release checklist", "toolName":"shell_execute", "arguments":{"command":"synthetic-never-executed"},
+      "expectations":{"status":"FAILED","stopReason":"MODEL_TOOL_NOT_GRANTED_OR_DUPLICATE","handlerCalls":0,"toolAttempts":0,"citationIds":[]}
+    },
+    {
+      "id":"approved-synthetic-write-executes-once", "kind":"write", "project":"engineering", "decision":"approve",
+      "expectations":{"status":"COMPLETED","modelAttempts":0,"toolAttempts":1,"effects":1,"approvalBlockedDispatch":true,"tamperedApprovalRejected":true,"reopenAndTicksDidNotRepeatWrite":true,"unknownObserved":false}
+    },
+    {
+      "id":"rejected-write-never-dispatches", "kind":"write", "project":"engineering", "decision":"reject",
+      "expectations":{"status":"FAILED","stopReason":"APPROVAL_REJECTED","toolAttempts":0,"effects":0,"approvalBlockedDispatch":true,"reopenAndTicksDidNotRepeatWrite":true}
+    },
+    {
+      "id":"lost-receipt-never-repeats-write", "kind":"write", "project":"engineering", "decision":"unknown",
+      "expectations":{"status":"NEEDS_ATTENTION","toolAttempts":1,"effects":1,"approvalBlockedDispatch":true,"unknownObserved":true,"unknownResumeRejected":true,"reopenAndTicksDidNotRepeatWrite":true}
+    },
+    {
+      "id":"sql-resume-cannot-reset-model-budget", "kind":"resume-budget", "project":"engineering",
+      "question":"Find the release checklist", "toolName":"engineering_knowledge", "arguments":{"query":"release"},
+      "expectations":{"status":"BUDGET_EXCEEDED","stopReason":"MODEL_CALL_BUDGET_EXCEEDED","modelAttempts":1,"toolAttempts":1,"chargedTokens":30,"handlerCalls":1,"budgetPreservedAcrossSqlReopen":true,"postRestartModelCalls":0}
+    }
+  ]
+}
