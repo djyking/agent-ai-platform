@@ -24,7 +24,7 @@
 
 审核员使用自己的现有身份，授予 `approvals:read`、`approvals:review`、`approvals:decide`，并在发布的 ToolPolicy `approvers` 中精确指定 `applicationId/subject`。示例 `support-pilot/20` 只适用于对应应用及真实用户号；控制台中的同号用户是 `platform-console/20`，不会自动继承这个审批分配。普通审核员可以直接读取审批投影，不必获授跨所有者的完整 Run 读取权。UNKNOWN 核对还需 `runs:reconcile:read` / `runs:reconcile`，仅对受信操作人员授予。
 
-Ops 身份桥的生产类 `HarnessIdentityService` 已有 `runs:admin` 白名单；阶段三另外需要上述四个 catalog 项。先确认已有阶段二身份桥、授权表及领域接入，再在 Ops 仓库用 `git apply --check <patch-path>` 检查增量补丁；已包含该修正的部署不用重复应用。补丁只改权限白名单和相关测试，不注册用户、不写真实 grant、不改变角色/委托上限规则。
+Ops 身份桥的生产类 `HarnessIdentityService` 已有 `runs:admin` 白名单；阶段三另外需要上述四个 catalog 项。先确认已有阶段二身份桥、授权表及领域接入，再在 Ops 仓库用 `git apply --check --ignore-space-change <patch-path>` 检查增量补丁；已包含该修正的部署不用重复应用。补丁只改权限白名单和相关测试，不注册用户、不写真实 grant、不改变角色/委托上限规则。
 
 ## 平台受信部署配置
 

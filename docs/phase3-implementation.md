@@ -1,6 +1,6 @@
 # 阶段三实施记录
 
-2026-09-18。基线 `0d5d06f79c7fa45632a09968302ba52bb1319499`，开发分支 `develop/harness-phase3`。功能与本机主要链路已完成，最终验收收尾与 CI 状态见本页末尾；没有合并到 `main`。
+2026-09-18。阶段三本机内部 MVP 已完成。基线 `0d5d06f79c7fa45632a09968302ba52bb1319499`，开发分支 `develop/harness-phase3`；没有合并到 `main`。
 
 ## 用户已确认的范围
 
@@ -51,7 +51,7 @@ OpsAgent 生产侧本轮仅扩展 `HarnessIdentityService` 的四项目录权限
 
 | 验证 | 结果与证据 |
 |---|---|
-| Java 完整构建 | `mvnw.cmd clean verify`，240 项通过，0 失败/错误/跳过 |
+| Java 完整构建 | 本机240项完整构建及新增公开样例1项通过；最终代码在 Linux/Windows 完整 CI 验证241项，0失败/错误/跳过 |
 | 控制台行为 | 16 项通过，TypeScript 与 Vite 生产构建通过；含 CSRF/ETag/幂等、不确定写入、精确资源重读、版本排序和只读权限 |
 | 后端安全专项 | 26 项通过；完整登录响应 deadline/体积/重定向、隐藏字段与重复键、身份头替换、重复 Origin/Cookie、trace 隔离与日志脱敏 |
 | 现有 Ops 身份 | 生产目标测试 7 项通过；隔离真实 Auth/RAG/Knowledge 16 项通过 |
@@ -93,4 +93,8 @@ OpsAgent 生产侧本轮仅扩展 `HarnessIdentityService` 的四项目录权限
 
 ## 最终交付状态
 
-本机阶段三范围验收已完成，包括两个业务调用方、控制台、目录发布、审批、UNKNOWN、真实模型、备份恢复；公开样例追加1项测试通过，因此 Java 已验证用例合计241项。等待当前提交的 Linux/Windows/API 远端 CI；未合并 main，未生产部署，第四阶段未启动。
+本机阶段三范围验收已完成，包括两个业务调用方、控制台、目录发布、审批、UNKNOWN、真实模型、备份恢复。代码提交 `75c50ca90db4c846eb55a428edd9a408b58e7a78` 的 [GitHub CI](https://github.com/djyking/agent-ai-platform/actions/runs/35318189003) 三项全部成功：Linux、Windows、API 合同。Java 241项、控制台16项及客服 DOM 10项随 CI 检查；[远端证据](validation/20260918/phase3-ci.json) 绑定准确代码提交。
+
+普通 Git HTTPS 推送遇到连接重置，最终通过 GitHub Git Data API 上传完全相同的 blob/tree/commit，核对 SHA 后以非 force 更新 `develop/harness-phase3`。GitHub Actions actor 为 `djyking`；API/MCP 是调用方式，不决定仓库推送身份。截图所示 `openai/codex published releases` 是 GitHub 动态中的另一个仓库发布记录，不是本仓库的提交身份。
+
+未合并 main，未生产部署，第四阶段未启动。真实模型传输 UNKNOWN 的诊断限制和保留记录已在上文披露，不将其包装成供应商全部调用成功。
