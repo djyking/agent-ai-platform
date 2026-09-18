@@ -1,12 +1,12 @@
 # 平台本机运行与恢复
 
-适用于本仓库 `harness-platform-service` 的阶段二内部试用版本。核心和 SQL 状态版本仍为 1；平台新增 `platform` SQL 版本 1，不修改已有 SDK Run。部署示例见 [deployment.example.json](../deploy/platform/deployment.example.json)。
+适用于本仓库 `harness-platform-service` 的内部试用版本。核心和平台 SQL 状态版本仍为 1；阶段三增加独立 `catalog=1` 组件及诊断 trace 表，不修改已有 SDK Run。阶段二部署示例见 [deployment.example.json](../deploy/platform/deployment.example.json)，完整控制台与独立试点配置见 [阶段三部署说明](phase3-deployment.md)。
 
 ## 启动与身份
 
-1. 使用 Java 17，执行 `mvnw.cmd clean verify`。可执行包为 `harness-platform-service/target/harness-platform-service-0.1.0-SNAPSHOT.jar`。
+1. 使用 Java 17、Node.js 24 LTS（至少 24.15.0）与 pnpm 11.19.0，执行 `deploy/platform/build.ps1`，先构建前端再验证、打包 Java。可执行包为 `harness-platform-service/target/harness-platform-service-0.1.0-SNAPSHOT.jar`。直接运行 `mvnw.cmd clean verify` 只验证 Java；全新检出若未先构建前端，不会包含控制台资源。
 2. 准备专用 MySQL 8.0 数据库，使用 InnoDB。首次启动会幂等创建 core/platform 表；DDL 是启动管理动作，不参与 Run 命令事务。平台显式 DDL 见 [V001__platform.sql](../deploy/platform/V001__platform.sql)，核心 DDL 以 `JdbcRunStore.initializeSchema` 为准。身份列使用区分大小写的 `utf8mb4_bin`；未知版本或旧的不兼容排序规则拒绝启动，不能自动改版本号。
-3. 配置现有 OpsAgent Auth 身份桥、应用凭据摘要、项目/用户授权。平台没有注册、登录、密码库。凭据通过 `env:NAME` 或 `file:absolute-path` 解析，不能写在 manifest、Run 输入、Git 或命令行中。
+3. 配置现有 OpsAgent Auth 身份桥、应用凭据摘要、项目/用户授权。平台不维护用户或密码库；控制台登录由服务端转发至固定的现有身份服务。凭据通过 `env:NAME` 或 `file:absolute-path` 解析，不能写在 manifest、Run 输入、Git 或命令行中。
 4. 设置 `HARNESS_CONFIG`、`HARNESS_JDBC_URL`、`HARNESS_JDBC_USER`、`HARNESS_JDBC_PASSWORD`。示例还需要 `HARNESS_SIGNING_KEY`（至少 32 字符）与 `HARNESS_APP_CREDENTIAL`。保护环境文件/密钥文件的本机 ACL。
 5. `java -jar <jar> releases <manifest>` 离线输出每个发布的 `releaseRef`；然后 `deploy/platform/start.ps1 -Config <manifest> -Port 8097`。默认只监听 `127.0.0.1`；本阶段验收不开放公网。
 
@@ -30,7 +30,7 @@ manifest 是受信部署文件，不是公开 API 输入。每份 release 包含
 
 项目及应用的活跃 Run 数和预留 token 在创建事务内检查；共享 SQL 槽限制全局/项目派发并发。等待、暂停、UNKNOWN 仍占预留；终态不再占用。没有自动提高上限。lease 必须大于工具/模型本地超时加提交余量。远端忽略中断时可能继续运行，平台不能把本地超时或槽回收等同于远端停止。
 
-`GET /health` 实际执行数据库探测。每个 HTTP 响应有 `X-Request-Id` 和 no-store；操作日志含 run/invocation/attempt/trace ID，不记录参数、prompt、凭据或正文。当前没有部署集中 OTel 收集器或管理控制台。正常停机应给进程至少 `leaseMillis + 5 秒`，停止新领取、等待正在执行的调用；强制结束进程后保留 SQL 状态，通过租约/fence 恢复，未知写不能自动重发。
+`GET /health` 实际执行数据库探测。每个 API 响应有 `X-Request-Id` 和 no-store；操作日志含 run/invocation/attempt/trace ID，不记录参数、prompt、凭据或正文。控制台展示共享 SQL 中的诊断 trace；崩溃可能缺失结束 span，持久 Run 事件仍是审计依据。当前没有部署外部集中 OTel 收集器。正常停机应给进程至少 `leaseMillis + 5 秒`，停止新领取、等待正在执行的调用；强制结束进程后保留 SQL 状态，通过租约/fence 恢复，未知写不能自动重发。
 
 ## UNKNOWN 与独立证据
 
@@ -49,5 +49,7 @@ manifest 是受信部署文件，不是公开 API 输入。每份 release 包含
 5. 恢复应用签名密钥与身份委托库；丢失密钥使旧 ETag/游标失效，丢失委托或撤权会阻止后续执行，不能生成新权限绕过。恢复演练只证明该次隔离样本，不代表生产 RPO/RTO 已达标。
 
 使用 PowerShell 7 的 [restore-proof.ps1](../deploy/platform/restore-proof.ps1) 可在停止写入后复现“新建隔离库、恢复、逐表哈希比较”；脚本不会覆盖原库或启动恢复 worker。
+
+阶段三备份还必须包括四张 `catalog_*` 表、共享 `platform_releases` 和 `harness_platform_trace`。恢复脚本自动检测并比较目录与 trace，共 15 个表组。不要只备份当前默认版本；既有 Run、历史审批与目录依赖均绑定不可变版本。控制台会话仅保存在进程内，重启后重新登录，不从数据库恢复浏览器会话。
 
 本机进程验收脚本见 `validation/platform/`；真实 GitHub 写与 DeepSeek 质量基线另见 `docs/validation/20260918/`，不要用合成进程 fixture 冒充外部服务质量。

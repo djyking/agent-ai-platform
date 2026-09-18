@@ -16,6 +16,8 @@
     <module>harness-evals</module>
     <module>harness-validation</module>
     <module>harness-platform-service</module>
+    <module>harness-platform-client</module>
+    <module>support-pilot</module>
   </modules>
   <properties>
     <maven.compiler.release>17</maven.compiler.release>

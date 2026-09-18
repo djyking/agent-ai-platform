@@ -1,0 +1,106 @@
+{
+  "status": "passed",
+  "at": "2026-09-18T07:04:11.412049+00:00",
+  "method": "CUA actual browser interactions plus read-only HTTP evidence",
+  "platformJarSha256": "dd9968039b2734658c081e65394ed7e1e4bcdc83e35b2c5e504f5a9c3503c3c5",
+  "supportJarSha256": "266a7314127ecc1548deadc8991aa6dfc66c8d3738051c9b59b224d2d7293613",
+  "consoleChecks": [
+    "existing_ops_username_password_captcha_login",
+    "existing_jwt_session_login_after_restart",
+    "workflow_structured_create_save_validate_publish",
+    "immutable_version_and_v1_v2_comparison",
+    "project_switch_and_effective_identity_permissions",
+    "actual_run_output_events_and_persisted_trace",
+    "unknown_independent_evidence_reconciliation_then_explicit_resume"
+  ],
+  "supportChecks": [
+    "independent_operator_session",
+    "discover_catalog_default_v2",
+    "submit_question",
+    "pause_and_resume",
+    "independent_reviewer_session",
+    "exact_run_revision_digest_shown",
+    "human_input_decision",
+    "completed_answer"
+  ],
+  "runs": [
+    {
+      "role": "transport_unknown",
+      "id": "ad15c9d1-e10c-4337-bfe5-2565c44ebe1d",
+      "status": "NEEDS_ATTENTION",
+      "releaseRef": {
+        "agentId": "support-assistant",
+        "releaseId": "b9f7e475-61d3-42e4-b12e-694be8f4b755",
+        "digest": "sha256:20669c0222ccdc6287fce754e7d66e188b750217a06506d259d5c3de33ae09e1"
+      },
+      "usage": {
+        "chargedTokens": 1999,
+        "modelCalls": 1,
+        "toolCalls": 1,
+        "steps": 5,
+        "accounting": "CONSERVATIVE_LEDGER"
+      },
+      "outputVisibility": "OMITTED",
+      "outputDigest": "377f431863f87331691c5aff0879a395b8a9484286b764c71577da7697c3fa8a",
+      "trace": [
+        {
+          "operation": "TOOL",
+          "outcome": "SUCCESS",
+          "durationMillis": 25
+        },
+        {
+          "operation": "MODEL",
+          "outcome": "UNKNOWN",
+          "durationMillis": 19418
+        }
+      ]
+    },
+    {
+      "role": "successful_new_request",
+      "id": "ea8d781f-e617-4cd5-b2f2-7e68db604e7e",
+      "status": "COMPLETED",
+      "releaseRef": {
+        "agentId": "support-assistant",
+        "releaseId": "b9f7e475-61d3-42e4-b12e-694be8f4b755",
+        "digest": "sha256:20669c0222ccdc6287fce754e7d66e188b750217a06506d259d5c3de33ae09e1"
+      },
+      "usage": {
+        "chargedTokens": 166,
+        "modelCalls": 1,
+        "toolCalls": 1,
+        "steps": 7,
+        "accounting": "CONSERVATIVE_LEDGER"
+      },
+      "outputVisibility": "AVAILABLE",
+      "outputDigest": "9641bebca998fa7774427d17682d31f576daebd1790e9abdc90c6947f4cbeec4",
+      "trace": [
+        {
+          "operation": "TOOL",
+          "outcome": "SUCCESS",
+          "durationMillis": 36
+        },
+        {
+          "operation": "MODEL",
+          "outcome": "SUCCESS",
+          "durationMillis": 1706
+        }
+      ]
+    }
+  ],
+  "boundaries": {
+    "syntheticBusinessOnly": true,
+    "productionDeployment": false,
+    "unknownModelAutomaticallyRetried": false
+  },
+  "modelIncident": {
+    "runId": "ad15c9d1-e10c-4337-bfe5-2565c44ebe1d",
+    "persistedTimeoutMillis": 60000,
+    "failureCode": "MODEL_CALL_OUTCOME_UNKNOWN",
+    "phase": "UNKNOWN",
+    "attempts": 1,
+    "tokenReservation": 1999,
+    "observedDurationMillis": 19418,
+    "cause": "HTTP transport exception; exact exception subtype not retained",
+    "note": "1999 is a conservative ledger reservation, not confirmed supplier token usage. Original invocation was not retried."
+  }
+}

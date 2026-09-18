@@ -66,6 +66,11 @@ public class PlatformApplication {
   }
 
   @Bean
+  public CatalogService catalogService(PlatformRuntime runtime) {
+    return runtime.catalog;
+  }
+
+  @Bean
   public ApplicationRunner workerStart(PlatformRuntime runtime) {
     return args -> runtime.start();
   }

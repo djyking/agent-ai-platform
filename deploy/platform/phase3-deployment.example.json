@@ -1,0 +1,241 @@
+{
+  "identityOrigin": "http://127.0.0.1:18081/",
+  "signingSecret": "env:HARNESS_SIGNING_KEY",
+  "applicationSecrets": {
+    "platform-console": "env:HARNESS_CONSOLE_APP_CREDENTIAL",
+    "opsagent-pilot": "env:HARNESS_OPS_APP_CREDENTIAL",
+    "support-pilot": "env:SUPPORT_APPLICATION_SECRET"
+  },
+  "projects": [
+    {
+      "id": "ops-dev",
+      "applications": [
+        "platform-console",
+        "opsagent-pilot"
+      ],
+      "maxActiveRuns": 20,
+      "maxReservedTokens": 160000,
+      "maxActiveRunsPerApplication": 10,
+      "maxReservedTokensPerApplication": 80000,
+      "concurrency": 2
+    },
+    {
+      "id": "support-pilot",
+      "applications": [
+        "platform-console",
+        "support-pilot"
+      ],
+      "maxActiveRuns": 20,
+      "maxReservedTokens": 160000,
+      "maxActiveRunsPerApplication": 10,
+      "maxReservedTokensPerApplication": 80000,
+      "concurrency": 2
+    }
+  ],
+  "releases": [
+    {
+      "projectId": "ops-dev",
+      "agentId": "ops-readonly",
+      "releaseId": "a84b024d-0910-4be2-843b-c1367b651fcf",
+      "model": null,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "topK": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20
+          }
+        },
+        "required": [
+          "query",
+          "topK"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "required": [
+          "evidence",
+          "citations"
+        ],
+        "properties": {
+          "evidence": {
+            "type": "string"
+          },
+          "citations": {
+            "type": "array",
+            "maxItems": 20
+          }
+        },
+        "additionalProperties": false
+      },
+      "toolKeys": [
+        "opsagent/rag-search"
+      ],
+      "executionPermissions": [
+        "tool:opsagent/rag-search",
+        "opsagent:rag:search"
+      ],
+      "approvers": [
+        "opsagent-pilot/20"
+      ],
+      "reviewFields": [],
+      "humanInputSchema": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1000
+      },
+      "publicOutput": false,
+      "limits": {
+        "maxTokens": 8000,
+        "maxModelCalls": 2,
+        "maxToolCalls": 4,
+        "maxSteps": 30,
+        "lifetimeSeconds": 3600
+      },
+      "workflow": {
+        "id": "ops-knowledge",
+        "version": "1",
+        "start": "search",
+        "maxTransitions": 5,
+        "nodes": {
+          "search": {
+            "kind": "tool",
+            "toolName": "opsagent/rag-search",
+            "argumentsJson": "{}",
+            "argumentBindings": {
+              "query": "query",
+              "topK": "topK"
+            },
+            "output": "result",
+            "next": "end"
+          },
+          "end": {
+            "kind": "end",
+            "output": "result"
+          }
+        }
+      }
+    },
+    {
+      "projectId": "support-pilot",
+      "agentId": "bootstrap-support-bindings",
+      "releaseId": "d7171780-92ba-4aaa-938c-fc8bc4fd651f",
+      "workflow": {
+        "id": "bootstrap-support-bindings",
+        "version": "1",
+        "start": "end",
+        "maxTransitions": 2,
+        "nodes": {
+          "end": {
+            "kind": "end",
+            "output": "question"
+          }
+        }
+      },
+      "model": {
+        "id": "trusted-support-deepseek",
+        "provider": "deepseek",
+        "model": "deepseek-v4-pro",
+        "contextTokens": 32768,
+        "maxOutputTokens": 512,
+        "timeoutMillis": 15000,
+        "parameters": {}
+      },
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "question"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "string"
+      },
+      "toolKeys": [
+        "support:faq"
+      ],
+      "executionPermissions": [
+        "tool:support:faq",
+        "model:invoke"
+      ],
+      "approvers": [
+        "support-pilot/20"
+      ],
+      "reviewFields": [],
+      "humanInputSchema": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 2000
+      },
+      "publicOutput": true,
+      "limits": {
+        "maxTokens": 8000,
+        "maxModelCalls": 2,
+        "maxToolCalls": 4,
+        "maxSteps": 30,
+        "lifetimeSeconds": 1800
+      }
+    }
+  ],
+  "disabledReleases": [
+    "support-pilot/d7171780-92ba-4aaa-938c-fc8bc4fd651f"
+  ],
+  "tools": [
+    {
+      "kind": "opsagent-rag",
+      "origin": "http://127.0.0.1:18083/",
+      "projects": [
+        "ops-dev"
+      ]
+    },
+    {
+      "kind": "lexical-rag",
+      "key": "support:faq",
+      "modelName": "support_faq",
+      "projects": [
+        "support-pilot"
+      ],
+      "documents": [
+        {
+          "id": "synthetic-order-faq",
+          "scope": "support-pilot",
+          "title": "订单什么时候发货？",
+          "uri": "https://example.invalid/support/order",
+          "text": "合成客服规则：示例订单付款后两个工作日内安排发货。此规则只用于试点，不代表真实商家的承诺。"
+        },
+        {
+          "id": "synthetic-return-faq",
+          "scope": "support-pilot",
+          "title": "可以申请退货吗？",
+          "uri": "https://example.invalid/support/returns",
+          "text": "合成售后规则：先核验示例订单号、收货时间和商品状态，再由人工说明适用政策。系统不发起真实退款。"
+        }
+      ]
+    }
+  ],
+  "models": [
+    {
+      "kind": "deepseek",
+      "provider": "deepseek",
+      "endpoint": "https://api.deepseek.com/chat/completions",
+      "secretRef": "env:HARNESS_DEEPSEEK_API_KEY"
+    }
+  ],
+  "concurrency": 2,
+  "leaseMillis": 90000,
+  "workerEnabled": true
+}

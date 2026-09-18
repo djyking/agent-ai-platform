@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "kind": "local-phase3-ops-catalog-business-ingress",
+  "startedAt": "2026-09-18T06:52:58.203941+00:00",
+  "label": "20260918-065258-3563e7",
+  "status": "passed",
+  "cases": [
+    {
+      "name": "business_agent_published_from_exact_catalog_source",
+      "status": "passed",
+      "sourceVersion": 1,
+      "ingressVersion": 1,
+      "identicalSpec": true,
+      "identicalFrozenCases": true,
+      "validationMode": "FROZEN_REPLAY_NO_EXTERNAL_CALLS",
+      "caseCount": 1
+    },
+    {
+      "name": "same_endpoint_reload_to_catalog_release",
+      "status": "passed",
+      "newRequestOwner": "HARNESS",
+      "identityPreserved": true,
+      "endpointsPreserved": true
+    },
+    {
+      "name": "business_ingress_completes_exact_catalog_release",
+      "status": "passed",
+      "runId": "dadfd8ba-0bd6-4160-a8d6-4e90dfcd17b6",
+      "releaseRef": {
+        "agentId": "ops-readonly",
+        "releaseId": "2488666d-334a-4d3a-982c-8f4f5aee0e0e",
+        "digest": "sha256:65bb82666dbb41e2bfa29528b823b6c03fc7657835f2f7914fbd36200061ae8a"
+      },
+      "runStatus": "COMPLETED",
+      "citationCount": 2,
+      "usage": {
+        "chargedTokens": 0,
+        "modelCalls": 0,
+        "toolCalls": 1,
+        "steps": 3,
+        "accounting": "CONSERVATIVE_LEDGER"
+      },
+      "outputDigest": "sha256:f2719bda9b9e05c34bac0187003cbbed52d195c317387de8806e97a18b78e2e4"
+    },
+    {
+      "name": "business_request_id_pins_one_run_and_changed_body_conflicts",
+      "status": "passed",
+      "runId": "dadfd8ba-0bd6-4160-a8d6-4e90dfcd17b6",
+      "repeatedRequestStatus": 202,
+      "changedBodyStatus": 409
+    }
+  ],
+  "runs": {
+    "opsIngress": "dadfd8ba-0bd6-4160-a8d6-4e90dfcd17b6"
+  },
+  "releases": {
+    "source": {
+      "agentId": "ops-knowledge-agent",
+      "releaseId": "13274b27-e61a-4d42-9e38-dbd4d54a469d",
+      "digest": "sha256:0614e481b1398edd0f79cb7bc46b4dd93a3c358fb90bff37f1d8ef012cf0a6de"
+    },
+    "ingress": {
+      "agentId": "ops-readonly",
+      "releaseId": "2488666d-334a-4d3a-982c-8f4f5aee0e0e",
+      "digest": "sha256:65bb82666dbb41e2bfa29528b823b6c03fc7657835f2f7914fbd36200061ae8a"
+    }
+  },
+  "scope": {
+    "mysqlBacked": true,
+    "existingIdentity": true,
+    "syntheticKnowledgeOnly": true,
+    "liveModelRunCountPlanned": 0,
+    "productionCutover": false,
+    "originalProductionBootConfiguration": false,
+    "databaseCleared": false,
+    "frozenReplayHasExternalEffects": false,
+    "sameRagEndpointReload": true,
+    "finalNewRequestOwner": "HARNESS",
+    "identityHostRestarted": false
+  },
+  "suppliedPlatformJarSha256": "dd9968039b2734658c081e65394ed7e1e4bcdc83e35b2c5e504f5a9c3503c3c5",
+  "sourceCatalogReport": "phase3-catalog-acceptance.json",
+  "httpRequests": 17,
+  "updatedAt": "2026-09-18T06:52:59.934373+00:00",
+  "passed": 4,
+  "completedAt": "2026-09-18T06:52:59.934373+00:00"
+}

@@ -31,9 +31,11 @@ public final class IsolatedBridgeMain {
         Path metadata = Path.of(config.path("metadataFile").asText()).toAbsolutePath();
         Path stop = Path.of(config.path("stopFile").asText()).toAbsolutePath();
         if (Files.exists(metadata) || Files.exists(stop)) throw new IllegalArgumentException("Fresh runtime paths required");
-        try (var auth = new IsolatedSqlAuthHost(ds, internalSecret, application, loginSecret);
+        try (var auth = new IsolatedSqlAuthHost(ds, internalSecret, application, loginSecret,
+                     config.path("browserPassword").isTextual() ? config.path("browserPassword").asText() : null);
              var knowledge = new IsolatedKnowledgeHost(internalSecret, auth.origin(), ds)) {
             prepareAcceptanceGrants(auth.jdbc());
+            prepareConfiguredGrants(auth.jdbc(), config);
             IsolatedRagHost rag = new IsolatedRagHost(internalSecret, auth.origin(), knowledge.origin(),
                     ingress(config, ds, loginSecret, application));
             try {
@@ -76,6 +78,33 @@ public final class IsolatedBridgeMain {
     }
 
     private static String random() { return UUID.randomUUID().toString() + UUID.randomUUID(); }
+
+    private static void prepareConfiguredGrants(org.springframework.jdbc.core.JdbcTemplate jdbc,
+            com.fasterxml.jackson.databind.JsonNode config) {
+        for (var app : config.path("additionalApplications")) {
+            String id = app.path("id").asText(), credential = app.path("credential").asText();
+            if (!id.matches("[a-z][a-z0-9-]{0,63}") || credential.length() < 32)
+                throw new IllegalArgumentException("Invalid isolated application configuration");
+            String hash = java.util.HexFormat.of().formatHex(sha256(credential));
+            int count = jdbc.update("UPDATE ops_harness_application SET credential_hash=?,enabled=1 WHERE application_id=?", hash, id);
+            if (count == 0) jdbc.update("INSERT INTO ops_harness_application VALUES(?,?,1)", id, hash);
+            for (var grant : app.path("grants")) {
+                String project = grant.path("project").asText();
+                long user = grant.path("user").asLong();
+                if (!project.matches("[a-z][a-z0-9-]{0,63}") || (user != 10 && user != 20) || !grant.path("permissions").isArray())
+                    throw new IllegalArgumentException("Invalid isolated application grant");
+                String scopes = Json.write(grant.path("permissions"));
+                int changed = jdbc.update("UPDATE ops_harness_grant SET permissions_json=?,enabled=1 WHERE application_id=? AND project_id=? AND user_id=?",
+                        scopes, id, project, user);
+                if (changed == 0) jdbc.update("INSERT INTO ops_harness_grant VALUES(?,?,?,'USER',?,1)", id, project, user, scopes);
+            }
+        }
+    }
+
+    private static byte[] sha256(String value) {
+        try { return java.security.MessageDigest.getInstance("SHA-256").digest(value.getBytes(java.nio.charset.StandardCharsets.UTF_8)); }
+        catch (java.security.NoSuchAlgorithmException impossible) { throw new IllegalStateException(impossible); }
+    }
 
     private static void prepareAcceptanceGrants(org.springframework.jdbc.core.JdbcTemplate jdbc) {
         String owner = "[\"runs:create\",\"runs:read\",\"runs:list\",\"runs:events:read\",\"runs:control\","

@@ -24,6 +24,11 @@ public final class PlatformService {
   private final IdentityProvider identities;
   private final SignedTokens tokens;
   private final Clock clock;
+  private CatalogService catalog;
+
+  public void catalog(CatalogService catalog) {
+    this.catalog = Objects.requireNonNull(catalog);
+  }
 
   public PlatformService(
       Deployment config,
@@ -114,7 +119,10 @@ public final class PlatformService {
       return replay(previous, digest);
     }
     JsonNode ref = body.path("releaseRef");
-    Deployment.Release release = config.release(p.project(), ref.path("releaseId").asText());
+    Deployment.Release release =
+        catalog == null
+            ? config.release(p.project(), ref.path("releaseId").asText())
+            : catalog.releaseForRun(p.project(), ref.path("releaseId").asText());
     if (!release.agentId().equals(ref.path("agentId").asText()))
       throw new ApiFailure(404, "RELEASE_UNAVAILABLE");
     if (!release.digest().equals(ref.path("digest").asText()))
@@ -139,6 +147,7 @@ public final class PlatformService {
           repository.lockProject(c, p.project());
           Command race = repository.command(c, hash);
           if (race != null) return replay(race, digest);
+          if (catalog != null) catalog.requireNewRun(c, p.project(), release.releaseId());
           repository.admit(c, config.project(p.project()), p.application(), limits.maxTokens());
           Duration remaining =
               Duration.between(clock.instant(), delegationDeadline).minusMillis(50);

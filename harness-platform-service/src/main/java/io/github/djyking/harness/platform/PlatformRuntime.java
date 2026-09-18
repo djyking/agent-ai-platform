@@ -21,6 +21,8 @@ public final class PlatformRuntime implements AutoCloseable {
   public final PlatformRepository repository;
   public final Harness harness;
   public final PlatformService service;
+  public final CatalogService catalog;
+  public final PlatformTrace traces;
   public final PlatformWorker worker;
   private final List<AutoCloseable> connections = new ArrayList<>();
 
@@ -121,53 +123,29 @@ public final class PlatformRuntime implements AutoCloseable {
         default -> throw new IllegalArgumentException("Unsupported configured tool adapter");
       }
     }
-    for (Deployment.Release release : config.releases()) {
-      for (var node : release.workflow().nodes().values()) {
-        if (node
-                instanceof
-                io.github.djyking.harness.capabilities.workflow.WorkflowDefinition.Tool tool
-            && !release.toolKeys().contains(tool.toolName()))
-          throw new IllegalArgumentException("Workflow tool is outside release capabilities");
-        if (node
-                instanceof
-                io.github.djyking.harness.capabilities.workflow.WorkflowDefinition.Agent agent
-            && !release.toolKeys().containsAll(agent.allowedTools()))
-          throw new IllegalArgumentException("Nested agent tools are outside release capabilities");
-        if ((node
-                    instanceof
-                    io.github.djyking.harness.capabilities.workflow.WorkflowDefinition.Model
-                || node
-                    instanceof
-                    io.github.djyking.harness.capabilities.workflow.WorkflowDefinition.Agent)
-            && (release.model() == null
-                || !release.executionPermissions().contains("model:invoke")))
-          throw new IllegalArgumentException("Workflow model and permission required");
-      }
-      if (release.model() != null
-          && config.models().stream()
-              .noneMatch(m -> m.path("provider").asText().equals(release.model().provider())))
-        throw new IllegalArgumentException("Release model provider unavailable");
-      for (ToolDescriptor descriptor : tools.snapshot(release.toolKeys())) {
-        if (!release.executionPermissions().contains("tool:" + descriptor.key())
-            || !release
-                .executionPermissions()
-                .containsAll(descriptor.policy().requiredPermissions()))
-          throw new IllegalArgumentException("Release missing tool permissions");
-        if (descriptor.policy().timeoutMillis() + 1000 >= config.leaseMillis())
-          throw new IllegalArgumentException("Tool deadline must fit worker lease");
-      }
-      if (release.model() != null && release.model().timeoutMillis() + 1000 >= config.leaseMillis())
-        throw new IllegalArgumentException("Model deadline must fit worker lease");
-    }
+    for (Deployment.Release release : config.releases()) config.validateRelease(release, tools);
     // Do not publish a new immutable manifest until all capabilities and secrets are valid.
     repository.initialize(config);
+    Set<String> catalogSecrets = new HashSet<>();
+    catalogSecrets.add(secrets.resolve(config.signingSecret()));
+    for (String reference : config.applicationSecrets().values())
+      catalogSecrets.add(secrets.resolve(reference));
+    for (JsonNode binding : config.models())
+      if (binding.has("secretRef"))
+        catalogSecrets.add(secrets.resolve(binding.path("secretRef").asText()));
+    for (JsonNode binding : config.tools())
+      if (binding.has("secretRef"))
+        catalogSecrets.add(secrets.resolve(binding.path("secretRef").asText()));
+    catalog = new CatalogService(config, repository, tools, catalogSecrets);
+    access.releaseCheck(catalog::requireExecution);
+    traces = new PlatformTrace(dataSource);
     harness =
         new Harness(
             store,
             models,
             tools,
             access,
-            new StructuredTelemetry(),
+            traces,
             Clock.systemUTC(),
             Duration.ofMillis(config.leaseMillis()),
             new InvocationExecutor(config.concurrency(), config.concurrency() * 2));
@@ -175,6 +153,7 @@ public final class PlatformRuntime implements AutoCloseable {
     service =
         new PlatformService(
             config, store, repository, harness, access, identity, signing, Clock.systemUTC());
+    service.catalog(catalog);
     worker = new PlatformWorker(config, store, repository, harness);
   }
 

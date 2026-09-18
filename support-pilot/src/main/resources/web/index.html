@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>问答台 · 客服助手</title><link rel="stylesheet" href="/app.css"><script defer src="/app.js"></script></head>
+<body>
+<header><a class="brand" href="/" aria-label="客服助手首页"><span class="mark">问</span><span>问答台 <small>客服助手</small></span></a><div class="header-right"><span class="badge">合成业务试点</span><span id="roleLabel"></span><button id="logout" class="quiet" hidden>退出</button></div></header>
+<main>
+  <section id="loginPanel" class="login-layout">
+    <div class="intro"><p class="eyebrow">CUSTOMER SUPPORT</p><h1>让每一次答复<br>都有据可循。</h1><p>选择已发布的助手，处理订单咨询与售后政策问答。需要人工判断时，由审核员确认后继续。</p><div class="intro-note">仅使用合成问题和示例订单。本试点不会退款、修改订单或发送客户消息。</div></div>
+    <form id="loginForm" class="card login-card"><span class="eyebrow">进入工作台</span><h2>开始本次客服工作</h2><label for="accessCode">访问码</label><input id="accessCode" type="password" autocomplete="off" required minlength="24" maxlength="512" placeholder="输入管理员提供的客服或审核访问码"><p class="hint">访问码用于建立本次会话。请勿输入客户资料。</p><button type="submit" class="primary">进入工作台</button></form>
+  </section>
+  <div id="workspace" hidden>
+    <div class="page-title"><div><p class="eyebrow">SUPPORT WORKSPACE</p><h1 id="workspaceTitle">客服工作台</h1><p id="workspaceSubtitle">从合成咨询开始，查看每次任务的答复与进度。</p></div><span id="projectLabel" class="badge muted"></span></div>
+    <div id="operatorPanel" class="workspace-grid" hidden>
+      <section class="card compose"><div class="section-head"><h2>新的咨询</h2><span class="step">01</span></div><form id="createForm"><label for="agentSelect">选择助手</label><select id="agentSelect" required></select><p id="agentDescription" class="hint"></p><div id="inputFields"></div><div class="examples"><span>试一个问题</span><button type="button" data-example="订单什么时候发货？">订单进度</button><button type="button" data-example="可以申请退货吗？">售后政策</button></div><button id="createButton" class="primary" type="submit">提交咨询</button></form></section>
+      <section class="card history"><div class="section-head"><h2>本应用的运行记录</h2><button id="refreshRuns" class="quiet">刷新</button></div><p class="hint">记录由平台按当前应用和用户保存。</p><div id="runList" class="run-list"></div><button id="moreRuns" class="quiet" hidden>加载更多</button></section>
+    </div>
+    <section id="reviewerPanel" class="card reviewer" hidden><div class="section-head"><h2>人工确认</h2><span class="step">审核员</span></div><p class="hint">输入客服提供的运行编号，查看完整待确认内容。确认只适用于当前审批版本。</p><form id="reviewForm" class="inline-form"><label for="reviewRunId" class="sr-only">运行编号</label><input id="reviewRunId" placeholder="运行编号" autocomplete="off" required><button class="primary" type="submit">查看待确认内容</button></form><div id="approvalPanel" hidden><h3 id="approvalTitle"></h3><div class="approval-binding"><p>运行编号 <code id="approvalRunId"></code></p><p>审批编号 <code id="approvalId"></code> · 修订 <code id="approvalRevision"></code></p><p>审批摘要 <code id="approvalDigest"></code></p></div><pre id="approvalSummary"></pre><div id="approvalFields"></div><label id="reviewInputLabel" for="reviewInput">确认后的答复</label><textarea id="reviewInput" rows="5" maxlength="10000" placeholder="填写经核对的客服答复"></textarea><label for="reviewReason">审核说明</label><input id="reviewReason" maxlength="1000" placeholder="填写本次审核说明" required><p id="approvalExpiry" class="hint"></p><div class="actions"><button id="approveButton" class="primary">确认并继续</button><button id="rejectButton" class="danger">拒绝</button></div></div></section>
+    <section id="runPanel" class="card run-detail" hidden><div class="section-head"><h2>咨询进度</h2><button id="refreshRun" class="quiet">刷新进度</button></div><div class="run-meta"><span id="runStatus" class="status"></span><span id="runUsage" class="hint"></span></div><p class="run-id">运行编号 <code id="runId"></code></p><div class="answer"><h3>助手回复</h3><pre id="runOutput"></pre></div><div class="actions"><button data-control="pause" class="quiet">暂停</button><button data-control="resume" class="quiet">继续</button><button data-control="cancel" class="danger">取消任务</button></div><details><summary>处理记录</summary><ol id="events"></ol></details></section>
+  </div>
+  <aside id="notice" class="notice" role="status" aria-live="polite" hidden><span id="noticeText"></span><button id="retryCommand" class="quiet" hidden>使用同一请求重试</button><button id="dismissNotice" class="quiet">关闭提示</button></aside>
+</main>
+<footer>独立客服试点应用 · 人工确认后继续 · 会话一小时后失效</footer>
+</body></html>

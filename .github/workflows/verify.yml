@@ -18,6 +18,20 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: maven
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: platform-console/package.json
+      - name: Install console dependencies
+        run: pnpm --dir platform-console install --frozen-lockfile
+      - name: Test console
+        run: pnpm --dir platform-console test
+      - name: Test customer support approval UI
+        run: node --test support-pilot/src/test/js/approval.test.mjs
+      - name: Build console into platform artifact
+        run: pnpm --dir platform-console build
       - name: Verify on Linux
         if: runner.os != 'Windows'
         run: bash ./mvnw clean verify -B -ntp
@@ -37,3 +51,5 @@ jobs:
         run: python -m pip install -r docs/api/requirements.txt
       - name: Validate API contract
         run: python docs/api/validate_contract.py
+      - name: Validate catalog API contract
+        run: python docs/api/validate_catalog.py

@@ -13,6 +13,11 @@ public final class RuntimeAccess implements AccessPolicy {
   private final ThreadLocal<Frame> request = new ThreadLocal<>();
   private final PlatformRepository repository;
   private final IdentityProvider identities;
+  private java.util.function.BiConsumer<String, String> releaseCheck = (project, release) -> {};
+
+  public void releaseCheck(java.util.function.BiConsumer<String, String> check) {
+    this.releaseCheck = Objects.requireNonNull(check);
+  }
 
   public RuntimeAccess(PlatformRepository repository, IdentityProvider identities) {
     this.repository = repository;
@@ -42,6 +47,7 @@ public final class RuntimeAccess implements AccessPolicy {
     try {
       if (!actor.subject().startsWith("run:")) throw ApiFailure.denied();
       var owned = repository.owned(actor.subject().substring(4));
+      releaseCheck.accept(owned.project(), owned.release().releaseId());
       if (!owned.project().equals(actor.project())
           || !actor.permissions().contains(permission)
           || !owned.release().executionPermissions().contains(permission))

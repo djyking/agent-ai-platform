@@ -37,6 +37,17 @@ $taskQueries=[ordered]@{
   scopes="SELECT scope_key FROM platform_scope_locks ORDER BY scope_key"
   slots="SELECT pool_id,slot_index,COALESCE(owner_id,''),COALESCE(lease_until,0) FROM platform_slots ORDER BY pool_id,slot_index"
 }
+$taskCatalogPresent=Query $SourceDatabase "SELECT COUNT(*) FROM harness_schema WHERE component='catalog'"
+if($taskCatalogPresent -eq '1'){
+  $taskQueries['catalogResources']="SELECT project_id,resource_type,resource_id,revision,SHA2(document_json,256) FROM catalog_resources ORDER BY project_id,resource_type,resource_id"
+  $taskQueries['catalogVersions']="SELECT project_id,resource_type,resource_id,version_no,digest,SHA2(document_json,256),disabled FROM catalog_versions ORDER BY project_id,resource_type,resource_id,version_no"
+  $taskQueries['catalogReleaseLinks']="SELECT project_id,release_id,agent_id,version_no,SHA2(refs_json,256) FROM catalog_release_links ORDER BY project_id,release_id"
+  $taskQueries['catalogCommands']="SELECT command_hash,request_digest,SHA2(response_json,256),project_id,actor_scope,resource_type,resource_id,operation,accepted_at FROM catalog_commands ORDER BY command_hash"
+}
+$taskTracePresent=Query 'information_schema' "SELECT COUNT(*) FROM TABLES WHERE TABLE_SCHEMA='$SourceDatabase' AND TABLE_NAME='harness_platform_trace'"
+if($taskTracePresent -eq '1'){
+  $taskQueries['trace']="SELECT sequence_id,run_id,COALESCE(trace_id,''),COALESCE(invocation_id,''),COALESCE(attempt_id,''),COALESCE(node_id,''),operation_name,target_name,outcome,started_at,duration_ms FROM harness_platform_trace ORDER BY sequence_id"
+}
 $before=[ordered]@{}
 foreach($entry in $taskQueries.GetEnumerator()){$before[$entry.Key]=Sha (Query $SourceDatabase $entry.Value)}
 & $taskDumpProgram "--defaults-extra-file=$taskOption" '--single-transaction' '--skip-lock-tables' '--no-tablespaces' '--set-gtid-purged=OFF' '--hex-blob' '--default-character-set=utf8mb4' "--result-file=$taskDump" $SourceDatabase

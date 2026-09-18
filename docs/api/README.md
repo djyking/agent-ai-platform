@@ -8,6 +8,7 @@
 python -m venv .work/api-contract-env
 & .work/api-contract-env/Scripts/python.exe -m pip install -r docs/api/requirements.txt
 & .work/api-contract-env/Scripts/python.exe docs/api/validate_contract.py
+& .work/api-contract-env/Scripts/python.exe docs/api/validate_catalog.py
 ```
 
 Linux/macOS 将解释器路径改为 `.work/api-contract-env/bin/python`。可以将同一文件交给支持 OpenAPI 3.1 的文档渲染器；不要使用只支持 OpenAPI 3.0 的检查器误判 `type: [string, null]` 等合法语法。
@@ -26,4 +27,4 @@ Linux/macOS 将解释器路径改为 `.work/api-contract-env/bin/python`。可�
 4. 写后断连、取消/到期仍保留 UNKNOWN、错误 evidence 拒绝、对账绝不调用远端写工具。
 5. 两 worker 领取、共享额度、进程重启、等待到期、事件分页/保留过期与字段脱敏。
 
-本版不生成客户端 SDK；可使用普通 HTTP 客户端调用。应用凭据与用户 JWT 为 AND 鉴权，详见 OpenAPI securitySchemes。
+阶段三新增 [catalog-openapi.json](catalog-openapi.json)，包含 14 项目录操作定义，运行/trace/控制台边界见 [目录说明](../catalog-api.md)。`harness-platform-client` 提供手写薄 Java 客户端；应用凭据与用户 JWT 为 AND 鉴权，详见 OpenAPI securitySchemes。

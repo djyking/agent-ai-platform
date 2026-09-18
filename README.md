@@ -2,7 +2,7 @@
 
 可嵌入 Java 应用的 Agent Harness 与公共能力，当前版本 `0.1.0-SNAPSHOT`。支持业务应用通过 Maven 引用 SDK，也提供复用同一内核的集中执行服务。
 
-首版完整基础版已实现 AgentLoop、内部/MCP 工具治理、模型适配、Prompt、轻量 RAG、Workflow、SQL 持久化以及日志/tracing。SDK 不依赖 Spring 或 OpsAgent 业务代码；新增的 `harness-platform-service` 使用 Spring Boot，负责 HTTP、现有身份接入和持久 worker。
+已实现 AgentLoop、内部/MCP 工具治理、模型适配、Prompt、轻量 RAG、Workflow、SQL 持久化以及日志/tracing。嵌入式 SDK 不依赖 Spring 或 OpsAgent 业务代码；`harness-platform-service` 提供集中执行、资源目录与发布、现有身份接入和持久 worker，独立中文控制台位于 `platform-console/`。
 
 ## 快速运行
 
@@ -37,8 +37,11 @@ Linux/macOS 使用 `bash ./mvnw`，将目录替换为本机路径；需要直接
 | `harness-evals` | 第二类研发知识场景、9 项工程回归数据集、严格离线录制回放 | 回归与评估 |
 | `harness-validation` | 显式触发的真实模型、GitHub 受控写、质量基线及独立 MySQL 验收 CLI | 接入验证 |
 | `harness-platform-service` | 11 操作 HTTP API、OpsAgent 身份桥、SQL worker、平台归属/幂等/审批/共享配额 | 集中服务部署 |
+| `harness-platform-client` | JDK HTTP 薄客户端、运行/审批/对账与已发布 Agent 发现，不包含执行引擎 | 独立业务调用方 |
+| `support-pilot` | 独立应用身份的合成客服试点，FAQ、人工确认、运行记录 | 接入示例 |
+| `platform-console` | React/TypeScript 控制台、八类资源、Workflow 编辑、发布回归、运行/事件/trace、审批与 UNKNOWN 对账 | 与平台服务同源部署 |
 
-模型管理分两层：SDK 的 `ModelProfile` 固定某次运行的 provider、模型名、参数和限额，`ModelRouter` 负责宿主显式注册的 provider 路由；模型配置后台、密钥中心和供应商成本治理属于以后建设的中台。Prompt、RAG、Workflow 是可选能力包，统一通过 Harness 执行模型/工具动作。
+模型管理分两层：SDK 的 `ModelProfile` 固定某次运行的 provider、模型名、参数和限额，`ModelRouter` 负责宿主显式注册的 provider 路由；控制台可选择受信模型并缩减预算，密钥中心和供应商成本治理留待后续。Prompt、RAG、Workflow 是可选能力包，统一通过 Harness 执行模型/工具动作。
 
 ## 业务项目如何引用
 
@@ -87,9 +90,11 @@ try (var harness = new Harness(new InMemoryRunStore(),
 
 ## 当前范围与后续建设
 
-RAG 提供小语料词法检索及外部检索扩展点；Workflow 提供有界图执行。首版尚无向量索引托管、并行工作流/补偿、可视化编辑器或管理控制台。平台已有 SQL 多 worker 与项目/应用基本配额，尚未实现生产容量治理与分布式速率限制。MCP 首版为 Streamable HTTP 和宿主管理的请求头凭据；stdio、OAuth 流程、模型流式/多模态是后续适配方向。
+RAG 提供小语料词法检索及外部检索扩展点；Workflow 提供有界图执行和结构化节点编辑。尚无向量索引托管、并行工作流/补偿。平台已有 SQL 多 worker 与项目/应用基本配额，尚未实现生产容量治理与分布式速率限制。MCP 首版为 Streamable HTTP 和宿主管理的请求头凭据；stdio、OAuth 流程、模型流式/多模态是后续适配方向。
 
-阶段一、二本轮实现包括现有 OpsAgent 身份桥、持久请求路由、真实 GitHub 受控写及 DeepSeek 质量基线，以及集中执行 API/worker。当前验收结果与边界统一记录在 [阶段一、二交付记录](docs/phase12-implementation.md)；运行步骤见 [平台运维说明](docs/platform-operations.md)。管理控制台和资源目录仍属于阶段三。
+阶段一、二包括现有 OpsAgent 身份桥、持久请求路由、真实 GitHub 受控写及 DeepSeek 质量基线，以及集中执行 API/worker，见 [阶段一、二交付记录](docs/phase12-implementation.md)。阶段三增加控制台、资源目录与发布、薄 HTTP 客户端和客服试点，验收状态与边界见 [阶段三实施记录](docs/phase3-implementation.md)。
+
+构建完整控制台服务使用 `./deploy/platform/build.ps1`（Node.js 24、pnpm 11.19.0、JDK 17）；访问服务的 `/console/`。部署与三应用配置见 [阶段三部署说明](docs/phase3-deployment.md)，资源协议见 [目录 API](docs/catalog-api.md)，备份与恢复见 [平台运维说明](docs/platform-operations.md)。直接运行 Maven 仅构建 Java；控制台资源需先执行 `pnpm --dir platform-console install --frozen-lockfile` 与 `pnpm --dir platform-console build`。
 
 - [2026-09-18 当前进度核对与下一步计划](docs/status-and-next-plan-20260918.md)
 - [架构与可靠性语义](docs/architecture.md)

@@ -17,7 +17,7 @@
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-test</artifactId><scope>test</scope></dependency>
   </dependencies>
   <build>
-    <resources><resource><directory>src/main/resources</directory></resource><resource><directory>../docs/api</directory><includes><include>openapi.json</include></includes><targetPath>api</targetPath></resource></resources>
+    <resources><resource><directory>src/main/resources</directory></resource><resource><directory>../docs/api</directory><includes><include>openapi.json</include><include>catalog-openapi.json</include></includes><targetPath>api</targetPath></resource><resource><directory>../platform-console/dist</directory><targetPath>static/console</targetPath></resource></resources>
     <plugins><plugin><groupId>org.springframework.boot</groupId><artifactId>spring-boot-maven-plugin</artifactId><version>${spring-boot.version}</version><executions><execution><goals><goal>repackage</goal></goals></execution></executions><configuration><mainClass>io.github.djyking.harness.platform.PlatformApplication</mainClass></configuration></plugin></plugins>
   </build>
 </project>

@@ -34,3 +34,7 @@ data/
 *.trace.db
 __pycache__/
 *.pyc
+node_modules/
+platform-console/dist/
+playwright-report/
+test-results/

@@ -25,6 +25,11 @@ public final class IsolatedSqlAuthHost implements AutoCloseable {
 
     public IsolatedSqlAuthHost(DataSource dataSource, String internalSecret, String applicationCredential,
             String loginSecret) throws Exception {
+        this(dataSource, internalSecret, applicationCredential, loginSecret, null);
+    }
+
+    public IsolatedSqlAuthHost(DataSource dataSource, String internalSecret, String applicationCredential,
+            String loginSecret, String browserPassword) throws Exception {
         jdbc = new JdbcTemplate(dataSource);
         jdbc.execute("CREATE TABLE IF NOT EXISTS sys_user(id BIGINT PRIMARY KEY,username VARCHAR(128),password VARCHAR(255),"
                 + "display_name VARCHAR(128),status VARCHAR(16),deleted INT)");
@@ -58,11 +63,20 @@ public final class IsolatedSqlAuthHost implements AutoCloseable {
         properties.setSecret(loginSecret);
         properties.setAccessTokenTtl(java.time.Duration.ofHours(2));
         jwt = new JwtService(properties);
-        // Refresh/session/captcha are not exercised; existing JWT verification and actor SQL are real.
-        auth = new AuthService(users, mock(RefreshTokenMapper.class), new BCryptPasswordEncoder(), jwt,
-                mock(CaptchaService.class));
+        // Refresh-token persistence is excluded; existing password/JWT/user SQL and captcha code are real.
+        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+        CaptchaService captcha = browserPassword == null ? mock(CaptchaService.class)
+                : new CaptchaService(new IsolatedCaptchaRedis().template(), new CaptchaImageGenerator(), 60, 1000);
+        if (browserPassword != null) {
+            if (browserPassword.length() < 16) throw new IllegalArgumentException("Strong isolated password required");
+            jdbc.update("UPDATE sys_user SET password=? WHERE id IN (10,20)", encoder.encode(browserPassword));
+        }
+        auth = new AuthService(users, mock(RefreshTokenMapper.class), encoder, jwt, captcha);
         var identity = new HarnessIdentityService(jdbc, auth, jwt, internalSecret);
-        http = new LocalMvcServer(new HarnessIdentityController(identity), new InternalActorController(auth, internalSecret));
+        http = browserPassword == null
+                ? new LocalMvcServer(new HarnessIdentityController(identity), new InternalActorController(auth, internalSecret))
+                : new LocalMvcServer(new HarnessIdentityController(identity), new InternalActorController(auth, internalSecret),
+                        new AuthController(auth, captcha));
     }
 
     public URI origin() { return http.origin(); }

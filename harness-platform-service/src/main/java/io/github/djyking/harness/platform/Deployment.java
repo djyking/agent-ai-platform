@@ -73,6 +73,41 @@ public record Deployment(
     return disabledReleases.contains(r.projectId() + "/" + r.releaseId());
   }
 
+  /** Same fail-closed capability and deadline checks for boot and online publication. */
+  public void validateRelease(Release release, ToolRegistry tools) {
+    for (var node : release.workflow().nodes().values()) {
+      if (node
+              instanceof
+              io.github.djyking.harness.capabilities.workflow.WorkflowDefinition.Tool tool
+          && !release.toolKeys().contains(tool.toolName()))
+        throw new IllegalArgumentException("Workflow tool is outside release capabilities");
+      if (node
+              instanceof
+              io.github.djyking.harness.capabilities.workflow.WorkflowDefinition.Agent agent
+          && !release.toolKeys().containsAll(agent.allowedTools()))
+        throw new IllegalArgumentException("Nested agent tools are outside release capabilities");
+      if ((node instanceof io.github.djyking.harness.capabilities.workflow.WorkflowDefinition.Model
+              || node
+                  instanceof
+                  io.github.djyking.harness.capabilities.workflow.WorkflowDefinition.Agent)
+          && (release.model() == null || !release.executionPermissions().contains("model:invoke")))
+        throw new IllegalArgumentException("Workflow model and permission required");
+    }
+    if (release.model() != null
+        && models().stream()
+            .noneMatch(m -> m.path("provider").asText().equals(release.model().provider())))
+      throw new IllegalArgumentException("Release model provider unavailable");
+    for (ToolDescriptor descriptor : tools.snapshot(release.toolKeys())) {
+      if (!release.executionPermissions().contains("tool:" + descriptor.key())
+          || !release.executionPermissions().containsAll(descriptor.policy().requiredPermissions()))
+        throw new IllegalArgumentException("Release missing tool permissions");
+      if (descriptor.policy().timeoutMillis() + 1000 >= leaseMillis())
+        throw new IllegalArgumentException("Tool deadline must fit worker lease");
+    }
+    if (release.model() != null && release.model().timeoutMillis() + 1000 >= leaseMillis())
+      throw new IllegalArgumentException("Model deadline must fit worker lease");
+  }
+
   public record Project(
       String id,
       Set<String> applications,

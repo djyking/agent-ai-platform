@@ -1,0 +1,2128 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Harness catalog API",
+    "version": "1.0.0",
+    "description": "Stage 3 catalog. Existing Run API remains unchanged. Every Agent pins immutable resource versions. Ordinary retirement/default changes affect new Runs; explicit revoke affects subsequent calls of existing Runs."
+  },
+  "security": [
+    {
+      "applicationBearer": [],
+      "userToken": []
+    }
+  ],
+  "paths": {
+    "/v1/projects/{project}/catalog/capabilities": {
+      "get": {
+        "operationId": "get__v1_projects_project_catalog_capabilities",
+        "description": "Required permission: catalog:read. Authentication and authorization are checked on every request.",
+        "parameters": [
+          {
+            "name": "project",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success; never cached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Capabilities"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Safe code-only error; no credential/SQL/endpoint details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/projects/{project}/catalog/resources": {
+      "get": {
+        "operationId": "get__v1_projects_project_catalog_resources",
+        "description": "Required permission: catalog:read. Authentication and authorization are checked on every request.",
+        "parameters": [
+          {
+            "name": "project",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "enum": [
+                "Agent",
+                "ModelProfile",
+                "Prompt",
+                "ToolConnection",
+                "ToolPolicy",
+                "RetrievalProfile",
+                "Workflow",
+                "RunPolicy"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success; never cached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourceList"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Safe code-only error; no credential/SQL/endpoint details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/projects/{project}/catalog/resources/{type}/{id}": {
+      "get": {
+        "operationId": "get__v1_projects_project_catalog_resources_type_id",
+        "description": "Required permission: catalog:read. Authentication and authorization are checked on every request.",
+        "parameters": [
+          {
+            "name": "project",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+            }
+          },
+          {
+            "name": "type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "Agent",
+                "ModelProfile",
+                "Prompt",
+                "ToolConnection",
+                "ToolPolicy",
+                "RetrievalProfile",
+                "Workflow",
+                "RunPolicy"
+              ]
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success; never cached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Resource"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "\"c{revision}\""
+              }
+            }
+          },
+          "default": {
+            "description": "Safe code-only error; no credential/SQL/endpoint details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "put__v1_projects_project_catalog_resources_type_id",
+        "description": "Required permission: catalog:write. Authentication and authorization are checked on every request.",
+        "parameters": [
+          {
+            "name": "project",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+            }
+          },
+          {
+            "name": "type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "Agent",
+                "ModelProfile",
+                "Prompt",
+                "ToolConnection",
+                "ToolPolicy",
+                "RetrievalProfile",
+                "Workflow",
+                "RunPolicy"
+              ]
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\"c[0-9]{1,18}\"$"
+            },
+            "description": "Use \"c0\" only for initial creation; use last resource ETag otherwise."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success; never cached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Resource"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "\"c{revision}\""
+              }
+            }
+          },
+          "default": {
+            "description": "Safe code-only error; no credential/SQL/endpoint details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveResourceRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/projects/{project}/catalog/resources/{type}/{id}/validate": {
+      "post": {
+        "operationId": "post__v1_projects_project_catalog_resources_type_id_validate",
+        "description": "Required permission: catalog:validate. Authentication and authorization are checked on every request.",
+        "parameters": [
+          {
+            "name": "project",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+            }
+          },
+          {
+            "name": "type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "Agent",
+                "ModelProfile",
+                "Prompt",
+                "ToolConnection",
+                "ToolPolicy",
+                "RetrievalProfile",
+                "Workflow",
+                "RunPolicy"
+              ]
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\"c[0-9]{1,18}\"$"
+            },
+            "description": "Use \"c0\" only for initial creation; use last resource ETag otherwise."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success; never cached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Resource"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "\"c{revision}\""
+              }
+            }
+          },
+          "default": {
+            "description": "Safe code-only error; no credential/SQL/endpoint details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmptyRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/projects/{project}/catalog/resources/{type}/{id}/publish": {
+      "post": {
+        "operationId": "post__v1_projects_project_catalog_resources_type_id_publish",
+        "description": "Required permission: catalog:publish. Authentication and authorization are checked on every request.",
+        "parameters": [
+          {
+            "name": "project",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+            }
+          },
+          {
+            "name": "type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "Agent",
+                "ModelProfile",
+                "Prompt",
+                "ToolConnection",
+                "ToolPolicy",
+                "RetrievalProfile",
+                "Workflow",
+                "RunPolicy"
+              ]
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\"c[0-9]{1,18}\"$"
+            },
+            "description": "Use \"c0\" only for initial creation; use last resource ETag otherwise."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success; never cached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Resource"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "\"c{revision}\""
+              }
+            }
+          },
+          "default": {
+            "description": "Safe code-only error; no credential/SQL/endpoint details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmptyRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/projects/{project}/catalog/resources/{type}/{id}/disable": {
+      "post": {
+        "operationId": "post__v1_projects_project_catalog_resources_type_id_disable",
+        "description": "Required permission: catalog:publish. Authentication and authorization are checked on every request.",
+        "parameters": [
+          {
+            "name": "project",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+            }
+          },
+          {
+            "name": "type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "Agent",
+                "ModelProfile",
+                "Prompt",
+                "ToolConnection",
+                "ToolPolicy",
+                "RetrievalProfile",
+                "Workflow",
+                "RunPolicy"
+              ]
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\"c[0-9]{1,18}\"$"
+            },
+            "description": "Use \"c0\" only for initial creation; use last resource ETag otherwise."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success; never cached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Resource"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "\"c{revision}\""
+              }
+            }
+          },
+          "default": {
+            "description": "Safe code-only error; no credential/SQL/endpoint details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DisableRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/projects/{project}/catalog/resources/{type}/{id}/revoke": {
+      "post": {
+        "operationId": "post__v1_projects_project_catalog_resources_type_id_revoke",
+        "description": "Required permission: catalog:publish. Authentication and authorization are checked on every request.",
+        "parameters": [
+          {
+            "name": "project",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+            }
+          },
+          {
+            "name": "type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "Agent",
+                "ModelProfile",
+                "Prompt",
+                "ToolConnection",
+                "ToolPolicy",
+                "RetrievalProfile",
+                "Workflow",
+                "RunPolicy"
+              ]
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\"c[0-9]{1,18}\"$"
+            },
+            "description": "Use \"c0\" only for initial creation; use last resource ETag otherwise."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success; never cached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Resource"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "\"c{revision}\""
+              }
+            }
+          },
+          "default": {
+            "description": "Safe code-only error; no credential/SQL/endpoint details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevokeRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/projects/{project}/catalog/resources/{type}/{id}/default": {
+      "post": {
+        "operationId": "post__v1_projects_project_catalog_resources_type_id_default",
+        "description": "Required permission: catalog:publish. Authentication and authorization are checked on every request.",
+        "parameters": [
+          {
+            "name": "project",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+            }
+          },
+          {
+            "name": "type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "Agent",
+                "ModelProfile",
+                "Prompt",
+                "ToolConnection",
+                "ToolPolicy",
+                "RetrievalProfile",
+                "Workflow",
+                "RunPolicy"
+              ]
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\"c[0-9]{1,18}\"$"
+            },
+            "description": "Use \"c0\" only for initial creation; use last resource ETag otherwise."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success; never cached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Resource"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "\"c{revision}\""
+              }
+            }
+          },
+          "default": {
+            "description": "Safe code-only error; no credential/SQL/endpoint details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DefaultRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/projects/{project}/catalog/resources/{type}/{id}/versions/{version}": {
+      "get": {
+        "operationId": "get__v1_projects_project_catalog_resources_type_id_versions_version",
+        "description": "Required permission: catalog:read. Authentication and authorization are checked on every request.",
+        "parameters": [
+          {
+            "name": "project",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+            }
+          },
+          {
+            "name": "type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "Agent",
+                "ModelProfile",
+                "Prompt",
+                "ToolConnection",
+                "ToolPolicy",
+                "RetrievalProfile",
+                "Workflow",
+                "RunPolicy"
+              ]
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success; never cached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Version"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Safe code-only error; no credential/SQL/endpoint details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/projects/{project}/catalog/resources/{type}/{id}/versions/{version}/disable": {
+      "post": {
+        "operationId": "post__v1_projects_project_catalog_resources_type_id_versions_version_disable",
+        "description": "Required permission: catalog:publish. Authentication and authorization are checked on every request.",
+        "parameters": [
+          {
+            "name": "project",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+            }
+          },
+          {
+            "name": "type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "Agent",
+                "ModelProfile",
+                "Prompt",
+                "ToolConnection",
+                "ToolPolicy",
+                "RetrievalProfile",
+                "Workflow",
+                "RunPolicy"
+              ]
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^\"c[0-9]{1,18}\"$"
+            },
+            "description": "Use \"c0\" only for initial creation; use last resource ETag otherwise."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success; never cached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Resource"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "\"c{revision}\""
+              }
+            }
+          },
+          "default": {
+            "description": "Safe code-only error; no credential/SQL/endpoint details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DisableRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/projects/{project}/catalog/resources/{type}/{id}/versions/{version}/diff": {
+      "get": {
+        "operationId": "get__v1_projects_project_catalog_resources_type_id_versions_version_diff",
+        "description": "Required permission: catalog:read. Authentication and authorization are checked on every request.",
+        "parameters": [
+          {
+            "name": "project",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+            }
+          },
+          {
+            "name": "type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "Agent",
+                "ModelProfile",
+                "Prompt",
+                "ToolConnection",
+                "ToolPolicy",
+                "RetrievalProfile",
+                "Workflow",
+                "RunPolicy"
+              ]
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "against",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success; never cached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Diff"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Safe code-only error; no credential/SQL/endpoint details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/projects/{project}/catalog/releases": {
+      "get": {
+        "operationId": "get__v1_projects_project_catalog_releases",
+        "description": "Required permission: runs:create or catalog:read. Authentication and authorization are checked on every request.",
+        "parameters": [
+          {
+            "name": "project",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success; never cached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReleaseList"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Safe code-only error; no credential/SQL/endpoint details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/projects/{project}/catalog/agents/{id}/default": {
+      "get": {
+        "operationId": "get__v1_projects_project_catalog_agents_id_default",
+        "description": "Required permission: runs:create or catalog:read. Authentication and authorization are checked on every request.",
+        "parameters": [
+          {
+            "name": "project",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success; never cached",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Release"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Safe code-only error; no credential/SQL/endpoint details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "applicationBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      },
+      "userToken": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Harness-User-Token"
+      }
+    },
+    "schemas": {
+      "Reference": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "id",
+          "version"
+        ],
+        "additionalProperties": false
+      },
+      "AgentSpec": {
+        "type": "object",
+        "properties": {
+          "workflow": {
+            "$ref": "#/components/schemas/Reference"
+          },
+          "runPolicy": {
+            "$ref": "#/components/schemas/Reference"
+          },
+          "toolPolicy": {
+            "$ref": "#/components/schemas/Reference"
+          },
+          "modelProfile": {
+            "$ref": "#/components/schemas/Reference"
+          },
+          "retrievalProfile": {
+            "$ref": "#/components/schemas/Reference"
+          },
+          "inputSchema": {},
+          "outputSchema": {},
+          "humanInputSchema": {}
+        },
+        "required": [
+          "workflow",
+          "runPolicy",
+          "toolPolicy",
+          "inputSchema",
+          "outputSchema"
+        ],
+        "additionalProperties": false
+      },
+      "ModelProfileSpec": {
+        "type": "object",
+        "properties": {
+          "trustedProfile": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+          },
+          "maxOutputTokens": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "timeoutMillis": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "trustedProfile"
+        ],
+        "additionalProperties": false
+      },
+      "PromptSpec": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "system": {
+            "type": "string"
+          },
+          "user": {
+            "type": "string"
+          },
+          "variables": {
+            "type": "object",
+            "additionalProperties": {
+              "enum": [
+                "STRING",
+                "NUMBER",
+                "BOOLEAN",
+                "STRING_LIST",
+                "JSON"
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "system",
+          "user",
+          "variables"
+        ],
+        "additionalProperties": false
+      },
+      "ToolConnectionSpec": {
+        "type": "object",
+        "properties": {
+          "toolKey": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "toolKey"
+        ],
+        "additionalProperties": false
+      },
+      "ToolPolicySpec": {
+        "type": "object",
+        "properties": {
+          "toolConnections": {
+            "type": "array",
+            "maxItems": 64,
+            "items": {
+              "$ref": "#/components/schemas/Reference"
+            }
+          },
+          "executionPermissions": {
+            "type": "array",
+            "maxItems": 64,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 240
+            }
+          },
+          "approvers": {
+            "type": "array",
+            "maxItems": 64,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 240
+            }
+          },
+          "reviewFields": {
+            "type": "array",
+            "maxItems": 64,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 240
+            }
+          },
+          "publicOutput": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "toolConnections",
+          "executionPermissions",
+          "approvers",
+          "reviewFields",
+          "publicOutput"
+        ],
+        "additionalProperties": false
+      },
+      "RetrievalProfileSpec": {
+        "type": "object",
+        "properties": {
+          "toolConnection": {
+            "$ref": "#/components/schemas/Reference"
+          }
+        },
+        "required": [
+          "toolConnection"
+        ],
+        "additionalProperties": false
+      },
+      "RunPolicySpec": {
+        "type": "object",
+        "properties": {
+          "maxTokens": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000000
+          },
+          "maxModelCalls": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "maxToolCalls": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5000
+          },
+          "maxSteps": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000
+          },
+          "lifetimeSeconds": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 86400
+          }
+        },
+        "required": [
+          "maxTokens",
+          "maxModelCalls",
+          "maxToolCalls",
+          "maxSteps",
+          "lifetimeSeconds"
+        ],
+        "additionalProperties": false
+      },
+      "WorkflowSpec": {
+        "type": "object",
+        "properties": {
+          "definition": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "version": {
+                "type": "string"
+              },
+              "start": {
+                "type": "string"
+              },
+              "maxTransitions": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10000
+              },
+              "nodes": {
+                "type": "object",
+                "minProperties": 1,
+                "maxProperties": 100,
+                "additionalProperties": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "const": "tool"
+                        },
+                        "toolName": {
+                          "type": "string"
+                        },
+                        "argumentsJson": {
+                          "type": "string"
+                        },
+                        "argumentBindings": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "string"
+                          }
+                        },
+                        "output": {
+                          "type": "string"
+                        },
+                        "next": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "toolName",
+                        "argumentsJson",
+                        "argumentBindings",
+                        "output",
+                        "next"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "const": "model"
+                        },
+                        "promptRef": {
+                          "$ref": "#/components/schemas/Reference"
+                        },
+                        "inputBindings": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "string"
+                          }
+                        },
+                        "output": {
+                          "type": "string"
+                        },
+                        "next": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "promptRef",
+                        "inputBindings",
+                        "output",
+                        "next"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "const": "agent"
+                        },
+                        "promptRef": {
+                          "$ref": "#/components/schemas/Reference"
+                        },
+                        "inputBindings": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "string"
+                          }
+                        },
+                        "allowedTools": {
+                          "type": "array",
+                          "maxItems": 64,
+                          "uniqueItems": true,
+                          "items": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 240
+                          }
+                        },
+                        "maxTurns": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 100
+                        },
+                        "output": {
+                          "type": "string"
+                        },
+                        "next": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "promptRef",
+                        "inputBindings",
+                        "allowedTools",
+                        "maxTurns",
+                        "output",
+                        "next"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "const": "condition"
+                        },
+                        "variable": {
+                          "type": "string"
+                        },
+                        "equalsJson": {
+                          "type": "string"
+                        },
+                        "whenTrue": {
+                          "type": "string"
+                        },
+                        "whenFalse": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "variable",
+                        "equalsJson",
+                        "whenTrue",
+                        "whenFalse"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "const": "human"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "output": {
+                          "type": "string"
+                        },
+                        "next": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "message",
+                        "output",
+                        "next"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "const": "end"
+                        },
+                        "output": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "output"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                }
+              }
+            },
+            "required": [
+              "id",
+              "version",
+              "start",
+              "maxTransitions",
+              "nodes"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "definition"
+        ],
+        "additionalProperties": false
+      },
+      "Spec": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/AgentSpec"
+          },
+          {
+            "$ref": "#/components/schemas/ModelProfileSpec"
+          },
+          {
+            "$ref": "#/components/schemas/PromptSpec"
+          },
+          {
+            "$ref": "#/components/schemas/ToolConnectionSpec"
+          },
+          {
+            "$ref": "#/components/schemas/ToolPolicySpec"
+          },
+          {
+            "$ref": "#/components/schemas/RetrievalProfileSpec"
+          },
+          {
+            "$ref": "#/components/schemas/WorkflowSpec"
+          },
+          {
+            "$ref": "#/components/schemas/RunPolicySpec"
+          }
+        ]
+      },
+      "RegressionCase": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 10000
+          },
+          "inputs": {
+            "type": "object"
+          },
+          "toolResults": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "modelResults": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "humanInputs": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "expectedOutput": {},
+          "expectedToolKeys": {
+            "type": "array",
+            "maxItems": 64,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 240
+            }
+          },
+          "expectedToolArguments": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object"
+            }
+          },
+          "expectedPrompts": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "inputs",
+          "expectedOutput",
+          "expectedToolKeys"
+        ],
+        "additionalProperties": false
+      },
+      "RegressionCases": {
+        "type": "array",
+        "maxItems": 20,
+        "items": {
+          "$ref": "#/components/schemas/RegressionCase"
+        }
+      },
+      "SaveResourceRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "spec": {
+            "type": "object"
+          },
+          "regressionCases": {
+            "$ref": "#/components/schemas/RegressionCases"
+          }
+        },
+        "required": [
+          "name",
+          "spec"
+        ],
+        "additionalProperties": false
+      },
+      "EmptyRequest": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "DisableRequest": {
+        "type": "object",
+        "properties": {
+          "disabled": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "disabled"
+        ],
+        "additionalProperties": false
+      },
+      "RevokeRequest": {
+        "type": "object",
+        "properties": {
+          "revoked": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "revoked"
+        ],
+        "additionalProperties": false
+      },
+      "DefaultRequest": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "version"
+        ],
+        "additionalProperties": false
+      },
+      "ReleaseRef": {
+        "type": "object",
+        "properties": {
+          "agentId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+          },
+          "releaseId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "digest": {
+            "type": "string",
+            "pattern": "^sha256:[a-f0-9]{64}$"
+          }
+        },
+        "required": [
+          "agentId",
+          "releaseId",
+          "digest"
+        ],
+        "additionalProperties": false
+      },
+      "Validation": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "description": "passed, mode, draftDigest, validatedAt; Agent additionally results with actual output/toolKeys/trace, casesDigest/resultDigest, references. No live model/tool calls."
+      },
+      "Version": {
+        "type": "object",
+        "required": [
+          "type",
+          "id",
+          "name",
+          "version",
+          "digest",
+          "publishedAt",
+          "spec",
+          "regressionCases",
+          "validation",
+          "disabled"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "Agent",
+              "ModelProfile",
+              "Prompt",
+              "ToolConnection",
+              "ToolPolicy",
+              "RetrievalProfile",
+              "Workflow",
+              "RunPolicy"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "digest": {
+            "type": "string"
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "spec": {
+            "$ref": "#/components/schemas/Spec"
+          },
+          "regressionCases": {
+            "$ref": "#/components/schemas/RegressionCases"
+          },
+          "validation": {
+            "$ref": "#/components/schemas/Validation"
+          },
+          "disabled": {
+            "type": "boolean"
+          },
+          "releaseRef": {
+            "$ref": "#/components/schemas/ReleaseRef"
+          },
+          "references": {
+            "type": "array"
+          },
+          "bindingDigest": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Resource": {
+        "type": "object",
+        "required": [
+          "type",
+          "id",
+          "name",
+          "revision",
+          "status",
+          "spec",
+          "regressionCases",
+          "validation",
+          "versions",
+          "defaultVersion",
+          "disabled",
+          "revoked",
+          "audit"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "Agent",
+              "ModelProfile",
+              "Prompt",
+              "ToolConnection",
+              "ToolPolicy",
+              "RetrievalProfile",
+              "Workflow",
+              "RunPolicy"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "status": {
+            "enum": [
+              "DRAFT",
+              "VALIDATED",
+              "PUBLISHED"
+            ]
+          },
+          "spec": {
+            "type": "object"
+          },
+          "regressionCases": {
+            "$ref": "#/components/schemas/RegressionCases"
+          },
+          "validation": {
+            "$ref": "#/components/schemas/Validation"
+          },
+          "versions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "version",
+                "digest",
+                "publishedAt",
+                "disabled"
+              ]
+            }
+          },
+          "defaultVersion": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "disabled": {
+            "type": "boolean"
+          },
+          "revoked": {
+            "type": "boolean"
+          },
+          "audit": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "type": "object",
+              "properties": {
+                "actor": {
+                  "type": "string"
+                },
+                "operation": {
+                  "type": "string"
+                },
+                "at": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "actor",
+                "operation",
+                "at"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "Release": {
+        "type": "object",
+        "properties": {
+          "agentId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "name": {
+            "type": "string"
+          },
+          "releaseRef": {
+            "$ref": "#/components/schemas/ReleaseRef"
+          },
+          "inputSchema": {},
+          "outputSchema": {},
+          "isDefault": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "agentId",
+          "version",
+          "name",
+          "releaseRef",
+          "inputSchema",
+          "outputSchema",
+          "isDefault"
+        ],
+        "additionalProperties": false
+      },
+      "ResourceList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 1000,
+            "items": {
+              "$ref": "#/components/schemas/Resource"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "additionalProperties": false
+      },
+      "ReleaseList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Release"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "additionalProperties": false
+      },
+      "Capabilities": {
+        "type": "object",
+        "required": [
+          "types",
+          "trustedModels",
+          "trustedTools",
+          "templates",
+          "regressionCaseTemplate"
+        ],
+        "properties": {
+          "types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "trustedModels": {
+            "type": "array"
+          },
+          "trustedTools": {
+            "type": "array"
+          },
+          "templates": {
+            "type": "object"
+          },
+          "regressionCaseTemplate": {
+            "$ref": "#/components/schemas/RegressionCase"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Diff": {
+        "type": "object",
+        "properties": {
+          "fromVersion": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "toVersion": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "changes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                },
+                "before": {},
+                "after": {}
+              },
+              "required": [
+                "path",
+                "before",
+                "after"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "fromVersion",
+          "toVersion",
+          "changes"
+        ],
+        "additionalProperties": false
+      },
+      "Error": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message",
+              "requestId",
+              "retryDisposition"
+            ]
+          }
+        }
+      }
+    }
+  }
+}
