@@ -32,3 +32,5 @@ target/
 data/
 *.mv.db
 *.trace.db
+__pycache__/
+*.pyc

@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 2,
+  "at": "2026-09-18T05:18:28.862278+00:00",
+  "validationKind": "isolated-source-backed-opsagent-pilot",
+  "status": "PASSED",
+  "synthetic": true,
+  "testUserIds": [
+    10,
+    20
+  ],
+  "deployedOpsAgentValidated": false,
+  "mavenExitCode": 0,
+  "sourceManifestSha256": "102d2edb43de71e7484584568f6d81b7bfd21891582853c4e7dc2c3a79ef4ff4",
+  "sourceFileCount": 178,
+  "originalRepositoryWritten": false,
+  "whitelistedSourceBytesUnchanged": true,
+  "changedSourcePaths": [],
+  "realImplementations": [
+    "HarnessIdentityController + HarnessIdentityService + AuthService + UserMapper + JwtService (identity bridge suite)",
+    "HarnessSearchController + HarnessRequestRoutes durable SQL ownership (identity bridge suite)",
+    "InternalAgentController",
+    "InternalActorTokens",
+    "InternalActorAccess",
+    "InternalAgentSearchService",
+    "RerankService + NoOpRerankProvider",
+    "ContextAssembler",
+    "KnowledgeInternalAgentController",
+    "KnowledgeService",
+    "KnowledgeRepository",
+    "HarnessCitationAccessController + KnowledgeCitationAccessController + OpsAgentProjectionClient",
+    "GlobalExceptionHandler",
+    "Harness + WorkflowProgram + OpsAgentRagTool"
+  ],
+  "fixturesAndBoundaries": [
+    "Manual loopback Spring MVC/Tomcat host; original application boot/configuration not loaded",
+    "Original regression suite: Auth fixture; identity bridge suite: real AuthService/MyBatis UserMapper and synthetic SQL users/roles/grants",
+    "InternalKnowledgeClient uses explicit loopback HTTP instead of Feign/service discovery",
+    "H2 synthetic seven-document database; real SQL visibility/publication/owner filtering",
+    "KnowledgeIndexService disabled mock selects real SQL fallback; no Elasticsearch/embedding calls",
+    "RagRateLimiter mock; distributed rate limit is not covered",
+    "Model/usage/file/parser/MQ dependencies are unused mocks; test asserts no model generation or write dependencies",
+    "Original routing policy case remains a memory example; new identity bridge suite tests real SQL route ownership and public retrieval ingress across Rag host reconstruction",
+    "New ingress /api/rag/harness-search is read-only; existing /api/rag/ask and ticket Agent workflows are not migrated"
+  ],
+  "externalCalls": 0,
+  "externalCallsEvidence": "Configured call graph uses loopback URLs only; remote rerank disabled and index mocked. This is not a packet-captured traffic count.",
+  "runtimeExternalServicesConfigured": false,
+  "networkTrafficCaptured": false,
+  "operatingSystemNetworkSandbox": false,
+  "dependencyDownloadsExcludedFromRuntimeClaim": true,
+  "secretHandling": "Fresh random signing key per test process; no original config/credentials copied; ledger assertions exclude key and generated bearer credentials",
+  "cases": [
+    {
+      "name": "publicIngressUsesPersistentOwnerAcrossRagRestartAndSwitch",
+      "status": "passed"
+    },
+    {
+      "name": "currentSqlAccountAndGrantRevocationStopsTokenMinting",
+      "status": "passed"
+    },
+    {
+      "name": "delegatedRolesCannotGrowWhenCurrentUserGetsAdmin",
+      "status": "passed"
+    },
+    {
+      "name": "storedCitationsRequireCurrentAclPublishedVersionAndMatchingChunk",
+      "status": "passed"
+    },
+    {
+      "name": "existingJwtAndSqlIdentityProduceDistinctAuthorizedKnowledgeScopes",
+      "status": "passed"
+    },
+    {
+      "name": "newRequestRoutingFreezesOwnershipAndDoesNotFallbackAfterFailure",
+      "status": "passed"
+    },
+    {
+      "name": "wrongAudienceNeverReachesAuthOrKnowledge",
+      "status": "passed"
+    },
+    {
+      "name": "currentPublicationVisibilityIsQueriedAgainForNextRun",
+      "status": "passed"
+    },
+    {
+      "name": "userTwentySeesDifferentPrivateScopeWithoutChangingHarness",
+      "status": "passed"
+    },
+    {
+      "name": "revocationBetweenRagAndKnowledgeIsRevalidatedAtKnowledge",
+      "status": "passed"
+    },
+    {
+      "name": "invalidSignatureIsRejectedByRealInternalController",
+      "status": "passed"
+    },
+    {
+      "name": "currentRoleElevationDoesNotExpandFrozenIdentityCeiling",
+      "status": "passed"
+    },
+    {
+      "name": "claimedAdminIsReducedToCurrentRoleAndDraftsRemainExcluded",
+      "status": "passed"
+    },
+    {
+      "name": "disabledUserFailsBeforeKnowledgeTransport",
+      "status": "passed"
+    },
+    {
+      "name": "userTenSeesPublicAndOwnPrivateWithRealHttpCitations",
+      "status": "passed"
+    },
+    {
+      "name": "roleRevocationFailsBeforeKnowledgeTransport",
+      "status": "passed"
+    }
+  ],
+  "summary": {
+    "passed": 16,
+    "failed": 0,
+    "skipped": 0
+  }
+}

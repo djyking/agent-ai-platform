@@ -13,7 +13,7 @@ if (-not $snapshotPath.StartsWith($allowedRoot, [System.StringComparison]::Ordin
 }
 $buildArgs = @('-s', (Join-Path $platformRoot '.mvn/settings.xml'), '-f', (Join-Path $snapshotPath 'pom.xml'),
     '-pl', 'isolation-tests', '-am', 'test', '-B', '-ntp', '-Dcheckstyle.skip=true',
-    '-Dsurefire.failIfNoSpecifiedTests=false', '-Dtest=IsolatedOpsAgentPilotTest',
+    '-Dsurefire.failIfNoSpecifiedTests=false', '-Dtest=IsolatedOpsAgentPilotTest,IsolatedIdentityBridgeTest',
     ('-Dcsp.sentinel.log.dir=' + (Join-Path $snapshotPath 'sentinel-logs')))
 if (-not $AllowDependencyDownload) { $buildArgs += '-o' }
 Write-Host ('Isolated source snapshot: ' + $snapshotPath)

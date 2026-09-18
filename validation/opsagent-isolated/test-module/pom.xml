@@ -6,6 +6,7 @@
   </parent>
   <artifactId>isolation-tests</artifactId>
   <dependencies>
+    <dependency><groupId>com.opsagent</groupId><artifactId>ops-auth-service</artifactId><version>${project.version}</version></dependency>
     <dependency><groupId>com.opsagent</groupId><artifactId>ops-rag-service</artifactId><version>${project.version}</version></dependency>
     <dependency><groupId>com.opsagent</groupId><artifactId>ops-knowledge-service</artifactId><version>${project.version}</version></dependency>
     <dependency><groupId>io.github.djyking</groupId><artifactId>harness-integrations-opsagent</artifactId><version>0.1.0-SNAPSHOT</version></dependency>

@@ -24,6 +24,14 @@ public final class IsolatedRagHost implements AutoCloseable {
     private final AtomicInteger knowledgeCalls = new AtomicInteger();
 
     public IsolatedRagHost(String secret, URI auth, URI knowledge) throws Exception {
+        this(secret, auth, knowledge, null);
+    }
+
+    public IsolatedRagHost(String secret, URI auth, URI knowledge, Ingress ingress) throws Exception {
+        this(secret, auth, knowledge, ingress, 0);
+    }
+
+    public IsolatedRagHost(String secret, URI auth, URI knowledge, Ingress ingress, int port) throws Exception {
         if (!"127.0.0.1".equals(knowledge.getHost())) throw new IllegalArgumentException("Loopback only");
         var client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2))
                 .followRedirects(HttpClient.Redirect.NEVER).build();
@@ -51,11 +59,33 @@ public final class IsolatedRagHost implements AutoCloseable {
                 new NoOpRerankProvider(), metrics);
         var search = new InternalAgentSearchService(transport, rerank,
                 new ContextAssembler(properties, metrics), rate);
-        http = new LocalMvcServer(new InternalAgentController(models, search, usage, secret, auth.toString()));
+        var internal = new InternalAgentController(models, search, usage, secret, auth.toString());
+        var projection = new HarnessCitationAccessController(secret, auth.toString(), knowledge.toString());
+        if (ingress == null) http = new LocalMvcServer(port, null, new Object[] {internal, projection});
+        else {
+            var props = new com.opsagent.common.security.JwtProperties();
+            props.setSecret(ingress.loginSecret());
+            var jwtFilter = new com.opsagent.common.security.JwtAuthenticationFilter(
+                    new com.opsagent.common.security.JwtService(props),
+                    com.opsagent.common.security.VisitorSessionVerifier.remote(secret, auth.toString()));
+            jakarta.servlet.Filter security = (request, response, chain) -> {
+                org.springframework.security.core.context.SecurityContextHolder.clearContext();
+                try { jwtFilter.doFilter(request, response, chain); }
+                finally { org.springframework.security.core.context.SecurityContextHolder.clearContext(); }
+            };
+            new org.springframework.jdbc.datasource.init.ResourceDatabasePopulator(
+                    new org.springframework.core.io.ClassPathResource("harness-route-schema.sql")).execute(ingress.dataSource());
+            var publicSearch = new HarnessSearchController(new org.springframework.jdbc.core.JdbcTemplate(ingress.dataSource()),
+                    internal, auth.toString(), ingress.platform().toString(), ingress.applicationCredential(), "ops-dev",
+                    ingress.owner(), "ops-readonly", ingress.releaseId(), ingress.releaseDigest());
+            http = new LocalMvcServer(port, security, new Object[] {internal, publicSearch, projection});
+        }
     }
 
     public URI origin() { return http.origin(); }
     public int knowledgeCalls() { return knowledgeCalls.get(); }
     public void assertNoModelGeneration() { verifyNoInteractions(models, usage); }
     @Override public void close() { http.close(); }
+    public record Ingress(javax.sql.DataSource dataSource, String loginSecret, String applicationCredential,
+            URI platform, String owner, String releaseId, String releaseDigest) {}
 }

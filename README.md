@@ -1,8 +1,8 @@
 # Agent AI Platform
 
-可嵌入 Java 应用的 Agent Harness 与公共能力，当前版本 `0.1.0-SNAPSHOT`。采用方案 A：业务应用通过 Maven 引用独立仓库的 SDK；以后可以在此基础上增加共享执行服务和管理中台。
+可嵌入 Java 应用的 Agent Harness 与公共能力，当前版本 `0.1.0-SNAPSHOT`。支持业务应用通过 Maven 引用 SDK，也提供复用同一内核的集中执行服务。
 
-首版完整基础版已实现 AgentLoop、内部/MCP 工具治理、模型适配、Prompt、轻量 RAG、Workflow、SQL 持久化以及日志/tracing。框架不依赖 OpsAgent 的业务代码，也没有引入 Spring 或独立运行服务。
+首版完整基础版已实现 AgentLoop、内部/MCP 工具治理、模型适配、Prompt、轻量 RAG、Workflow、SQL 持久化以及日志/tracing。SDK 不依赖 Spring 或 OpsAgent 业务代码；新增的 `harness-platform-service` 使用 Spring Boot，负责 HTTP、现有身份接入和持久 worker。
 
 ## 快速运行
 
@@ -35,7 +35,8 @@ Linux/macOS 使用 `bash ./mvnw`，将目录替换为本机路径；需要直接
 | `harness-examples` | 问答与审批工作流、文件数据库、跨命令恢复 CLI | 开发验证 |
 | `harness-integrations-opsagent` | OpsAgent 内部知识检索适配、可信宿主身份扩展点、检索 Workflow | OpsAgent 试点按需引用 |
 | `harness-evals` | 第二类研发知识场景、9 项工程回归数据集、严格离线录制回放 | 回归与评估 |
-| `harness-validation` | 显式触发的真实模型、只读 MCP、独立 MySQL 验收 CLI | 接入验证 |
+| `harness-validation` | 显式触发的真实模型、GitHub 受控写、质量基线及独立 MySQL 验收 CLI | 接入验证 |
+| `harness-platform-service` | 11 操作 HTTP API、OpsAgent 身份桥、SQL worker、平台归属/幂等/审批/共享配额 | 集中服务部署 |
 
 模型管理分两层：SDK 的 `ModelProfile` 固定某次运行的 provider、模型名、参数和限额，`ModelRouter` 负责宿主显式注册的 provider 路由；模型配置后台、密钥中心和供应商成本治理属于以后建设的中台。Prompt、RAG、Workflow 是可选能力包，统一通过 Harness 执行模型/工具动作。
 
@@ -74,7 +75,7 @@ try (var harness = new Harness(new InMemoryRunStore(),
 }
 ```
 
-公共契约位于 `io.github.djyking.harness.core.Contracts`，其余核心类在同一包，`ScriptedModel` 位于 `.core.testing`。正式宿主负责调度 `tick`/`tickReady`、提供认证与动态授权、管理 DataSource/凭据，并展示/提交审批。框架不自启后台线程轮询任务；内部线程池只承担有截止时间的模型和工具调用。
+公共契约位于 `io.github.djyking.harness.core.Contracts`，其余核心类在同一包，`ScriptedModel` 位于 `.core.testing`。正式宿主负责调度 `tick`/`tickReady`、提供认证与动态授权、管理 DataSource/凭据，并展示/提交审批。SDK 不自启后台轮询；使用集中服务时，平台 worker 负责调度。内部执行池承担有截止时间的模型和工具调用。
 
 ## 已实现的工程约束
 
@@ -86,10 +87,11 @@ try (var harness = new Harness(new InMemoryRunStore(),
 
 ## 当前范围与后续建设
 
-RAG 提供小语料词法检索及外部检索扩展点；Workflow 提供有界图执行。首版尚无向量索引托管、并行工作流/补偿、可视化编辑器、独立 worker 集群、共享租户限流或管理控制台。MCP 首版为 Streamable HTTP 和宿主管理的请求头凭据；stdio、OAuth 流程、模型流式/多模态是后续适配方向。
+RAG 提供小语料词法检索及外部检索扩展点；Workflow 提供有界图执行。首版尚无向量索引托管、并行工作流/补偿、可视化编辑器或管理控制台。平台已有 SQL 多 worker 与项目/应用基本配额，尚未实现生产容量治理与分布式速率限制。MCP 首版为 Streamable HTTP 和宿主管理的请求头凭据；stdio、OAuth 流程、模型流式/多模态是后续适配方向。
 
-阶段 1 已启动：DeepSeek V4 原生工具调用、GitHub 官方只读 MCP 和独立 MySQL 的真实联调通过。OpsAgent 检索适配器及实际源码的隔离身份/知识权限链路已验证；现有部署的身份桥和持久请求路由仍待接入。阶段 2 已产出 API 设计与可校验 OpenAPI 契约，尚未实现平台服务或 worker。结果与边界见 [阶段 1 进展](docs/phase1-progress.md)。
+阶段一、二本轮实现包括现有 OpsAgent 身份桥、持久请求路由、真实 GitHub 受控写及 DeepSeek 质量基线，以及集中执行 API/worker。当前验收结果与边界统一记录在 [阶段一、二交付记录](docs/phase12-implementation.md)；运行步骤见 [平台运维说明](docs/platform-operations.md)。管理控制台和资源目录仍属于阶段三。
 
+- [2026-09-18 当前进度核对与下一步计划](docs/status-and-next-plan-20260918.md)
 - [架构与可靠性语义](docs/architecture.md)
 - [方案 A 实施记录](docs/plan-a-implementation.md)
 - [从 Harness 到 Agent 中台的分阶段路线图](docs/agent-platform-roadmap.md)

@@ -99,6 +99,18 @@ public final class StateGuards {
         && (state.nextAttemptAt == null || state.nextAttemptAt.toEpochMilli() <= nowMillis);
   }
 
+  public static boolean expirable(RunState state, long nowMillis) {
+    return java.util.Set.of(
+                RunStatus.PAUSED,
+                RunStatus.WAITING_APPROVAL,
+                RunStatus.WAITING_INPUT,
+                RunStatus.NEEDS_ATTENTION)
+            .contains(state.status)
+        && (state.pending == null || state.pending.phase == InvocationPhase.PREPARED)
+        && (state.deadline.toEpochMilli() <= nowMillis
+            || state.approval != null && state.approval.expiresAt().toEpochMilli() <= nowMillis);
+  }
+
   /**
    * The store supplies authoritative time and persisted lease metadata, never caller lease time.
    */

@@ -74,6 +74,21 @@ public final class Harness implements AutoCloseable {
       Budget budget,
       Duration lifetime,
       String creationKey) {
+    return startWithId(
+        UUID.randomUUID().toString(), definition, actor, toolKeys, budget, lifetime, creationKey);
+  }
+
+  /** Hosts may bind a short-lived identity before atomically accepting this run in their ledger. */
+  public RunState startWithId(
+      String runId,
+      ProgramDefinition definition,
+      Actor actor,
+      Collection<String> toolKeys,
+      Budget budget,
+      Duration lifetime,
+      String creationKey) {
+    if (runId == null || !UUID.fromString(runId).toString().equals(runId))
+      throw new IllegalArgumentException("Run id must be a canonical UUID");
     access.check(actor, "run:create", definition.id());
     if (!programs.containsKey(definition.program()))
       throw new IllegalArgumentException("Unknown program");
@@ -85,7 +100,7 @@ public final class Harness implements AutoCloseable {
         || lifetime.compareTo(Duration.ofDays(7)) > 0)
       throw new IllegalArgumentException("Invalid run key/lifetime");
     RunState run = new RunState();
-    run.id = UUID.randomUUID().toString();
+    run.id = runId;
     run.creationKey = creationKey;
     run.actor = actor;
     run.definition = Json.copy(definition, ProgramDefinition.class);
@@ -235,6 +250,28 @@ public final class Harness implements AutoCloseable {
     return ids.size();
   }
 
+  /** Trusted worker cleanup of idle waits. Never hides an in-flight or unknown external effect. */
+  public RunState expire(String id) {
+    RunState current = store.get(id);
+    if (!StateGuards.expirable(current, clock.millis())) return current;
+    boolean approvalExpired =
+        current.approval != null && !current.approval.expiresAt().isAfter(clock.instant());
+    String reason = approvalExpired ? "APPROVAL_EXPIRED" : "RUN_DEADLINE_EXCEEDED";
+    try {
+      return store.update(
+          id,
+          current.revision,
+          run -> {
+            run.status = RunStatus.EXPIRED;
+            run.stopReason = reason;
+            return run;
+          },
+          new RunEvent("RUN_EXPIRED", "", "", clock.instant(), Map.of("reason", reason)));
+    } catch (RunStore.Conflict changed) {
+      return store.get(id);
+    }
+  }
+
   private RunState advancePending(RunState run) {
     RunState.Pending p = run.pending;
     ToolDescriptor descriptor = "TOOL".equals(p.kind) ? currentTool(run, p) : null;
@@ -248,7 +285,7 @@ public final class Harness implements AutoCloseable {
         Instant expiry = min(run.deadline, clock.instant().plus(Duration.ofMinutes(30)));
         run.approval = new Approval(p.id, p.approvalDigest, expiry, "PENDING", null, null);
         run.status = "HUMAN".equals(p.kind) ? RunStatus.WAITING_INPUT : RunStatus.WAITING_APPROVAL;
-        return store.save(
+        return saveWorker(
             run, event(run, "APPROVAL_REQUESTED", Map.of("digest", p.approvalDigest)), true);
       }
       if (!run.approval.invocationId().equals(p.id)
@@ -282,7 +319,6 @@ public final class Harness implements AutoCloseable {
       if (p.tokenReservation > run.budget.tokenLimit() - run.chargedTokens)
         return finish(run, RunStatus.BUDGET_EXCEEDED, "TOKEN_BUDGET_EXCEEDED");
     }
-    store.assertLease(run);
     long timeoutMillis =
         descriptor == null
             ? p.modelRequest.profile().timeoutMillis()
@@ -301,7 +337,7 @@ public final class Harness implements AutoCloseable {
       run.chargedTokens += p.tokenReservation;
     }
     run =
-        store.save(
+        saveWorker(
             run,
             event(run, "ATTEMPT_STARTED", Map.of("attempt", Integer.toString(p.attempts))),
             false);
@@ -327,7 +363,8 @@ public final class Harness implements AutoCloseable {
       span = Telemetry.noop().start(context, p.kind, "");
     }
     try {
-      store.assertLease(run);
+      // The durable barrier owns the fence. Host controls may legitimately have advanced the
+      // revision since it was written; dispatch checks the current control state on its worker.
       if (descriptor != null) {
         final RunState dispatch = run;
         JsonNode arguments = p.arguments.deepCopy();
@@ -422,7 +459,7 @@ public final class Harness implements AutoCloseable {
       run.nextAttemptAt =
           clock.instant().plusMillis(Math.min(10_000, 200L << Math.min(p.attempts, 5)));
       run.status = RunStatus.QUEUED;
-      return store.save(run, event(run, "RETRY_SCHEDULED", Map.of("reason", safeCode(code))), true);
+      return saveWorker(run, event(run, "RETRY_SCHEDULED", Map.of("reason", safeCode(code))), true);
     }
     p.phase = kind == FailureKind.UNKNOWN ? InvocationPhase.UNKNOWN : InvocationPhase.PREPARED;
     return finish(
@@ -485,7 +522,6 @@ public final class Harness implements AutoCloseable {
     run.leaseUntil = current.leaseUntil;
     run.pauseRequested = current.pauseRequested;
     run.cancelRequested = current.cancelRequested;
-    store.assertLease(run);
     return run;
   }
 
@@ -527,13 +563,43 @@ public final class Harness implements AutoCloseable {
   private RunState checkpoint(RunState run, String type, Map<String, String> attributes) {
     run.status = RunStatus.QUEUED;
     run.nextAttemptAt = clock.instant();
-    return store.save(run, event(run, type, attributes), true);
+    return saveWorker(run, event(run, type, attributes), true);
   }
 
   private RunState finish(RunState run, RunStatus status, String code) {
     run.status = status;
     run.stopReason = safeCode(code);
-    return store.save(run, event(run, "RUN_" + status, Map.of("reason", safeCode(code))), true);
+    return saveWorker(run, event(run, "RUN_" + status, Map.of("reason", safeCode(code))), true);
+  }
+
+  /**
+   * Host controls advance revision without taking the worker's fence. Retry only the local result
+   * commit, never the external invocation, and merge monotonic controls before releasing the lease.
+   */
+  private RunState saveWorker(RunState run, RunEvent event, boolean releaseLease) {
+    for (int retry = 0; ; retry++) {
+      try {
+        return store.save(run, event, releaseLease);
+      } catch (RunStore.Conflict conflict) {
+        RunState current = store.get(run.id);
+        if (retry >= 16
+            || current.fence != run.fence
+            || current.status != RunStatus.RUNNING
+            || current.revision <= run.revision) throw conflict;
+        run.revision = current.revision;
+        run.leaseUntil = current.leaseUntil;
+        run.cancelRequested |= current.cancelRequested;
+        run.pauseRequested |= current.pauseRequested;
+        // An uncertain effect must remain reconcilable, even if cancellation arrived while saving.
+        if (releaseLease
+            && (run.pending == null || run.pending.phase == InvocationPhase.PREPARED)
+            && (run.cancelRequested || run.pauseRequested)) {
+          run.status = run.cancelRequested ? RunStatus.CANCELLED : RunStatus.PAUSED;
+          run.stopReason = "CONTROL_APPLIED_AT_COMMIT";
+          event = event(run, "RUN_" + run.status, Map.of("reason", run.stopReason));
+        }
+      }
+    }
   }
 
   private RunState safeFinish(RunState run, RunStatus status, String code) {
@@ -600,16 +666,26 @@ public final class Harness implements AutoCloseable {
   }
 
   public RunState pause(String id, Actor actor) {
-    return control(id, actor, true, false);
+    return pause(id, actor, store.get(id).revision);
+  }
+
+  public RunState pause(String id, Actor actor, long expectedRevision) {
+    return control(id, actor, expectedRevision, true, false);
   }
 
   public RunState cancel(String id, Actor actor) {
-    return control(id, actor, false, true);
+    return cancel(id, actor, store.get(id).revision);
   }
 
-  private RunState control(String id, Actor actor, boolean pause, boolean cancel) {
+  public RunState cancel(String id, Actor actor, long expectedRevision) {
+    return control(id, actor, expectedRevision, false, true);
+  }
+
+  private RunState control(
+      String id, Actor actor, long expectedRevision, boolean pause, boolean cancel) {
     RunState current = store.get(id);
     checkRun(actor, "run:control", current);
+    checkRevision(current, expectedRevision);
     if (Set.of(
             RunStatus.COMPLETED,
             RunStatus.CANCELLED,
@@ -636,8 +712,13 @@ public final class Harness implements AutoCloseable {
   }
 
   public RunState resume(String id, Actor actor) {
+    return resume(id, actor, store.get(id).revision);
+  }
+
+  public RunState resume(String id, Actor actor, long expectedRevision) {
     RunState current = store.get(id);
     checkRun(actor, "run:control", current);
+    checkRevision(current, expectedRevision);
     if (current.cancelRequested
         || !current.deadline.isAfter(clock.instant())
         || (current.status != RunStatus.PAUSED && current.status != RunStatus.NEEDS_ATTENTION))
@@ -652,7 +733,19 @@ public final class Harness implements AutoCloseable {
         run -> {
           run.pauseRequested = false;
           run.stopReason = null;
-          run.status = RunStatus.QUEUED;
+          // A pause does not decide, recreate, or extend an outstanding human decision. Restore
+          // that same wait directly; dispatch may only resume after an explicit approval/input.
+          boolean awaitingDecision =
+              run.pending != null
+                  && run.pending.phase == InvocationPhase.PREPARED
+                  && run.approval != null
+                  && "PENDING".equals(run.approval.status());
+          run.status =
+              awaitingDecision
+                  ? ("HUMAN".equals(run.pending.kind)
+                      ? RunStatus.WAITING_INPUT
+                      : RunStatus.WAITING_APPROVAL)
+                  : RunStatus.QUEUED;
           run.nextAttemptAt = clock.instant();
           return run;
         },
@@ -661,8 +754,19 @@ public final class Harness implements AutoCloseable {
 
   public RunState decide(
       String id, Actor actor, String expectedDigest, boolean approved, String input) {
+    return decide(id, actor, store.get(id).revision, expectedDigest, approved, input);
+  }
+
+  public RunState decide(
+      String id,
+      Actor actor,
+      long expectedRevision,
+      String expectedDigest,
+      boolean approved,
+      String input) {
     RunState current = store.get(id);
     checkRun(actor, "approval:decide", current);
+    checkRevision(current, expectedRevision);
     if (current.cancelRequested
         || current.pauseRequested
         || !Set.of(RunStatus.WAITING_APPROVAL, RunStatus.WAITING_INPUT).contains(current.status)
@@ -703,8 +807,14 @@ public final class Harness implements AutoCloseable {
    * Trusted host supplies an externally verified receipt; this method never repeats a remote write.
    */
   public RunState reconcileTool(String id, Actor actor, String invocationId, ToolResult receipt) {
+    return reconcileTool(id, actor, store.get(id).revision, invocationId, receipt);
+  }
+
+  public RunState reconcileTool(
+      String id, Actor actor, long expectedRevision, String invocationId, ToolResult receipt) {
     RunState current = store.get(id);
     checkRun(actor, "run:reconcile", current);
+    checkRevision(current, expectedRevision);
     if (current.status != RunStatus.NEEDS_ATTENTION
         || current.pending == null
         || !"TOOL".equals(current.pending.kind)
@@ -733,5 +843,10 @@ public final class Harness implements AutoCloseable {
             invocationId,
             clock.instant(),
             Map.of("receiptDigest", Json.hash(receipt.receipt()))));
+  }
+
+  private static void checkRevision(RunState current, long expectedRevision) {
+    if (expectedRevision < 1 || current.revision != expectedRevision)
+      throw new RunStore.RevisionConflict();
   }
 }

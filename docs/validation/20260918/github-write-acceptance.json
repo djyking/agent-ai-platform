@@ -1,0 +1,99 @@
+{
+  "schemaVersion" : 1,
+  "command" : "github-write",
+  "at" : "2026-09-18T04:28:13.122350600Z",
+  "details" : {
+    "repository" : "djyking/agent-ai-platform",
+    "branch" : "codex/harness-write-acceptance-20260918-e623b7c4",
+    "sourceBranch" : "main",
+    "approvedPath" : "validation/sandbox/20260918-e623b7c4/approved.txt",
+    "lostResponsePath" : "validation/sandbox/20260918-e623b7c4/lost-response.txt",
+    "mcpEndpoint" : "https://api.githubcopilot.com/mcp/",
+    "simulationBoundary" : "Real MCP response deliberately discarded after successful return; not a physical network disconnect",
+    "storeKind" : "InMemoryRunStore; same-process Harness reconstruction, not process restart",
+    "approvalMode" : "Explicitly authorized host applies exact Harness approval digest",
+    "maxRemoteWriteCalls" : 3,
+    "modelCalls" : 0,
+    "pushPermissionVerified" : true,
+    "branchAbsentBeforeWrites" : true,
+    "sourceHeadAtPreflight" : "7e83eefd68fb23612b00221d25c4a22cf04fb92d",
+    "defaultBranch" : "main",
+    "localPolicies" : [ {
+      "remoteName" : "create_branch",
+      "digest" : "cb10c7a613936f45dfde001bec9c7e5d803178c79774b356e168fdec29b2f4c7",
+      "approvalRequired" : true,
+      "readOnly" : false,
+      "retrySafe" : false,
+      "maxAttempts" : 1
+    }, {
+      "remoteName" : "create_or_update_file",
+      "digest" : "22e47b187855a840ebc6e369a8f33265b4ee87702537bcb48c12f1317bad55f4",
+      "approvalRequired" : true,
+      "readOnly" : false,
+      "retrySafe" : false,
+      "maxAttempts" : 1
+    } ],
+    "operations" : [ {
+      "runId" : "4442e6be-c063-4b32-96e3-f91fcf2beef1",
+      "remoteName" : "create_branch",
+      "argumentsDigest" : "a2729fbafac05cb101fb51f0a041ba96c5dae23832c332775754f862ca892926",
+      "scenario" : "create-isolated-branch",
+      "unapprovedRemoteAbsenceVerified" : true,
+      "approvalDigest" : "33a4cb385d5644d1a35ebf00379c24c16f389a5d671a3741cdd630ec9b7d4bd6",
+      "statusAfterCall" : "QUEUED",
+      "toolCalls" : 1,
+      "verifiedCommitSha" : "7e83eefd68fb23612b00221d25c4a22cf04fb92d",
+      "eventTypes" : [ "RUN_CREATED", "LEASE_CLAIMED", "INVOCATION_PREPARED", "LEASE_CLAIMED", "APPROVAL_REQUESTED", "APPROVAL_GRANTED", "LEASE_CLAIMED", "ATTEMPT_STARTED", "TOOL_COMPLETED", "LEASE_CLAIMED", "RUN_COMPLETED" ]
+    }, {
+      "runId" : "dd6aed07-3b45-4cb7-ac38-b654ad57c1ab",
+      "remoteName" : "create_or_update_file",
+      "argumentsDigest" : "6ded4894dec28c9fa43d499cf3dec1b1bd3e9b23c0880fb1a4a04075d4f86081",
+      "scenario" : "approved-write",
+      "unapprovedRemoteAbsenceVerified" : true,
+      "approvalDigest" : "195d55552e2f1f34fed29e71db9fb1057069ad29ee3cd800a39ae4915f876cab",
+      "statusAfterCall" : "QUEUED",
+      "toolCalls" : 1,
+      "independentReceipt" : {
+        "path" : "validation/sandbox/20260918-e623b7c4/approved.txt",
+        "blobSha" : "d3ee46b66b0da8bc8aa307d97efa7ecd8a14581c",
+        "commitSha" : "4c0c077e6dcb801c65cb1c315f645dcd9baa9b07",
+        "parentCommitSha" : "7e83eefd68fb23612b00221d25c4a22cf04fb92d",
+        "verifiedContentDigest" : "c14a36ead9cb222b5da5f88bd92be7cde5b5ad0457ebafa48a1fc237119daca5",
+        "url" : "https://github.com/djyking/agent-ai-platform/blob/4c0c077e6dcb801c65cb1c315f645dcd9baa9b07/validation/sandbox/20260918-e623b7c4/approved.txt"
+      },
+      "eventTypes" : [ "RUN_CREATED", "LEASE_CLAIMED", "INVOCATION_PREPARED", "LEASE_CLAIMED", "APPROVAL_REQUESTED", "APPROVAL_GRANTED", "LEASE_CLAIMED", "ATTEMPT_STARTED", "TOOL_COMPLETED", "LEASE_CLAIMED", "RUN_COMPLETED" ]
+    }, {
+      "runId" : "d63fc67d-e74c-41ce-aaee-d5abebf0c21f",
+      "remoteName" : "create_or_update_file",
+      "argumentsDigest" : "9db8e70aa3830e7f2e30cbdc8c3974ac0002e6e5b9cd776a333d8d03ba3c2ee8",
+      "scenario" : "controlled-response-loss",
+      "unapprovedRemoteAbsenceVerified" : true,
+      "approvalDigest" : "e1423d4b15a981653e8387b9d75f6def43ea6f1e8142a269a8571d1bda3a0308",
+      "statusAfterCall" : "NEEDS_ATTENTION",
+      "toolCalls" : 1,
+      "independentReceipt" : {
+        "path" : "validation/sandbox/20260918-e623b7c4/lost-response.txt",
+        "blobSha" : "5b987ed3068b3020ea27df3ef57b8e2b32263fd5",
+        "commitSha" : "a5885f64aca7f444ecbd64a1d6726b5e8e5d0559",
+        "parentCommitSha" : "4c0c077e6dcb801c65cb1c315f645dcd9baa9b07",
+        "verifiedContentDigest" : "d808fd98e41ab067ee1bfd8e9f516b727d63919a7309bc734679a4e19a144d78",
+        "url" : "https://github.com/djyking/agent-ai-platform/blob/a5885f64aca7f444ecbd64a1d6726b5e8e5d0559/validation/sandbox/20260918-e623b7c4/lost-response.txt"
+      },
+      "finalStatus" : "CANCELLED",
+      "unknownResumeRejected" : true,
+      "cancelledResumeRejected" : true,
+      "receiptReconciled" : true,
+      "eventTypes" : [ "RUN_CREATED", "LEASE_CLAIMED", "INVOCATION_PREPARED", "LEASE_CLAIMED", "APPROVAL_REQUESTED", "APPROVAL_GRANTED", "LEASE_CLAIMED", "ATTEMPT_STARTED", "RUN_NEEDS_ATTENTION", "CANCEL_REQUESTED", "TOOL_RECONCILED" ]
+    } ],
+    "checks" : [ "exact_remote_scope_and_one_attempt_policy", "unapproved_remote_absence", "wrong_digest_rejected", "approved_mcp_real_writes", "controlled_lost_response_unknown", "cancel_resume_reconstruction_no_redispatch", "independent_receipt_reconcile_no_rewrite" ],
+    "sourceHeadBeforeWrites" : "7e83eefd68fb23612b00221d25c4a22cf04fb92d",
+    "remoteWriteCalls" : 3,
+    "successfulMcpResponses" : 3,
+    "controlledDiscardedResponses" : 1,
+    "finalHead" : "a5885f64aca7f444ecbd64a1d6726b5e8e5d0559",
+    "passedChecks" : 7,
+    "independentVerification" : "GitHub REST GET: ref, contents, commit parents and exact changed-file list",
+    "knownLimit" : "No process kill, physical network partition, or remote idempotency claim"
+  },
+  "status" : "PASSED"
+}

@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "command": "local-platform-process-acceptance",
+  "startedAt": "2026-09-18T05:06:21.452835+00:00",
+  "status": "FAILED",
+  "runTag": "platform-20260918-deploy-smoke-r3",
+  "project": "platform-acceptance",
+  "jarSha256": "d70f9267463875885c8be445d65289331d7f5333c54d100295916b3238afd4c9",
+  "processes": [],
+  "httpEvidence": [],
+  "checks": [],
+  "boundaries": {
+    "twoRealJavaApiWorkerProcesses": false,
+    "realMySql": false,
+    "identityMysqlBacked": true,
+    "originalProductionIdentityBootConfiguration": false,
+    "modelWasScripted": true,
+    "toolsWereLocalSyntheticFixture": true,
+    "githubWrites": 0,
+    "mysqlRestartOwner": "external owning controller; this runner never terminates mysqld",
+    "preflightOnly": true
+  },
+  "failureCode": "DPAPI_SECRET_UNAVAILABLE_BEFORE_ANY_SERVICE_START",
+  "finishedAt": "2026-09-18T05:10:17.439134+00:00"
+}

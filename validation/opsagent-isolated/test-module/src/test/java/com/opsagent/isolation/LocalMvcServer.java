@@ -15,16 +15,28 @@ public final class LocalMvcServer implements AutoCloseable {
     private final AnnotationConfigWebApplicationContext context;
     private final WebServer server;
 
-    public LocalMvcServer(Object controller) throws Exception {
+    public LocalMvcServer(Object... controllers) throws Exception {
+        this(null, controllers);
+    }
+
+    public LocalMvcServer(jakarta.servlet.Filter security, Object... controllers) throws Exception {
+        this(0, security, controllers);
+    }
+
+    public LocalMvcServer(int port, jakarta.servlet.Filter security, Object... controllers) throws Exception {
         context = new AnnotationConfigWebApplicationContext();
         context.register(MvcOnly.class);
         context.addBeanFactoryPostProcessor(factory -> {
-            factory.registerSingleton("testedInternalController", controller);
+            for (int i = 0; i < controllers.length; i++) factory.registerSingleton("testedInternalController" + i, controllers[i]);
             factory.registerSingleton("realOpsAgentErrorHandler", new GlobalExceptionHandler());
         });
-        var factory = new TomcatServletWebServerFactory(0);
+        var factory = new TomcatServletWebServerFactory(port);
         factory.setAddress(InetAddress.getByName("127.0.0.1"));
         server = factory.getWebServer(servletContext -> {
+            if (security != null) {
+                var filter = servletContext.addFilter("testPublicSecurity", security);
+                filter.addMappingForUrlPatterns(java.util.EnumSet.of(jakarta.servlet.DispatcherType.REQUEST), false, "/*");
+            }
             var registration = servletContext.addServlet("dispatcher", new DispatcherServlet(context));
             registration.setLoadOnStartup(1);
             registration.addMapping("/");

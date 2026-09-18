@@ -22,6 +22,7 @@ MODULES = [
     "ops-common/ops-common-observability",
     "ops-rag-service",
     "ops-knowledge-service",
+    "ops-auth-service",
 ]
 
 
@@ -61,6 +62,13 @@ def main() -> None:
             for java in sorted(java_root.rglob("*.java")):
                 copy_source(java.relative_to(source))
 
+    # These two explicit migrations contain no runtime config, credentials or seed identities.
+    for migration in [
+        "ops-auth-service/src/main/resources/harness-identity-schema.sql",
+        "ops-rag-service/src/main/resources/harness-route-schema.sql",
+    ]:
+        copy_source(Path(migration))
+
     namespace = "http://maven.apache.org/POM/4.0.0"
     ET.register_namespace("", namespace)
     ET.register_namespace("xsi", "http://www.w3.org/2001/XMLSchema-instance")
@@ -69,7 +77,7 @@ def main() -> None:
     if modules is None:
         raise ValueError("OpsAgent parent POM has no modules")
     modules.clear()
-    for name in ["ops-common", "ops-rag-service", "ops-knowledge-service", "isolation-tests"]:
+    for name in ["ops-common", "ops-auth-service", "ops-rag-service", "ops-knowledge-service", "isolation-tests"]:
         ET.SubElement(modules, f"{{{namespace}}}module").text = name
     root.write(destination / "pom.xml", encoding="utf-8", xml_declaration=True)
     shutil.copytree(template / "test-module", destination / "isolation-tests")

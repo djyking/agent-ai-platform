@@ -21,6 +21,7 @@ import javax.sql.DataSource;
 public final class JdbcRunStore implements RunStore {
   private final DataSource dataSource;
   private final JdbcDialect dialect;
+  private final ThreadLocal<TransactionContext> transactions = new ThreadLocal<>();
 
   public JdbcRunStore(DataSource dataSource) {
     this.dataSource = Objects.requireNonNull(dataSource);
@@ -38,6 +39,7 @@ public final class JdbcRunStore implements RunStore {
    * tool.
    */
   public void initializeSchema() {
+    requireOutsideTransaction("Schema initialization");
     try (Connection connection = dataSource.getConnection();
         Statement statement = connection.createStatement()) {
       String engine = dialect == JdbcDialect.MYSQL ? " ENGINE=InnoDB" : "";
@@ -165,6 +167,7 @@ public final class JdbcRunStore implements RunStore {
 
   @Override
   public RunState claim(String id, Duration lease) {
+    requireOutsideTransaction("Worker claim");
     long ttl = leaseMillis(lease);
     return transaction(
         connection -> {
@@ -228,8 +231,37 @@ public final class JdbcRunStore implements RunStore {
         });
   }
 
+  /**
+   * Schema v1 has no indexed deadline columns. Scan only idle wait snapshots; a later schema can
+   * index deadlines without changing the worker contract. The returned batch remains bounded.
+   */
+  @Override
+  public List<String> expirable(int limit) {
+    checkLimit(limit);
+    return transaction(
+        connection -> {
+          long now = dialect.nowMillis(connection);
+          List<String> ids = new ArrayList<>();
+          try (PreparedStatement statement =
+                  connection.prepareStatement(
+                      "SELECT snapshot_json, revision, fence, lease_until, event_sequence"
+                          + " FROM harness_runs WHERE run_status IN"
+                          + " ('PAUSED','WAITING_APPROVAL','WAITING_INPUT','NEEDS_ATTENTION')"
+                          + " ORDER BY created_at, run_id");
+              ResultSet rows = statement.executeQuery()) {
+            while (rows.next() && ids.size() < limit) {
+              RunState state = decode(rows).state;
+              if (io.github.djyking.harness.core.StateGuards.expirable(state, now))
+                ids.add(state.id);
+            }
+          }
+          return List.copyOf(ids);
+        });
+  }
+
   @Override
   public RunState save(RunState claimed, RunEvent event, boolean releaseLease) {
+    requireOutsideTransaction("Worker save");
     RunState next = Objects.requireNonNull(claimed).copy();
     validateEvent(event);
     return transaction(
@@ -253,7 +285,7 @@ public final class JdbcRunStore implements RunStore {
     return transaction(
         connection -> {
           Row row = require(connection, id, true);
-          if (row.state.revision != expectedRevision) throw new Conflict("Run revision changed");
+          if (row.state.revision != expectedRevision) throw new RevisionConflict();
           RunState next =
               Objects.requireNonNull(mutation.apply(row.state.copy()), "Mutation returned null")
                   .copy();
@@ -438,24 +470,75 @@ public final class JdbcRunStore implements RunStore {
     else statement.setLong(index, value.toEpochMilli());
   }
 
-  private <T> T transaction(SqlWork<T> work) {
+  /**
+   * Compose host SQL with start/read/control operations on this store instance and thread. Nested
+   * calls join the same connection; only the outer call commits. Any nested failure marks the whole
+   * transaction rollback-only, even when a caller catches it. Returned values are provisional until
+   * this outer call returns successfully. Do not commit, roll back, close, reconfigure, or share
+   * the supplied connection, and do not perform network/model/tool I/O in the callback. Worker
+   * claims, worker saves, and schema initialization are rejected inside a host transaction. A
+   * competing creation/command conflict must be retried as a new outer transaction with the
+   * original key.
+   */
+  public <T> T inTransaction(JdbcWork<T> work) {
+    Objects.requireNonNull(work, "work");
+    TransactionContext joined = transactions.get();
+    if (joined != null) {
+      try {
+        return work.apply(joined.connection);
+      } catch (SQLException sql) {
+        joined.rollbackOnly = true;
+        throw failure("execute transaction", sql);
+      } catch (RuntimeException | Error failure) {
+        joined.rollbackOnly = true;
+        throw failure;
+      }
+    }
     try (Connection connection = dataSource.getConnection()) {
       connection.setAutoCommit(false);
+      TransactionContext context = new TransactionContext(connection);
+      transactions.set(context);
       try {
         T result = work.apply(connection);
+        if (context.rollbackOnly)
+          throw new JdbcStorageException("Transaction is rollback-only after a nested failure");
         connection.commit();
         return result;
-      } catch (SQLException | RuntimeException failure) {
+      } catch (SQLException | RuntimeException | Error failure) {
         try {
           connection.rollback();
         } catch (SQLException rollback) {
           failure.addSuppressed(rollback);
         }
         if (failure instanceof SQLException sql) throw failure("execute transaction", sql);
+        if (failure instanceof Error error) throw error;
         throw (RuntimeException) failure;
+      } finally {
+        transactions.remove();
       }
     } catch (SQLException e) {
       throw failure("open/close transaction", e);
+    }
+  }
+
+  private <T> T transaction(JdbcWork<T> work) {
+    return inTransaction(work);
+  }
+
+  private void requireOutsideTransaction(String operation) {
+    TransactionContext context = transactions.get();
+    if (context != null) {
+      context.rollbackOnly = true;
+      throw new IllegalStateException(operation + " cannot run in a host transaction");
+    }
+  }
+
+  private static final class TransactionContext {
+    private final Connection connection;
+    private boolean rollbackOnly;
+
+    private TransactionContext(Connection connection) {
+      this.connection = connection;
     }
   }
 
@@ -470,7 +553,7 @@ public final class JdbcRunStore implements RunStore {
   private record Row(RunState state, long sequence) {}
 
   @FunctionalInterface
-  private interface SqlWork<T> {
+  public interface JdbcWork<T> {
     T apply(Connection connection) throws SQLException;
   }
 }

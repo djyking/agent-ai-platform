@@ -1,6 +1,6 @@
 # 阶段 2 执行 API 设计
 
-日期：2026-09-15。版本：`0.1.0-draft.1`。**设计契约，尚未实现 HTTP 服务，也不表示阶段 1 的真实环境联调已通过。**
+设计始于 2026-09-15；2026-09-18 实现为 API `0.1.0`。`harness-platform-service` 提供本文 11 个操作。实际验收与边界见 [交付记录](phase12-implementation.md)，部署见 [运维说明](platform-operations.md)。
 
 本轮在启动阶段 1 时，先固定阶段 2 的对外边界和验收要求。机器可读契约见 [OpenAPI 3.1 JSON](api/openapi.json)，验证方法见 [契约验证说明](api/README.md)。设计依据为现有 `Harness`、`RunStore` 及 [建设路线图](agent-platform-roadmap.md)。
 
@@ -55,7 +55,7 @@ sequenceDiagram
 
 ## 3. 身份、项目边界与 DTO
 
-Bearer token 的 issuer、audience、有效期和撤销状态由选定的身份系统验证；平台从可信 token 与授权库得到 **应用身份、有效请求主体、可访问项目、操作权限和资源范围**。机器凭据可以以应用自身为主体；代表用户执行时必须使用可信委托凭据，不能直接相信请求体中的 `userId` 或自报的 `X-User-Id`。
+本实现要求应用 `Authorization: Bearer <应用凭据>` 与 `X-Harness-User-Token: <现有 OpsAgent JWT>` 两个头同时存在。Auth 身份桥验证应用凭据摘要、JWT、SQL 用户状态与项目授权；平台从可信身份与授权库得到 **应用身份、有效请求主体、可访问项目、操作权限和资源范围**。本版必须携带有效用户身份，尚不提供无用户的机器主体模式；代表用户执行时通过可信委托凭据，不能直接相信请求体中的 `userId` 或自报的 `X-User-Id`。
 
 `projectId` 只是资源选择器，必须与已认证授权交集匹配。Actor、permissions、发布快照、执行身份和凭据引用均由服务端构造。公开请求没有模型名、prompt 替换、工具列表、tool policy、endpoint、headers、RunState 或 Actor 字段。发布输入 schema 也禁止把同名业务变量旁路映射成这些控制配置。
 
@@ -100,7 +100,7 @@ Run revision 以十进制**字符串**返回，避免 Java long 经 JavaScript �
 
 缺少 If-Match 返回 428；格式不正确、`*` 或多个 ETag 返回 400；旧 revision、失效范围或 token 不匹配返回 412。worker 领取、调用记账和状态写入也可能改变 revision，因此冲突是正常结果。客户端重新读取、重新审视状态后，若仍希望发出一条新命令，再使用新键、新 ETag；不能对新状态自动盲重试人工决定。
 
-**现有代码存在必须补齐的差距：**`Harness.pause/cancel/resume/decide/reconcileTool` 会在方法内部读取 current.revision，并没有调用方 expectedRevision 参数。服务层先检查 ETag 再调用当前方法，会留下 TOCTOU 竞争窗口，无法实现这个契约。阶段 2 必须增加经过测试的 expectedRevision 控制重载或等价的核心命令事务接口，校验、状态变更、审计、幂等响应在同一个 SQL 事务内提交；不能由 HTTP 层复制状态机写字段来规避。
+**实现：**核心现有控制入口保留，并新增 `expectedRevision` 重载；平台使用该 CAS 入口。`JdbcRunStore.inTransaction` 在同一连接内组合核心变更、审计、幂等响应；末尾写入失败会回滚全部变更，HTTP 层不复制状态机。
 
 ## 5. 审批与未知结果语义
 

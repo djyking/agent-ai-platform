@@ -52,7 +52,7 @@ def main() -> int:
     spec = load_json(ROOT / "openapi.json")
     validate_spec(spec)
     local_refs(spec, spec)
-    assert spec["security"] == [{"AccessToken": []}]
+    assert spec["security"] == [{"AccessToken": [], "OpsAgentUserToken": []}]
     operations = []
     for path, item in spec["paths"].items():
         assert path.startswith("/v1/projects/{projectId}/runs")

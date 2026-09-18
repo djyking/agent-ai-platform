@@ -2,9 +2,9 @@
   "openapi": "3.1.0",
   "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
   "info": {
-    "title": "Agent AI Platform — Stage 2 Execution API (design contract)",
-    "version": "0.1.0-draft.1",
-    "description": "Design-only contract, 2026-09-15. No platform HTTP service exists yet. Internal project/application execution entry point on top of the embedded Harness. See ../phase2-api-design.md for atomicity gaps and acceptance gates."
+    "title": "Agent AI Platform — Stage 2 Execution API",
+    "version": "0.1.0",
+    "description": "Internal project/application execution API implemented by harness-platform-service. OpsAgent-backed application and user authentication; see ../platform-operations.md for deployment and scope."
   },
   "servers": [
     {
@@ -14,7 +14,8 @@
   ],
   "security": [
     {
-      "AccessToken": []
+      "AccessToken": [],
+      "OpsAgentUserToken": []
     }
   ],
   "tags": [
@@ -1197,8 +1198,14 @@
       "AccessToken": {
         "type": "http",
         "scheme": "bearer",
-        "bearerFormat": "opaque-or-JWT-access-token",
-        "description": "Deployment identity integration validates issuer/audience/expiry and resolves application, effective subject, allowed project(s), operation grants and resource scope. No identity/permissions supplied in JSON are accepted."
+        "bearerFormat": "registered-application-credential",
+        "description": "Registered application credential. The identity bridge resolves the application from its stored credential hash and intersects project/user grants. Both authentication schemes are required."
+      },
+      "OpsAgentUserToken": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Harness-User-Token",
+        "description": "Existing OpsAgent user JWT, without Bearer prefix. Verified by existing AuthService and current SQL user/project grants. This is a validated credential, not a self-reported user ID. Never persisted in RunState."
       }
     },
     "parameters": {
@@ -2630,7 +2637,8 @@
                   "INPUT_INVALID",
                   "QUOTA_EXCEEDED",
                   "TEMPORARILY_UNAVAILABLE",
-                  "INTERNAL_ERROR"
+                  "INTERNAL_ERROR",
+                  "METHOD_NOT_ALLOWED"
                 ]
               },
               "message": {

@@ -94,6 +94,18 @@ public final class InMemoryRunStore implements RunStore {
   }
 
   @Override
+  public synchronized List<String> expirable(int limit) {
+    checkLimit(limit);
+    long now = clock.millis();
+    return runs.values().stream()
+        .filter(run -> StateGuards.expirable(run, now))
+        .sorted(Comparator.comparing((RunState run) -> run.deadline).thenComparing(run -> run.id))
+        .limit(limit)
+        .map(run -> run.id)
+        .toList();
+  }
+
+  @Override
   public synchronized RunState save(RunState claimed, RunEvent event, boolean releaseLease) {
     RunState next = Objects.requireNonNull(claimed).copy();
     validateEvent(event);
@@ -113,7 +125,7 @@ public final class InMemoryRunStore implements RunStore {
     Objects.requireNonNull(mutation);
     validateEvent(event);
     RunState current = get(id);
-    if (current.revision != expectedRevision) throw new Conflict("Run revision changed");
+    if (current.revision != expectedRevision) throw new RevisionConflict();
     RunState next =
         Objects.requireNonNull(mutation.apply(current.copy()), "Mutation returned null").copy();
     checkBaseline(current, next);

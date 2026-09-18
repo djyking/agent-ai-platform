@@ -1,0 +1,54 @@
+{
+  "identitySource": "existing OpsAgent AuthService and SQL-backed grants; synthetic user10",
+  "scenario": "synthetic-development-documents",
+  "run": {
+    "id": "5bc14cfc-c1c8-4193-b0eb-b3cdc6060d94",
+    "status": "COMPLETED",
+    "revision": "10",
+    "createdAt": "2026-09-18T05:15:04.195722500Z",
+    "deadline": "2026-09-18T06:15:03.95Z",
+    "releaseRef": {
+      "agentId": "development-docs",
+      "releaseId": "bde143ac-f0d9-4e99-85ba-7bb1a7365ac1",
+      "digest": "sha256:cc53f53fdfb9641e3c834fbdbbb9d743828bcf907243584f3935393d5ef3cfac"
+    },
+    "projectId": "ops-dev",
+    "controls": {
+      "pauseRequested": false,
+      "cancelRequested": false
+    },
+    "usage": {
+      "chargedTokens": 0,
+      "modelCalls": 0,
+      "toolCalls": 1,
+      "steps": 3,
+      "accounting": "CONSERVATIVE_LEDGER"
+    },
+    "limits": {
+      "maxTokens": 8000,
+      "maxModelCalls": 2,
+      "maxToolCalls": 4,
+      "maxSteps": 30,
+      "lifetimeSeconds": 3600
+    },
+    "output": {
+      "visibility": "AVAILABLE",
+      "value": {
+        "text": "[1] Synthetic development guide: freeze the release, retain the idempotency key, inspect approval before allowing a write.\n",
+        "citations": [
+          {
+            "documentId": "synthetic-sdk",
+            "title": "Synthetic SDK guide",
+            "uri": "https://example.invalid/sdk"
+          }
+        ],
+        "truncated": false
+      }
+    }
+  },
+  "jarSha256": "A867B291C04B31EB37FE18F99429E6EB4A3A500EDE892DF68D36BE11956C35EA",
+  "database": "harness_platform_ops",
+  "checkedAt": "2026-09-18T05:15:05.3892031Z",
+  "acceptedStatus": 202,
+  "server": "127.0.0.1:8097"
+}

@@ -19,6 +19,12 @@ public interface RunStore extends AutoCloseable {
 
   List<String> ready(int limit);
 
+  /** Idle waits whose run or approval deadline expired; uncertain effects must be excluded. */
+  default List<String> expirable(int limit) {
+    StateGuards.checkLimit(limit);
+    return List.of();
+  }
+
   void assertLease(RunState claimed);
 
   /**
@@ -38,6 +44,13 @@ public interface RunStore extends AutoCloseable {
   class Conflict extends RuntimeException {
     public Conflict(String message) {
       super(message);
+    }
+  }
+
+  /** A caller's compare-and-set precondition failed, distinct from an invalid lifecycle state. */
+  class RevisionConflict extends Conflict {
+    public RevisionConflict() {
+      super("Run revision changed");
     }
   }
 

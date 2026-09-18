@@ -1,0 +1,257 @@
+{
+  "schemaVersion": 1,
+  "command": "local-platform-process-acceptance",
+  "startedAt": "2026-09-18T05:11:18.720489+00:00",
+  "status": "FAILED",
+  "runTag": "platform-20260918-process-r5",
+  "project": "platform-acceptance",
+  "jarSha256": "a867b291c04b31eb37fe18f99429e6eb4a3a500ede892df68d36be11956c35ea",
+  "processes": [
+    {
+      "label": "A",
+      "pid": 44420,
+      "startedAt": "2026-09-18T05:11:29.193913+00:00",
+      "port": 53958,
+      "healthUpAt": "2026-09-18T05:11:34.168729+00:00",
+      "stoppedAt": "2026-09-18T05:11:43.715805+00:00",
+      "exitCode": 1,
+      "terminationMode": "owned child terminate; abrupt on Windows"
+    },
+    {
+      "label": "B",
+      "pid": 17768,
+      "startedAt": "2026-09-18T05:11:39.091834+00:00",
+      "port": 53959,
+      "healthUpAt": "2026-09-18T05:11:43.675866+00:00",
+      "stoppedAt": "2026-09-18T05:11:52.598835+00:00",
+      "exitCode": 1,
+      "terminationMode": "owned child terminate; abrupt on Windows"
+    },
+    {
+      "label": "A",
+      "pid": 38496,
+      "startedAt": "2026-09-18T05:11:47.680341+00:00",
+      "port": 53958,
+      "healthUpAt": "2026-09-18T05:11:52.256889+00:00",
+      "stoppedAt": "2026-09-18T05:11:52.567034+00:00",
+      "exitCode": 1,
+      "terminationMode": "owned child terminate; abrupt on Windows"
+    }
+  ],
+  "httpEvidence": [
+    {
+      "at": "2026-09-18T05:11:35.230696+00:00",
+      "worker": "A",
+      "actor": "owner",
+      "method": "POST",
+      "path": "/v1/projects/platform-acceptance/runs",
+      "status": 202,
+      "bodyDigest": "3dde9fcc93e9c0bdaadf002a3aade52f9961b26ed8aca1ce237b7706cbc39893"
+    },
+    {
+      "at": "2026-09-18T05:11:35.309990+00:00",
+      "worker": "A",
+      "actor": "owner",
+      "method": "GET",
+      "path": "/v1/projects/platform-acceptance/runs/53bddb5e-e970-4768-82b5-de84c3f7af2c",
+      "status": 200,
+      "bodyDigest": "4f7b10b13eda087a369011fb71da1d90a51d64703983658a189526d0efa5f449",
+      "etagDigest": "1cc095a7a7f9f84092ab40635e21210df99b61076ebf2575fa8085e354e42eb5"
+    },
+    {
+      "at": "2026-09-18T05:11:35.580867+00:00",
+      "worker": "A",
+      "actor": "owner",
+      "method": "GET",
+      "path": "/v1/projects/platform-acceptance/runs/53bddb5e-e970-4768-82b5-de84c3f7af2c",
+      "status": 200,
+      "bodyDigest": "4aa1a5ec29c44ffe1360435e124bb1263f72d23b97decfb994bd736d799069b7",
+      "etagDigest": "2edb35ec49e4e0b3b4a10628560a9f013c4e7cc16f5e3db413eb0d0949a6e919"
+    },
+    {
+      "at": "2026-09-18T05:11:35.866583+00:00",
+      "worker": "A",
+      "actor": "owner",
+      "method": "GET",
+      "path": "/v1/projects/platform-acceptance/runs/53bddb5e-e970-4768-82b5-de84c3f7af2c",
+      "status": 200,
+      "bodyDigest": "a2d61b4f713f7d37ac3a70658bdba9906eaf53c06c05d7e901c73ef20d1c4299",
+      "etagDigest": "a709c00573fd9ad9a5d53d0a72efab3575419774d383b67172fba08b078a9750"
+    },
+    {
+      "at": "2026-09-18T05:11:36.165019+00:00",
+      "worker": "A",
+      "actor": "owner",
+      "method": "GET",
+      "path": "/v1/projects/platform-acceptance/runs/53bddb5e-e970-4768-82b5-de84c3f7af2c",
+      "status": 200,
+      "bodyDigest": "a2d61b4f713f7d37ac3a70658bdba9906eaf53c06c05d7e901c73ef20d1c4299",
+      "etagDigest": "a709c00573fd9ad9a5d53d0a72efab3575419774d383b67172fba08b078a9750"
+    },
+    {
+      "at": "2026-09-18T05:11:36.451285+00:00",
+      "worker": "A",
+      "actor": "owner",
+      "method": "GET",
+      "path": "/v1/projects/platform-acceptance/runs/53bddb5e-e970-4768-82b5-de84c3f7af2c",
+      "status": 200,
+      "bodyDigest": "42811e0bd4f8bde2006fa74ec5d4389e3e26dab91c41a808e44b0f2888acfb59",
+      "etagDigest": "d3185e32650f2b234d44c059d6951297aa81846f55b6920f76f7aeed0076c22c"
+    },
+    {
+      "at": "2026-09-18T05:11:36.727339+00:00",
+      "worker": "A",
+      "actor": "owner",
+      "method": "GET",
+      "path": "/v1/projects/platform-acceptance/runs/53bddb5e-e970-4768-82b5-de84c3f7af2c",
+      "status": 200,
+      "bodyDigest": "3d35f3d8c995a9a81c8f7d199e827801707dc5786d683d8c8da278d83ff7194c",
+      "etagDigest": "758222aca44658ebf9c275edb8eef491442e613a9f37d12f0b40fca0f2ca1cca"
+    },
+    {
+      "at": "2026-09-18T05:11:37.004630+00:00",
+      "worker": "A",
+      "actor": "owner",
+      "method": "GET",
+      "path": "/v1/projects/platform-acceptance/runs/53bddb5e-e970-4768-82b5-de84c3f7af2c",
+      "status": 200,
+      "bodyDigest": "8590573ddea7ac23c0293877889023ea35c624b91bfaf72b701e221549a17703",
+      "etagDigest": "b5a5ae2e01be144d30dac5f026baee7fae44e768875ee45a4b253a0d8990d8ac"
+    },
+    {
+      "at": "2026-09-18T05:11:43.953762+00:00",
+      "worker": "B",
+      "actor": "owner",
+      "method": "POST",
+      "path": "/v1/projects/platform-acceptance/runs",
+      "status": 202,
+      "bodyDigest": "2805be781ed94f337a9e70c09df0f718642aa294a7ac0e4432e5685f3ab4d869"
+    },
+    {
+      "at": "2026-09-18T05:11:44.013629+00:00",
+      "worker": "B",
+      "actor": "owner",
+      "method": "GET",
+      "path": "/v1/projects/platform-acceptance/runs/9c5a0f65-cde8-4979-8f2f-3738ee5f43c2",
+      "status": 200,
+      "bodyDigest": "303da0eb9b4576bc58904b5b7adc5ca836594fc0a087ac88947971ed5091a7a4",
+      "etagDigest": "1e584ab6f93722672f82fcb61d39739084530c8d4ecbf03c378ce0414f9d1e76"
+    },
+    {
+      "at": "2026-09-18T05:11:44.282789+00:00",
+      "worker": "B",
+      "actor": "owner",
+      "method": "GET",
+      "path": "/v1/projects/platform-acceptance/runs/9c5a0f65-cde8-4979-8f2f-3738ee5f43c2",
+      "status": 200,
+      "bodyDigest": "3934777bc26826616b8f2f1a7c68fb115d29a6325a0fc67086b9ccfe798b2678",
+      "etagDigest": "0469daec4d39a0eff0e0d3b1ab19fd0648e1e54958f4b6647b47ab42b844fa35"
+    },
+    {
+      "at": "2026-09-18T05:11:44.539727+00:00",
+      "worker": "B",
+      "actor": "owner",
+      "method": "GET",
+      "path": "/v1/projects/platform-acceptance/runs/9c5a0f65-cde8-4979-8f2f-3738ee5f43c2",
+      "status": 200,
+      "bodyDigest": "a47bcf19380a01cf49c4df28d31274c650d9d8f6f2d70841ab198eee5875af58",
+      "etagDigest": "3fc115ba107265999cdb7e4c502bd68215afdbd7a88f16b7cc30dce8031462ca"
+    },
+    {
+      "at": "2026-09-18T05:11:44.800327+00:00",
+      "worker": "B",
+      "actor": "owner",
+      "method": "GET",
+      "path": "/v1/projects/platform-acceptance/runs/9c5a0f65-cde8-4979-8f2f-3738ee5f43c2",
+      "status": 200,
+      "bodyDigest": "a47bcf19380a01cf49c4df28d31274c650d9d8f6f2d70841ab198eee5875af58",
+      "etagDigest": "3fc115ba107265999cdb7e4c502bd68215afdbd7a88f16b7cc30dce8031462ca"
+    },
+    {
+      "at": "2026-09-18T05:11:45.082846+00:00",
+      "worker": "B",
+      "actor": "owner",
+      "method": "GET",
+      "path": "/v1/projects/platform-acceptance/runs/9c5a0f65-cde8-4979-8f2f-3738ee5f43c2",
+      "status": 200,
+      "bodyDigest": "84b3c8c33e452ee04c7b7d5fdf9f802929e0d774ad2f99b33b6a879fc660cc01",
+      "etagDigest": "2c3471f925e5f20ac62b14d6b2f713e0a1a57fe57bd3384f6ebb9316eecfcc5a"
+    },
+    {
+      "at": "2026-09-18T05:11:45.356191+00:00",
+      "worker": "B",
+      "actor": "owner",
+      "method": "GET",
+      "path": "/v1/projects/platform-acceptance/runs/9c5a0f65-cde8-4979-8f2f-3738ee5f43c2",
+      "status": 200,
+      "bodyDigest": "e55d5c99d73ef8f14b399de9c700510f6d969b292f664e85f1dbb39c902cdb35",
+      "etagDigest": "6cb4f9f5f47e62e13769f6061507085cd0bf02fcbfac19d3c4c65d119e4c9a15"
+    },
+    {
+      "at": "2026-09-18T05:11:45.636542+00:00",
+      "worker": "B",
+      "actor": "owner",
+      "method": "GET",
+      "path": "/v1/projects/platform-acceptance/runs/9c5a0f65-cde8-4979-8f2f-3738ee5f43c2",
+      "status": 200,
+      "bodyDigest": "f34347445e6f8793aad86bade997edfe299a3d891d3d43d8133efcc8467ef3d4",
+      "etagDigest": "4526f9dec2881a503fcea689e41891b8b228a72043d70a499050e430794eece5"
+    },
+    {
+      "at": "2026-09-18T05:11:52.361964+00:00",
+      "worker": "A",
+      "actor": "owner",
+      "method": "GET",
+      "path": "/v1/projects/platform-acceptance/runs/53bddb5e-e970-4768-82b5-de84c3f7af2c",
+      "status": 200,
+      "bodyDigest": "8590573ddea7ac23c0293877889023ea35c624b91bfaf72b701e221549a17703",
+      "etagDigest": "b5a5ae2e01be144d30dac5f026baee7fae44e768875ee45a4b253a0d8990d8ac"
+    }
+  ],
+  "checks": [
+    {
+      "name": "two_independent_workers_observed",
+      "startedAt": "2026-09-18T05:11:27.095219+00:00",
+      "status": "FAILED",
+      "failureCode": "MYSQL_EVIDENCE_QUERY_FAILED",
+      "finishedAt": "2026-09-18T05:11:52.535544+00:00"
+    }
+  ],
+  "boundaries": {
+    "twoRealJavaApiWorkerProcesses": true,
+    "realMySql": true,
+    "identityMysqlBacked": true,
+    "originalProductionIdentityBootConfiguration": false,
+    "modelWasScripted": true,
+    "toolsWereLocalSyntheticFixture": true,
+    "githubWrites": 0,
+    "mysqlRestartOwner": "external owning controller; this runner never terminates mysqld"
+  },
+  "failureCode": "MYSQL_EVIDENCE_QUERY_FAILED",
+  "fixtureEvidence": {
+    "dispatches": [
+      {
+        "at": "2026-09-18T05:11:35.851261+00:00",
+        "kind": "dispatch",
+        "remoteName": "probe_read",
+        "caseKey": "platform-20260918-process-r5-worker-a",
+        "worker": "A"
+      },
+      {
+        "at": "2026-09-18T05:11:44.436090+00:00",
+        "kind": "dispatch",
+        "remoteName": "probe_read",
+        "caseKey": "platform-20260918-process-r5-worker-b",
+        "worker": "B"
+      }
+    ],
+    "effectCount": 0,
+    "modelCalls": 0,
+    "journalDigest": "fcb1d65a2439b4ad9f2752f4b0afc8899950153003559bc3383bcd1458460731"
+  },
+  "finishedAt": "2026-09-18T05:11:52.981592+00:00",
+  "createdRunIds": [
+    "53bddb5e-e970-4768-82b5-de84c3f7af2c",
+    "9c5a0f65-cde8-4979-8f2f-3738ee5f43c2"
+  ]
+}

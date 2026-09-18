@@ -16,8 +16,8 @@ public final class ValidationMain {
   private ValidationMain() {}
 
   public static void main(String[] args) throws Exception {
-    if (args.length != 2 || !Set.of("preflight", "model", "mcp-read", "mysql").contains(args[0]))
-      throw new IllegalArgumentException("Usage: preflight|model|mcp-read|mysql <new-report.json>");
+    if (args.length != 2 || !Set.of("preflight", "model", "mcp-read", "mysql", "github-write-discover", "github-write", "quality-plan", "live-quality").contains(args[0]))
+      throw new IllegalArgumentException("Usage: preflight|model|mcp-read|mysql|github-write-discover|github-write|quality-plan|live-quality <new-report.json>");
     Path path = Path.of(args[1]).toAbsolutePath().normalize();
     if (Files.exists(path))
       throw new IllegalArgumentException("Report already exists; choose a new path");
@@ -36,10 +36,14 @@ public final class ValidationMain {
             case "model" -> model(settings);
             case "mcp-read" -> mcp(settings);
             case "mysql" -> MySqlAcceptance.run(settings);
+            case "github-write-discover" -> GitHubWriteAcceptance.discover(settings);
+            case "github-write" -> GitHubWriteAcceptance.run(settings, report);
+            case "quality-plan" -> LiveQualityAcceptance.plan(settings);
+            case "live-quality" -> LiveQualityAcceptance.run(settings, report);
             default -> throw new IllegalStateException();
           };
       report.set("details", details);
-      report.put("status", "preflight".equals(args[0]) ? "INSPECTED" : "PASSED");
+      report.put("status", Set.of("preflight", "github-write-discover", "quality-plan").contains(args[0]) ? "INSPECTED" : "PASSED");
       passed = true;
     } catch (Exception failure) {
       // Never serialize remote exception messages, JDBC URLs or credential values.

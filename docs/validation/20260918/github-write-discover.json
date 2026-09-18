@@ -1,0 +1,91 @@
+{
+  "schemaVersion" : 1,
+  "command" : "github-write-discover",
+  "at" : "2026-09-18T04:27:19.971880Z",
+  "details" : {
+    "repository" : "djyking/agent-ai-platform",
+    "branch" : "codex/harness-write-acceptance-20260918-e623b7c4",
+    "sourceBranch" : "main",
+    "approvedPath" : "validation/sandbox/20260918-e623b7c4/approved.txt",
+    "lostResponsePath" : "validation/sandbox/20260918-e623b7c4/lost-response.txt",
+    "remoteWriteCalls" : 0,
+    "mcpEndpoint" : "https://api.githubcopilot.com/mcp/",
+    "pushPermissionVerified" : true,
+    "branchAbsentBeforeWrites" : true,
+    "sourceHeadAtPreflight" : "7e83eefd68fb23612b00221d25c4a22cf04fb92d",
+    "defaultBranch" : "main",
+    "writeTools" : [ {
+      "remoteName" : "create_branch",
+      "remoteContractDigest" : "bb4eff4ebd0ce2309a64ccd14a83135fcb2456610b977acc4829bf0ecce3eec5",
+      "inputSchema" : {
+        "properties" : {
+          "branch" : {
+            "description" : "Name for new branch",
+            "type" : "string"
+          },
+          "from_branch" : {
+            "description" : "Source branch (defaults to repo default)",
+            "type" : "string"
+          },
+          "owner" : {
+            "description" : "Repository owner",
+            "type" : "string",
+            "x-mcp-header" : "owner"
+          },
+          "repo" : {
+            "description" : "Repository name",
+            "type" : "string",
+            "x-mcp-header" : "repo"
+          }
+        },
+        "required" : [ "owner", "repo", "branch" ],
+        "type" : "object"
+      }
+    }, {
+      "remoteName" : "create_or_update_file",
+      "remoteContractDigest" : "da073b0093a12d703fd9c77545726f5b1dfe5f1910ee8f851f8831396f088ba6",
+      "inputSchema" : {
+        "properties" : {
+          "allow_symlink_write" : {
+            "default" : false,
+            "description" : "Set true to update a symbolic link itself; content must be its new target path.",
+            "type" : "boolean"
+          },
+          "branch" : {
+            "description" : "Branch to create/update the file in",
+            "type" : "string"
+          },
+          "content" : {
+            "description" : "Content of the file, exactly as it should appear once written. Do not base64-encode it; this server does that before calling the REST API.",
+            "type" : "string"
+          },
+          "message" : {
+            "description" : "Commit message",
+            "type" : "string"
+          },
+          "owner" : {
+            "description" : "Repository owner (username or organization)",
+            "type" : "string",
+            "x-mcp-header" : "owner"
+          },
+          "path" : {
+            "description" : "Path where to create/update the file",
+            "type" : "string"
+          },
+          "repo" : {
+            "description" : "Repository name",
+            "type" : "string",
+            "x-mcp-header" : "repo"
+          },
+          "sha" : {
+            "description" : "The blob SHA of the file being replaced. Required if the file already exists. Retrieve it with get_file_contents using the same owner, repo, and path, with ref set to this tool's branch value.",
+            "type" : "string"
+          }
+        },
+        "required" : [ "owner", "repo", "path", "content", "message", "branch" ],
+        "type" : "object"
+      }
+    } ]
+  },
+  "status" : "INSPECTED"
+}

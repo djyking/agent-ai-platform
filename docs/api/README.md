@@ -1,6 +1,6 @@
 # 执行 API 契约
 
-`openapi.json` 是 OpenAPI 3.1 / JSON Schema 2020-12 文档，版本 `0.1.0-draft.1`。**只有设计，尚无 HTTP 服务。** 架构、权限映射、CAS 差距及实施要求见 [阶段 2 API 设计](../phase2-api-design.md)。服务地址使用 `.invalid` 占位域名，示例均为合成数据。
+`openapi.json` 是 OpenAPI 3.1 / JSON Schema 2020-12 文档，版本 `0.1.0`，由 `harness-platform-service` 实现。 架构、权限映射、CAS 差距及实施要求见 [阶段 2 API 设计](../phase2-api-design.md)。服务地址使用 `.invalid` 占位域名，示例均为合成数据。
 
 在仓库根目录使用独立 Python 环境验证，不修改系统 Python，也不要求启动模型/MCP/数据库：
 
@@ -16,9 +16,9 @@ Linux/macOS 将解释器路径改为 `.work/api-contract-env/bin/python`。可�
 
 2026-09-15 本地验证结果：OpenAPI 3.1 结构、**11 个操作、11 个 schema 示例、31 个 HTTP 请求/响应示例、33 个正反案例**及引用/策略检查全部通过。
 
-仓库 `Verify` workflow 已加入独立 `api-contract` job，使用相同命令检查契约。尚未推送运行，当前证据仍是本地验证。
+仓库 `Verify` workflow 已加入独立 `api-contract` job，使用相同命令检查契约。远端运行结果以 [当前交付记录](../phase12-implementation.md) 绑定的提交为准。
 
-此脚本不证明 HTTP 服务已存在，也不验证 SQL 事务、IAM、ETag 签名、字段脱敏、游标签名或真实远端调用。阶段 2 实现时必须另外建立以下服务契约测试：
+此脚本不证明 HTTP 服务已存在，也不验证 SQL 事务、IAM、ETag 签名、字段脱敏、游标签名或真实远端调用。平台测试和进程验收另行覆盖以下行为，不能仅凭本脚本宣称通过：
 
 1. 两项目/两应用/两主体访问各端点与幂等重放；未经授权无信息泄露。
 2. 同键并发、丢响应后恢复、同键不同体、控制与 worker 并发时的原子 If-Match。
@@ -26,4 +26,4 @@ Linux/macOS 将解释器路径改为 `.work/api-contract-env/bin/python`。可�
 4. 写后断连、取消/到期仍保留 UNKNOWN、错误 evidence 拒绝、对账绝不调用远端写工具。
 5. 两 worker 领取、共享额度、进程重启、等待到期、事件分页/保留过期与字段脱敏。
 
-暂不生成服务端 stub 或客户端 SDK，避免草案被误当成已可连接的平台。
+本版不生成客户端 SDK；可使用普通 HTTP 客户端调用。应用凭据与用户 JWT 为 AND 鉴权，详见 OpenAPI securitySchemes。

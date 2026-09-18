@@ -1,6 +1,45 @@
 # OpsAgent 隔离源码试点
 
-本入口验证 **Harness → HTTP → OpsAgent 实际 RAG/知识内部实现 → H2 合成知识**。它使用单独的测试用户和每次新生成的签名密钥，原 OpsAgent 目录只读。它不是现有部署环境的联调，也不启动原系统的自动配置。
+## 现有身份与持久路由验收（2026-09-18）
+
+新增 `IsolatedIdentityBridgeTest` 使用实际 `AuthService`、MyBatis `UserMapper`、`JwtService` 和
+`HarnessIdentityController`/`HarnessIdentityService`，连接合成账户 SQL 表。通过真实 HTTP 获取委托并签发
+原 `InternalActorTokens`，再走实际 RAG、Knowledge 与 SQL 权限链。它补充旧 11 项回归，不把原 HashMap
+Auth fixture 和内存路由测试重新解释成真实接入。
+
+新增的正式业务入口是 `POST /api/rag/harness-search`，请求为 `{requestId, query, topK}`。
+它默认选择 `LEGACY` 并复用既有授权检索实现；显式切换后，新请求选择平台异步 Run。
+SQL `ops_harness_route` 的唯一键按应用、项目、主体与业务请求固定单一 owner，绑定输入摘要。
+同请求不随开关变化；同键不同输入冲突；平台调用失败不转发给旧执行器。
+平台创建重试使用同一持久 route UUID 作为幂等键。
+旧路径是只读检索，重试会重新检查当前权限并再次检索，避免返回已失效的缓存知识。
+本轮不替换生成答案的 `/api/rag/ask`，也不迁移旧工单 Agent 工作流。
+
+OpsAgent 配置默认关闭：`ops.harness.identity.enabled`、`ops.harness.search.enabled`。
+部署前显式执行 `harness-identity-schema.sql` / `harness-route-schema.sql`，配置受信应用的凭据摘要与现有用户项目授权。
+`ops.harness.search.new-owner` 默认 `LEGACY`；开启新路径需设置平台 origin 与不可变 agent/release/digest。
+仓库仅复制 Java/POM 和这两份无凭据迁移 SQL，不复制原应用资源或 `.env`。
+
+`IsolatedBridgeMain` 是供本机平台验收使用的独立进程宿主：真实 Tomcat/Spring MVC、Auth/RAG/Knowledge
+实现与专用 MySQL `opsagent_harness_pilot*` schema，合成账户 10/20 与七条合成知识。
+它只读取单独的私有 JSON 配置，不加载原服务生产配置；控制停止文件可正常关闭三个服务。
+配置字段为 `jdbcUrl/jdbcUser/jdbcPassword/applicationCredential/metadataFile/stopFile/platformOrigin`，
+可选 `newOwner/releaseId/releaseDigest`。元数据文件含合成登录 JWT，应只放在忽略的 `.work`，不得共享或提交。
+宿主监测配置文件修改时间，仅在同端口重建 RAG 入口；Auth/Knowledge 与 SQL 路由保持不变。
+
+受保护历史检索结果通过 `POST /internal/rag/validate-citations` → Knowledge 的
+`POST /internal/agent/validate-citations` 实时核验。每条引用必须有 documentId、chunkId、version，
+当前主体必须仍能读取已发布文档，chunk 归属及版本必须一致；任何一条失效或域服务不可用都拒绝全部投影。
+此端点不做新检索或模型生成。平台只对原应用和主体、纯 OpsAgent 检索 release 的原样输出使用此检查；
+模型加工结果不能借引用放行，原运行委托过期后输出保持 OMITTED。
+服务部署需设置 `OPS_KNOWLEDGE_INTERNAL_URL` 为受信 Knowledge origin（默认内部地址端口 8103）。
+
+仍明确保留的边界：NoOp reranker、SQL fallback、不加载 ES/Nacos/MQ、未执行模型生成；
+分布式限流及未触达的文件/模型等依赖仍为测试替身，刷新登录/验证码流程不参与。
+这可以验证本机受控 HTTP 业务与现有身份模型，不证明原生产部署配置、服务发现或容量已验收。
+
+`run.ps1` 的源码快照步骤只读原 OpsAgent 目录；本轮实现已向原项目新增显式桥接类与迁移文件。
+测试仍使用合成账户与每次新生成的签名密钥，不加载原生产部署自动配置。
 
 2026-09-15 已用下述 `run.ps1` 默认离线入口完成一次完整执行（prepare → 隔离 reactor → finalize）：**11 项测试通过，0 失败/错误/跳过**，158 个白名单源码/POM 文件运行前后 hash 一致。测试包含 10 项实际身份/检索链路验证和 1 项明确标注的内存归属策略示例。
 
@@ -14,7 +53,8 @@
 ./validation/opsagent-isolated/run.ps1 -OpsAgentRoot '<你的 OpsAgent 源码目录>'
 ```
 
-默认 Maven **离线**，测试不使用真实模型、MCP、MySQL 或现有 Auth。如果依赖尚未缓存，明确允许构建下载公开依赖：
+默认 Maven **离线**，自动测试使用 H2，不使用真实模型、MCP、MySQL 或现有账户数据；新增套件执行实际 Auth 类。
+独立的 `start-bridge.ps1` 启动专用 MySQL 宿主。如果依赖尚未缓存，明确允许构建下载公开依赖：
 
 ```powershell
 ./validation/opsagent-isolated/run.ps1 -OpsAgentRoot '<你的 OpsAgent 源码目录>' -AllowDependencyDownload
@@ -22,7 +62,10 @@
 
 脚本每次创建 `.work/opsagent-isolated/<随机 UUID>/`，不删除旧输出；实际测试命令为复制的 OpsAgent reactor 上的 `test -pl isolation-tests -am`。只运行新隔离测试，未复制原测试/资源，也不执行原 Checkstyle、应用打包或服务启动流程。原服务的依赖版本以提供的 POM 为准；若未来源码 API 改动导致失败，应明确更新桥接测试，不通过替换实际权限代码让测试通过。
 
-## 哪些是真实实现
+## 旧 11 项回归的实现边界
+
+以下表格描述保留的 `IsolatedOpsAgentPilotTest`；新 `IsolatedIdentityBridgeTest` 的实际 Auth、持久路由、引用 ACL
+验证见本文开头，报告按用例名称区分这两个套件。
 
 | 环节 | 本试点使用 |
 |---|---|
@@ -54,7 +97,8 @@
 - 文档可见性变化对后续 Run 生效，Harness 不缓存跨运行授权结果。
 - 新生成签名密钥和 bearer token 不进入 Harness 持久状态/事件；没有模型调用、没有文件/MQ写入。
 
-另外保留一项**内存路由策略示例**，只验证新请求按开关选择一个归属、已有请求不因开关变化重分派、选中处理器报错不自动走另一处理器。它没有接入原 OpsAgent ingress，也没有生产持久 routeLedger；现有部署的新请求归属、切流、回退与观察窗口仍是阶段 1 的后续工作。
+另外保留一项**内存路由策略示例**，仅作原始回归。实际持久 routeLedger 和新增业务入口由新身份桥接套件验证；
+原生产部署配置、部署切流与正式观察窗口仍需独立验收。
 
 ## 证据和准确边界
 

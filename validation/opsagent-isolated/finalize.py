@@ -40,7 +40,7 @@ def main() -> None:
                 status = "skipped"
             cases.append({"name": case.get("name"), "status": status})
     report = {
-        "schemaVersion": 1,
+        "schemaVersion": 2,
         "at": datetime.now(timezone.utc).isoformat(),
         "validationKind": "isolated-source-backed-opsagent-pilot",
         "status": "PASSED" if args.maven_exit == 0 and cases and not changed
@@ -55,20 +55,24 @@ def main() -> None:
         "whitelistedSourceBytesUnchanged": not changed,
         "changedSourcePaths": changed,
         "realImplementations": [
+            "HarnessIdentityController + HarnessIdentityService + AuthService + UserMapper + JwtService (identity bridge suite)",
+            "HarnessSearchController + HarnessRequestRoutes durable SQL ownership (identity bridge suite)",
             "InternalAgentController", "InternalActorTokens", "InternalActorAccess",
             "InternalAgentSearchService", "RerankService + NoOpRerankProvider", "ContextAssembler",
             "KnowledgeInternalAgentController", "KnowledgeService", "KnowledgeRepository",
+            "HarnessCitationAccessController + KnowledgeCitationAccessController + OpsAgentProjectionClient",
             "GlobalExceptionHandler", "Harness + WorkflowProgram + OpsAgentRagTool",
         ],
         "fixturesAndBoundaries": [
             "Manual loopback Spring MVC/Tomcat host; original application boot/configuration not loaded",
-            "Auth user storage is an independent two-user fixture; real signature, issuer and auth audience verification",
+            "Original regression suite: Auth fixture; identity bridge suite: real AuthService/MyBatis UserMapper and synthetic SQL users/roles/grants",
             "InternalKnowledgeClient uses explicit loopback HTTP instead of Feign/service discovery",
             "H2 synthetic seven-document database; real SQL visibility/publication/owner filtering",
             "KnowledgeIndexService disabled mock selects real SQL fallback; no Elasticsearch/embedding calls",
             "RagRateLimiter mock; distributed rate limit is not covered",
             "Model/usage/file/parser/MQ dependencies are unused mocks; test asserts no model generation or write dependencies",
-            "Routing policy case, if present, is only an in-memory fixture; no deployed ingress migration",
+            "Original routing policy case remains a memory example; new identity bridge suite tests real SQL route ownership and public retrieval ingress across Rag host reconstruction",
+            "New ingress /api/rag/harness-search is read-only; existing /api/rag/ask and ticket Agent workflows are not migrated",
         ],
         "externalCalls": 0,
         "externalCallsEvidence": "Configured call graph uses loopback URLs only; remote rerank disabled and index mocked. This is not a packet-captured traffic count.",

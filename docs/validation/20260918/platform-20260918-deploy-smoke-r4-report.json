@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "command": "local-platform-process-acceptance",
+  "startedAt": "2026-09-18T05:08:31.169594+00:00",
+  "status": "DEPLOYMENT_SMOKE_PASSED",
+  "runTag": "platform-20260918-deploy-smoke-r4",
+  "project": "platform-acceptance",
+  "jarSha256": "d70f9267463875885c8be445d65289331d7f5333c54d100295916b3238afd4c9",
+  "processes": [
+    {
+      "label": "A",
+      "pid": 11120,
+      "startedAt": "2026-09-18T05:08:35.469774+00:00",
+      "port": 53958,
+      "healthUpAt": "2026-09-18T05:08:40.952026+00:00",
+      "stoppedAt": "2026-09-18T05:08:48.087286+00:00",
+      "exitCode": 1,
+      "terminationMode": "owned child terminate; abrupt on Windows"
+    },
+    {
+      "label": "B",
+      "pid": 19476,
+      "startedAt": "2026-09-18T05:08:42.981432+00:00",
+      "port": 53959,
+      "healthUpAt": "2026-09-18T05:08:48.064226+00:00",
+      "stoppedAt": "2026-09-18T05:08:48.113003+00:00",
+      "exitCode": 1,
+      "terminationMode": "owned child terminate; abrupt on Windows"
+    }
+  ],
+  "httpEvidence": [],
+  "checks": [],
+  "boundaries": {
+    "twoRealJavaApiWorkerProcesses": true,
+    "realMySql": true,
+    "identityMysqlBacked": true,
+    "originalProductionIdentityBootConfiguration": false,
+    "modelWasScripted": true,
+    "toolsWereLocalSyntheticFixture": true,
+    "githubWrites": 0,
+    "mysqlRestartOwner": "external owning controller; this runner never terminates mysqld",
+    "identityAuthorizationWasExercised": false
+  },
+  "finishedAt": "2026-09-18T05:08:48.278424+00:00"
+}

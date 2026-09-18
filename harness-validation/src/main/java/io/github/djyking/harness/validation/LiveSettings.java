@@ -101,6 +101,12 @@ public final class LiveSettings {
                 "HARNESS_MCP_ARGUMENTS_FILE",
                 "HARNESS_MCP_TOKEN"));
     groups.put(
+        "github-write",
+        List.of("HARNESS_GITHUB_REPOSITORY", "HARNESS_GITHUB_ACCEPTANCE_TAG", "HARNESS_GITHUB_WRITE_CONFIRM", "HARNESS_MCP_TOKEN"));
+    groups.put(
+        "live-quality",
+        List.of("HARNESS_MODEL_ENDPOINT", "HARNESS_MODEL_NAME", "DEEPSEEK_API_KEY", "HARNESS_QUALITY_CALL_LIMIT", "HARNESS_QUALITY_PLAN_FILE"));
+    groups.put(
         "mysql",
         List.of(
             "HARNESS_MYSQL_HOST",

@@ -1,0 +1,183 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-18T03:59:12.3159157+00:00",
+  "sourceConversation": {
+    "title": "评估 AgentLoop harness 重构",
+    "threadId": "01a0a0bd-e18d-7133-a0ed-01d2160f67b3"
+  },
+  "git": {
+    "branch": "codex/harness-foundation",
+    "testedCommit": "f48fbae6bb8f0901c360215e1a8448d44900185b",
+    "cleanWorkingTreeAtBuildStart": true,
+    "remoteFeatureHead": "f48fbae6bb8f0901c360215e1a8448d44900185b",
+    "remoteMainHead": "7e83eefd68fb23612b00221d25c4a22cf04fb92d",
+    "remoteRefsReadWith": "git ls-remote --heads origin",
+    "assessmentDocumentsCommitted": false
+  },
+  "localBuild": {
+    "command": "mvnw.cmd clean verify -B -ntp",
+    "exitCode": 0,
+    "jdk": "17.0.19",
+    "maven": "3.9.11",
+    "tests": 135,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "modules": [
+      {
+        "module": "harness-adapters",
+        "tests": 17,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "module": "harness-capabilities",
+        "tests": 18,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "module": "harness-core",
+        "tests": 46,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "module": "harness-evals",
+        "tests": 8,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "module": "harness-examples",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "module": "harness-integrations-opsagent",
+        "tests": 11,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "module": "harness-storage-jdbc",
+        "tests": 24,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "module": "harness-validation",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    ],
+    "log": ".work/assessment-20260918-maven.log",
+    "artifacts": [
+      {
+        "module": "harness-adapters",
+        "sha256": "29cda4222698a591c3dc1a5af77a7034a6529e8f38c4be30c4ae651854b76c09"
+      },
+      {
+        "module": "harness-capabilities",
+        "sha256": "c480a8d5005a00e7ceb4e6520c895a7b00638dfaa4e00fe7c571d244d0a5145f"
+      },
+      {
+        "module": "harness-core",
+        "sha256": "171021fab0990002bfd5b9dde65c8cbbff7c000736c09c0c2b121795e7addf2d"
+      },
+      {
+        "module": "harness-evals",
+        "sha256": "55be68ff7e6011b986e174d36a4c68abfa0f8616e82c3fcb6111b1af3014a12c"
+      },
+      {
+        "module": "harness-examples",
+        "sha256": "294056141899bf4598dc1e587bddf52b5051c32a8c196fc36251bef505cce719"
+      },
+      {
+        "module": "harness-integrations-opsagent",
+        "sha256": "de8a3aff53d023bff35e2894c49787f40e5dffd9f5f4b1bee4f89790e411b40a"
+      },
+      {
+        "module": "harness-storage-jdbc",
+        "sha256": "39c05954a24c18e02aaa9d6e397f8bea767c64d41c170b10ce833810bef56420"
+      },
+      {
+        "module": "harness-validation",
+        "sha256": "ecdad61cedc3998dcce5f9fd08b05a9d1ea6660f7d1b839bed106a5af13056a1"
+      }
+    ]
+  },
+  "engineering": {
+    "dataset": "engineering-v1",
+    "passed": 9,
+    "total": 9,
+    "synthetic": true,
+    "modelQualityEvaluation": false,
+    "entrypoint": "io.github.djyking.harness.evals.EvalsMain",
+    "classpathSource": "harness-evals/target/surefire-reports/TEST-io.github.djyking.harness.evals.BaselineRunnerTest.xml java.class.path from current reactor",
+    "report": "engineering-report.json"
+  },
+  "apiContract": {
+    "command": ".work/api-contract-env/Scripts/python.exe docs/api/validate_contract.py",
+    "exitCode": 0,
+    "operations": 11,
+    "schemaExamples": 11,
+    "httpMediaExamples": 31,
+    "positiveNegativeCases": 33,
+    "designOnly": true,
+    "serviceImplemented": false
+  },
+  "remoteCi": {
+    "runId": 34927758338,
+    "commit": "f48fbae6bb8f0901c360215e1a8448d44900185b",
+    "url": "https://github.com/djyking/agent-ai-platform/actions/runs/34927758338",
+    "createdAt": "2026-09-15T04:09:59Z",
+    "conclusion": "failure",
+    "windows": {
+      "jobId": 104249334328,
+      "conclusion": "failure",
+      "step": "Verify on Windows",
+      "failedTest": "HarnessRuntimeTest.queuedCallRechecksCancellationAtActualDispatch",
+      "assertion": "expected: <CANCELLED> but was: <RUNNING>",
+      "assertionLine": 457,
+      "coreTests": 46,
+      "coreFailures": 1,
+      "subsequentModules": "SKIPPED"
+    },
+    "linux": {
+      "jobId": 104249334335,
+      "conclusion": "cancelled",
+      "reason": "The strategy configuration was canceled because build.windows-latest failed"
+    },
+    "apiContract": {
+      "jobId": 104249334209,
+      "conclusion": "success"
+    },
+    "diagnosis": "Revision/cancellation interleaving is a static explanation consistent with the failure; no deterministic reproduction or fix performed in this assessment."
+  },
+  "historicalOnly": {
+    "date": "2026-09-15",
+    "liveModelReport": "../20260915/live-model.json",
+    "liveMcpReport": "../20260915/live-github-mcp.json",
+    "liveMysqlReport": "../20260915/live-mysql.json",
+    "opsagentIsolatedReport": "../20260915/opsagent-isolated.json",
+    "rerunThisAssessment": false
+  },
+  "boundaries": [
+    "Local success does not supersede the failed remote concurrency test.",
+    "Engineering cases are scripted and are also exercised within the module tests; counts are not additive.",
+    "No changes to production code, OpsAgent, external models or write tools.",
+    "No platform service or worker implementation exists at the tested commit.",
+    "No Git commit, push, release or deployment was performed for this assessment."
+  ]
+}
