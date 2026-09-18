@@ -1,0 +1,3 @@
+Synthetic harness GitHub MCP acceptance
+run=20260918-e623b7c4
+scenario=approved-write
