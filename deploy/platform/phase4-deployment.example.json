@@ -1,0 +1,203 @@
+{
+  "identityOrigin": "http://127.0.0.1:1/",
+  "signingSecret": "env:HARNESS_SIGNING_KEY",
+  "applicationSecrets": {
+    "platform-console": "env:HARNESS_CONSOLE_CREDENTIAL"
+  },
+  "projects": [
+    {
+      "id": "studio-dev",
+      "applications": [
+        "platform-console"
+      ],
+      "maxActiveRuns": 100,
+      "maxReservedTokens": 2000000,
+      "maxActiveRunsPerApplication": 100,
+      "maxReservedTokensPerApplication": 2000000,
+      "concurrency": 2
+    }
+  ],
+  "releases": [
+    {
+      "projectId": "studio-dev",
+      "agentId": "studio-model-anchor",
+      "releaseId": "83d5d513-9b17-4a8d-a0a3-bd5f4b500007",
+      "model": {
+        "id": "deepseek-pro",
+        "provider": "deepseek",
+        "model": "deepseek-v4-pro",
+        "contextTokens": 32768,
+        "maxOutputTokens": 1200,
+        "timeoutMillis": 60000,
+        "parameters": {
+          "temperature": 0
+        }
+      },
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "question"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "string",
+        "maxLength": 12000
+      },
+      "toolKeys": [],
+      "executionPermissions": [
+        "model:invoke"
+      ],
+      "approvers": [
+        "platform-console/operator"
+      ],
+      "reviewFields": [],
+      "humanInputSchema": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1000
+      },
+      "publicOutput": true,
+      "limits": {
+        "maxTokens": 8000,
+        "maxModelCalls": 2,
+        "maxToolCalls": 4,
+        "maxSteps": 30,
+        "lifetimeSeconds": 3600
+      },
+      "workflow": {
+        "id": "support-seed",
+        "version": "1",
+        "start": "answer",
+        "maxTransitions": 20,
+        "nodes": {
+          "answer": {
+            "kind": "model",
+            "prompt": {
+              "id": "support-answer",
+              "version": "1",
+              "system": "Answer the authorized synthetic task accurately.",
+              "user": "任务：{{question}}",
+              "variables": {
+                "question": "STRING"
+              }
+            },
+            "inputBindings": {
+              "question": "question"
+            },
+            "output": "answer",
+            "next": "end"
+          },
+          "end": {
+            "kind": "end",
+            "output": "answer"
+          }
+        }
+      }
+    },
+    {
+      "projectId": "studio-dev",
+      "agentId": "studio-model-alternate",
+      "releaseId": "d1e10494-f9c3-4187-9814-55ed3d231ef0",
+      "model": {
+        "id": "deepseek-flash",
+        "provider": "deepseek",
+        "model": "deepseek-flash",
+        "contextTokens": 32768,
+        "maxOutputTokens": 1200,
+        "timeoutMillis": 60000,
+        "parameters": {
+          "temperature": 0
+        }
+      },
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "question"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "string",
+        "maxLength": 12000
+      },
+      "toolKeys": [],
+      "executionPermissions": [
+        "model:invoke"
+      ],
+      "approvers": [
+        "platform-console/operator"
+      ],
+      "reviewFields": [],
+      "humanInputSchema": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1000
+      },
+      "publicOutput": true,
+      "limits": {
+        "maxTokens": 8000,
+        "maxModelCalls": 2,
+        "maxToolCalls": 4,
+        "maxSteps": 30,
+        "lifetimeSeconds": 3600
+      },
+      "workflow": {
+        "id": "support-seed",
+        "version": "1",
+        "start": "answer",
+        "maxTransitions": 20,
+        "nodes": {
+          "answer": {
+            "kind": "model",
+            "prompt": {
+              "id": "support-answer",
+              "version": "1",
+              "system": "Answer the authorized synthetic task accurately.",
+              "user": "任务：{{question}}",
+              "variables": {
+                "question": "STRING"
+              }
+            },
+            "inputBindings": {
+              "question": "question"
+            },
+            "output": "answer",
+            "next": "end"
+          },
+          "end": {
+            "kind": "end",
+            "output": "answer"
+          }
+        }
+      }
+    }
+  ],
+  "disabledReleases": [],
+  "tools": [],
+  "models": [
+    {
+      "kind": "deepseek",
+      "provider": "deepseek",
+      "endpoint": "https://api.deepseek.com/chat/completions",
+      "secretRef": "env:DEEPSEEK_API_KEY"
+    }
+  ],
+  "concurrency": 2,
+  "leaseMillis": 90000,
+  "workerEnabled": true
+}

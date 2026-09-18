@@ -14,6 +14,13 @@ public final class RuntimeAccess implements AccessPolicy {
   private final PlatformRepository repository;
   private final IdentityProvider identities;
   private java.util.function.BiConsumer<String, String> releaseCheck = (project, release) -> {};
+  private java.util.function.BiConsumer<PlatformRepository.Owned, IdentityProvider.Principal>
+      principalCheck = (owned, principal) -> {};
+
+  public void principalCheck(
+      java.util.function.BiConsumer<PlatformRepository.Owned, IdentityProvider.Principal> check) {
+    this.principalCheck = Objects.requireNonNull(check);
+  }
 
   public void releaseCheck(java.util.function.BiConsumer<String, String> check) {
     this.releaseCheck = Objects.requireNonNull(check);
@@ -59,6 +66,7 @@ public final class RuntimeAccess implements AccessPolicy {
           || !current.project().equals(owned.project())
           || !current.subject().equals(owned.subject())
           || !current.permits(permission)) throw ApiFailure.denied();
+      principalCheck.accept(owned, current);
     } catch (RuntimeException ex) {
       throw new InvocationException(FailureKind.DENIED, "PLATFORM_CURRENT_ACCESS_DENIED");
     }

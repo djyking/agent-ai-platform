@@ -37,7 +37,7 @@ public interface IdentityProvider {
 
   String toolAuthorization(String application, String project, String delegationId, String runId);
 
-  /** Current domain ACL check; false on uncertainty. No credential or result is persisted here. */
+  /** Legacy extension point. New deployments inject an independent ProtectedOutputPolicy. */
   default boolean canReadProtectedOutput(
       Principal reader,
       PlatformRepository.Owned owned,

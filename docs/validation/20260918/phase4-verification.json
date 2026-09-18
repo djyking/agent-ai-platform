@@ -1,0 +1,42 @@
+{
+  "at": "2026-09-18T10:56:37.760351+00:00",
+  "java": {
+    "suites": 57,
+    "tests": 283,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "frontend": {
+    "tests": 31,
+    "failures": 0,
+    "productionBuild": "PASSED"
+  },
+  "supportPilot": {
+    "tests": 10,
+    "failures": 0
+  },
+  "existingOpenApi": {
+    "run": "PASSED",
+    "catalog": "PASSED"
+  },
+  "liveDeepSeek": {
+    "status": "PASSED",
+    "models": [
+      "deepseek-v4-pro",
+      "deepseek-flash"
+    ],
+    "report": "phase4-studio-acceptance.json"
+  },
+  "mysqlRestore": {
+    "status": "PASSED",
+    "tables": 21,
+    "report": "phase4-mysql-restore.json"
+  },
+  "scope": "Local development acceptance; production capacity/SLO and business traffic migration remain stages 5 and 6",
+  "liveOpenAI": {
+    "status": "PASSED",
+    "model": "gpt-4.1-mini",
+    "report": "phase4-openai-acceptance.json"
+  }
+}

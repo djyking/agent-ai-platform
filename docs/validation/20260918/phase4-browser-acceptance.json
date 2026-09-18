@@ -1,0 +1,63 @@
+{
+  "status": "PASSED",
+  "observedAt": "2026-09-18T10:56:37.753888+00:00",
+  "origin": "http://127.0.0.1:8101",
+  "method": "Browser UI actions, accessibility states, visual screenshots and read-only HTTP persistence check",
+  "identity": "local-test",
+  "application": "app-ac0e8b57-82ce-44bb-87d5-916e1c5b84ad",
+  "taskId": "d188c1d6-3e92-4239-9d70-859206ace3e3",
+  "run": {
+    "id": "3ea55628-6d96-4244-b8ea-d7cec430d56d",
+    "status": "COMPLETED",
+    "revision": "17",
+    "createdAt": "2026-09-18T10:35:17.730053300Z",
+    "deadline": "2026-09-18T11:05:16.950Z",
+    "releaseRef": {
+      "agentId": "app-ac0e8b57-82ce-44bb-87d5-916e1c5b84ad",
+      "releaseId": "ee4dd594-f952-44d7-a7da-118504025d20",
+      "digest": "sha256:7cef8dc765c3574ed9003e94fb9d11962437e0ca89cdc652023dd7f983baa62a"
+    },
+    "projectId": "studio-dev",
+    "controls": {
+      "pauseRequested": false,
+      "cancelRequested": false
+    },
+    "usage": {
+      "chargedTokens": 284,
+      "modelCalls": 1,
+      "toolCalls": 1,
+      "steps": 5,
+      "accounting": "CONSERVATIVE_LEDGER"
+    },
+    "limits": {
+      "maxTokens": 12000,
+      "maxModelCalls": 4,
+      "maxToolCalls": 8,
+      "maxSteps": 60,
+      "lifetimeSeconds": 1800
+    },
+    "output": {
+      "visibility": "AVAILABLE",
+      "value": "Atlas 的合成验收预算为 4200 元，所有资料均为合成测试数据。[1]"
+    }
+  },
+  "checks": [
+    "authorized project auto-discovery after local login",
+    "create knowledge app from template and choose actual source",
+    "save draft and perform real preview",
+    "add preview input to frozen sample and configure expected text",
+    "run evaluation and explicitly review/publish v1",
+    "create new published task and observe real answer with citation",
+    "artifact download event",
+    "model directory diagnostic and knowledge query",
+    "completed task results visible after service restart, modelCalls remains 1",
+    "task primary view shows result and artifact, advanced execution disclosure collapsed",
+    "Studio and task page screenshots visually inspected",
+    "final build displays published-task result source correctly in Studio"
+  ],
+  "limitations": [
+    "desktop viewport only",
+    "synthetic read-only inputs",
+    "screenshots reviewed through browser tool, not stored as public artifacts"
+  ]
+}

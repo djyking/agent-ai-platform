@@ -1,0 +1,77 @@
+{
+  "syntheticInputs": true,
+  "externalWriteCalls": 0,
+  "identity": "local-test",
+  "opsAdapterEnabled": false,
+  "checks": [
+    "independent_identity_templates_capabilities",
+    "cas_and_actor_scoped_command_receipt",
+    "real_preview_knowledge_artifact_private_snapshot",
+    "frozen_samples_gate_first_publication",
+    "live_model_comparison_stale_gate_rollback_stable_existing_run",
+    "disable_enforced_on_generic_run_api",
+    "second_structured_application_same_studio_and_runtime",
+    "current_acl_hides_model_answer_and_artifact"
+  ],
+  "runs": [
+    {
+      "id": "76e28565-e8fa-4ae7-a1cd-13dfc6cf45c5",
+      "status": "COMPLETED",
+      "usage": {
+        "chargedTokens": 267,
+        "modelCalls": 1,
+        "toolCalls": 1,
+        "steps": 5,
+        "accounting": "CONSERVATIVE_LEDGER"
+      },
+      "releaseRef": {
+        "agentId": "research-df3550af36",
+        "releaseId": "7ac54743-5faa-466c-93b3-b0e894a1f30e",
+        "digest": "sha256:4cd01de3464edf468a0a63ea836e60dc70768f3d6911272f9472f3325f14e196"
+      }
+    },
+    {
+      "id": "7c189bb4-a089-4e93-86ab-718d03b59427",
+      "status": "COMPLETED",
+      "usage": {
+        "chargedTokens": 267,
+        "modelCalls": 1,
+        "toolCalls": 1,
+        "steps": 5,
+        "accounting": "CONSERVATIVE_LEDGER"
+      },
+      "releaseRef": {
+        "agentId": "research-df3550af36",
+        "releaseId": "0a0128ab-3299-4fd3-bf2c-f0dbdf5bac40",
+        "digest": "sha256:7df7412e6345b7054d50e65a89580a66fac1c0a8d6572b83f2624368e9a93d7f"
+      }
+    },
+    {
+      "id": "218bbd00-728b-45b5-95bc-f2e8436d9bda",
+      "status": "COMPLETED",
+      "usage": {
+        "chargedTokens": 88,
+        "modelCalls": 1,
+        "toolCalls": 0,
+        "steps": 3,
+        "accounting": "CONSERVATIVE_LEDGER"
+      },
+      "releaseRef": {
+        "agentId": "structured-df3550af36",
+        "releaseId": "7c09cad3-290c-473a-94d6-085549e9d0b4",
+        "digest": "sha256:30dd35606db834f8d497fad0e7596f542209bee32f153272098b103c71613a7b"
+      }
+    }
+  ],
+  "status": "PASSED",
+  "project": "studio-dev",
+  "applications": [
+    "research-df3550af36",
+    "structured-df3550af36"
+  ],
+  "models": [
+    "deepseek-v4-pro",
+    "deepseek-flash"
+  ],
+  "knowledgeCollection": "sources-df3550af36"
+}

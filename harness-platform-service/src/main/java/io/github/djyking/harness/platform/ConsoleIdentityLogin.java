@@ -10,7 +10,7 @@ import java.time.Duration;
 import java.util.concurrent.*;
 
 /** Fixed-origin proxy to the existing OpsAgent captcha/login contract; no account database. */
-public final class ConsoleIdentityLogin {
+public final class ConsoleIdentityLogin implements IdentityLogin {
   private final URI origin;
   private final Duration timeout;
   private final HttpClient client =

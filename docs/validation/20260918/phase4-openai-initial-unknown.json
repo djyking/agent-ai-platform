@@ -1,0 +1,46 @@
+{
+  "status": "NOT_PASSED",
+  "taskId": "90423117-e2f0-41e9-bb9d-85f60639e946",
+  "run": {
+    "id": "f021a5ea-89dc-48ae-9ef6-a5261cf3cd86",
+    "status": "NEEDS_ATTENTION",
+    "revision": "6",
+    "createdAt": "2026-09-18T10:44:51.330343800Z",
+    "deadline": "2026-09-18T11:14:50.950Z",
+    "releaseRef": {
+      "agentId": "provider-96913f5376",
+      "releaseId": "2e65e413-2695-4ddc-bdc2-0fb04028b4cf",
+      "digest": "sha256:baba9f1de88808e6c2c012bf0caa4cad4e74d35dc8dd952021a369451094ae1c"
+    },
+    "projectId": "studio-dev",
+    "controls": {
+      "pauseRequested": false,
+      "cancelRequested": false
+    },
+    "usage": {
+      "chargedTokens": 1324,
+      "modelCalls": 1,
+      "toolCalls": 0,
+      "steps": 1,
+      "accounting": "CONSERVATIVE_LEDGER"
+    },
+    "limits": {
+      "maxTokens": 12000,
+      "maxModelCalls": 4,
+      "maxToolCalls": 8,
+      "maxSteps": 60,
+      "lifetimeSeconds": 1800
+    },
+    "output": {
+      "visibility": "OMITTED"
+    },
+    "attention": {
+      "code": "OUTCOME_UNKNOWN",
+      "invocationKind": "MODEL",
+      "invocationRef": "inv_fb40baf1d1e5129a27046a6eff5d9bcd83e18ff4f2cd6fb414676cbb0b9cb731"
+    }
+  },
+  "automaticReplay": false,
+  "reason": "Initial Java process did not use the existing Windows HTTP proxy. Precise diagnosis and any separate new-run acceptance are recorded independently.",
+  "accounting": "Conservative reserved token ledger, not proof of provider billed usage"
+}

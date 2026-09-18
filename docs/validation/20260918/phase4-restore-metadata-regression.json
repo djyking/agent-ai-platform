@@ -1,0 +1,8 @@
+{
+  "redundantCharsetEquivalent": true,
+  "actualCollationChangeDetected": true,
+  "actualCharsetChangeDetected": true,
+  "status": "PASSED",
+  "database": "harness_restore_meta_d2e20f7e6e11",
+  "sourceDatabaseTouched": false
+}

@@ -1,7 +1,6 @@
 package io.github.djyking.harness.platform;
 
 import io.github.djyking.harness.core.Json;
-import java.net.URI;
 import java.nio.file.Path;
 import javax.sql.DataSource;
 import org.springframework.boot.*;
@@ -36,28 +35,48 @@ public class PlatformApplication {
     SpringApplication.run(PlatformApplication.class, args);
   }
 
-  @Bean(destroyMethod = "close")
-  public PlatformRuntime runtime(DataSource dataSource, Environment env) {
+  @Bean
+  public Deployment deployment(Environment env) {
     String path = env.getProperty("HARNESS_CONFIG");
     if (path == null || path.isBlank())
       throw new IllegalStateException("HARNESS_CONFIG is required");
-    Deployment deployment = Deployment.load(Path.of(path));
-    SecretProvider secrets = SecretProvider.environment();
-    URI ragOrigin =
-        deployment.tools().stream()
-            .filter(t -> t.path("kind").asText().equals("opsagent-rag"))
-            .findFirst()
-            .map(t -> URI.create(t.path("origin").asText()))
-            .orElse(null);
+    return Deployment.load(Path.of(path));
+  }
+
+  @Bean
+  public SecretProvider secrets() {
+    return SecretProvider.environment();
+  }
+
+  @Bean
+  public IdentityProviders.Bundle identityProviders(
+      Deployment deployment, SecretProvider secrets, Environment env) {
+    return IdentityProviders.create(deployment, secrets, env);
+  }
+
+  @Bean(destroyMethod = "close")
+  public PlatformRuntime runtime(
+      DataSource dataSource,
+      Deployment deployment,
+      SecretProvider secrets,
+      IdentityProviders.Bundle identity) {
     return new PlatformRuntime(
-        dataSource,
-        deployment,
-        secrets,
-        new OpsAgentIdentityProvider(
-            URI.create(deployment.identityOrigin()),
-            ragOrigin,
-            deployment.applicationSecrets(),
-            secrets));
+        dataSource, deployment, secrets, identity.identity(), identity.outputPolicy());
+  }
+
+  @Bean
+  public StudioService studioService(PlatformRuntime runtime) {
+    return runtime.studio;
+  }
+
+  @Bean
+  public KnowledgeService knowledgeService(PlatformRuntime runtime) {
+    return runtime.knowledge;
+  }
+
+  @Bean
+  public CapabilityService capabilityService(PlatformRuntime runtime) {
+    return runtime.capabilities;
   }
 
   @Bean

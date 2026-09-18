@@ -22,12 +22,24 @@ public final class PlatformRuntime implements AutoCloseable {
   public final Harness harness;
   public final PlatformService service;
   public final CatalogService catalog;
+  public final StudioService studio;
+  public final KnowledgeService knowledge;
+  public final CapabilityService capabilities;
   public final PlatformTrace traces;
   public final PlatformWorker worker;
   private final List<AutoCloseable> connections = new ArrayList<>();
 
   public PlatformRuntime(
       DataSource dataSource, Deployment config, SecretProvider secrets, IdentityProvider identity) {
+    this(dataSource, config, secrets, identity, ProtectedOutputPolicy.legacyIdentity(identity));
+  }
+
+  public PlatformRuntime(
+      DataSource dataSource,
+      Deployment config,
+      SecretProvider secrets,
+      IdentityProvider identity,
+      ProtectedOutputPolicy outputPolicy) {
     deployment = config;
     store = new JdbcRunStore(dataSource);
     store.initializeSchema();
@@ -36,22 +48,31 @@ public final class PlatformRuntime implements AutoCloseable {
     for (String reference : config.applicationSecrets().values()) secrets.resolve(reference);
     RuntimeAccess access = new RuntimeAccess(repository, identity);
     ToolRegistry tools = new ToolRegistry();
+    java.util.concurrent.atomic.AtomicReference<StudioService> studioRef =
+        new java.util.concurrent.atomic.AtomicReference<>();
+    var knowledgeSchema = Json.object().put("type", "object").put("additionalProperties", false);
+    knowledgeSchema
+        .putObject("properties")
+        .putObject("query")
+        .put("type", "string")
+        .put("minLength", 1)
+        .put("maxLength", 6000);
+    knowledgeSchema.putArray("required").add("query");
+    tools.register(
+        new ToolDescriptor(
+            StudioCompiler.KNOWLEDGE_TOOL,
+            "studio_knowledge",
+            "Retrieve pinned authorized application knowledge",
+            "studio",
+            "knowledge",
+            "1",
+            knowledgeSchema,
+            new ToolPolicy(true, false, false, 1, 5000, Set.of())),
+        (descriptor, args, context) -> studioRef.get().retrieve(args, context));
     ModelRouter models = new ModelRouter();
     for (JsonNode model : config.models()) {
       String provider = model.path("provider").asText();
-      if (model.path("kind").asText().equals("deepseek")) {
-        String reference = model.path("secretRef").asText();
-        URI endpoint = URI.create(model.path("endpoint").asText());
-        models.register(
-            provider,
-            new DeepSeekChatModel(
-                new DeepSeekConfig(
-                    endpoint,
-                    Duration.ofSeconds(5),
-                    Duration.ofSeconds(60),
-                    1024 * 1024,
-                    url -> Map.of("Authorization", "Bearer " + secrets.resolve(reference)))));
-      } else throw new IllegalArgumentException("Unsupported configured model adapter");
+      models.register(provider, ConfiguredModels.create(model, secrets));
     }
     for (JsonNode tool : config.tools()) {
       switch (tool.path("kind").asText()) {
@@ -137,7 +158,19 @@ public final class PlatformRuntime implements AutoCloseable {
       if (binding.has("secretRef"))
         catalogSecrets.add(secrets.resolve(binding.path("secretRef").asText()));
     catalog = new CatalogService(config, repository, tools, catalogSecrets);
-    access.releaseCheck(catalog::requireExecution);
+    knowledge = new KnowledgeService(config, repository);
+    capabilities = new CapabilityService(config, repository, secrets);
+    access.releaseCheck(
+        (project, release) -> {
+          catalog.requireExecution(project, release);
+          Deployment.Release binding =
+              repository.transaction(
+                  c -> new CatalogRepository(repository).release(c, project, release));
+          if (binding.model() != null)
+            capabilities.assertModelEnabled(project, binding.model().provider());
+          for (String key : binding.toolKeys()) capabilities.assertToolEnabled(project, key);
+          if (studioRef.get() != null) studioRef.get().requireExecution(project, release);
+        });
     traces = new PlatformTrace(dataSource);
     harness =
         new Harness(
@@ -152,8 +185,31 @@ public final class PlatformRuntime implements AutoCloseable {
     harness.registerProgram(WorkflowProgram.PROGRAM, new WorkflowProgram());
     service =
         new PlatformService(
-            config, store, repository, harness, access, identity, signing, Clock.systemUTC());
+            config,
+            store,
+            repository,
+            harness,
+            access,
+            identity,
+            signing,
+            Clock.systemUTC(),
+            ProtectedOutputPolicy.anyOf(
+                outputPolicy,
+                (reader, owned, output) ->
+                    studioRef.get() != null
+                        && studioRef.get().canReadOutput(reader, owned, output)));
     service.catalog(catalog);
+    studio =
+        new StudioService(
+            repository,
+            service,
+            new StudioCompiler(config, tools, catalog, repository, catalogSecrets),
+            knowledge,
+            capabilities,
+            identity);
+    studioRef.set(studio);
+    service.studio(studio);
+    access.principalCheck(studio::requireRunExecution);
     worker = new PlatformWorker(config, store, repository, harness);
   }
 

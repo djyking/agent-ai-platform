@@ -14,9 +14,9 @@ import org.springframework.web.bind.annotation.*;
 public final class ConsoleController {
   static final String COOKIE = "harness_console";
   private final ConsoleSessions sessions;
-  private final ConsoleIdentityLogin login;
+  private final IdentityLogin login;
 
-  public ConsoleController(ConsoleSessions sessions, ConsoleIdentityLogin login) {
+  public ConsoleController(ConsoleSessions sessions, IdentityLogin login) {
     this.sessions = sessions;
     this.login = login;
   }
@@ -94,6 +94,9 @@ public final class ConsoleController {
     origin(request, true);
     var previous = session(request);
     JsonNode body = body(request, Set.of("projectId", "userToken"));
+    if ((body.has("projectId") && !body.path("projectId").isTextual())
+        || (body.has("userToken") && !body.path("userToken").isTextual()))
+      throw ApiFailure.invalid();
     if (previous != null) sessions.csrf(previous, request.getHeader("X-CSRF-Token"));
     String token = body.path("userToken").asText(previous == null ? "" : previous.userToken());
     var next = sessions.create(body.path("projectId").asText(), token, previous);
@@ -118,6 +121,12 @@ public final class ConsoleController {
     return login.captcha();
   }
 
+  @GetMapping("/console/auth/config")
+  public JsonNode identityConfiguration(HttpServletRequest request) {
+    origin(request, false);
+    return login.configuration();
+  }
+
   @PostMapping("/console/login")
   public JsonNode login(HttpServletRequest request, HttpServletResponse response)
       throws IOException {
@@ -127,9 +136,17 @@ public final class ConsoleController {
     if (previous != null) sessions.csrf(previous, request.getHeader("X-CSRF-Token"));
     JsonNode input =
         body(request, Set.of("projectId", "username", "password", "captchaId", "captchaCode"));
-    ApiJson.identifier(input.path("projectId").asText());
+    if (input.has("projectId")) {
+      if (!input.path("projectId").isTextual()) throw ApiFailure.invalid();
+      if (!input.path("projectId").asText().isBlank())
+        ApiJson.identifier(input.path("projectId").asText());
+    }
     var credentials = Json.object();
-    for (String key : List.of("username", "password", "captchaId", "captchaCode")) {
+    List<String> credentialFields =
+        login.captchaRequired()
+            ? List.of("username", "password", "captchaId", "captchaCode")
+            : List.of("username", "password");
+    for (String key : credentialFields) {
       if (!input.path(key).isTextual()
           || input.path(key).asText().isBlank()
           || input.path(key).asText().length() > (key.equals("password") ? 512 : 128))

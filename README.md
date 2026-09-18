@@ -94,6 +94,8 @@ RAG 提供小语料词法检索及外部检索扩展点；Workflow 提供有界�
 
 阶段一、二包括现有 OpsAgent 身份桥、持久请求路由、真实 GitHub 受控写及 DeepSeek 质量基线，以及集中执行 API/worker，见 [阶段一、二交付记录](docs/phase12-implementation.md)。阶段三增加控制台、资源目录与发布、薄 HTTP 客户端和客服试点，验收状态与边界见 [阶段三实施记录](docs/phase3-implementation.md)。
 
+阶段四将首页重做为应用 Studio：从模板构建、同页真实体验、固定样本评测到发布，再进入任务与结果工作台。新增独立身份选择、文本知识版本/ACL、模型与 MCP 连接生命周期，原高级资源和运行治理继续保留。范围、验证与后续阶段见 [第四阶段实施记录](docs/phase4-implementation.md)。
+
 构建完整控制台服务使用 `./deploy/platform/build.ps1`（Node.js 24、pnpm 11.19.0、JDK 17）；访问服务的 `/console/`。部署与三应用配置见 [阶段三部署说明](docs/phase3-deployment.md)，资源协议见 [目录 API](docs/catalog-api.md)，备份与恢复见 [平台运维说明](docs/platform-operations.md)。直接运行 Maven 仅构建 Java；控制台资源需先执行 `pnpm --dir platform-console install --frozen-lockfile` 与 `pnpm --dir platform-console build`。
 
 - [2026-09-18 当前进度核对与下一步计划](docs/status-and-next-plan-20260918.md)

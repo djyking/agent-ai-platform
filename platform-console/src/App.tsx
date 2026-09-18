@@ -1,45 +1,35 @@
 import { useEffect, useState, type FormEvent } from "react";
 import {
-  Activity,
   ArrowRight,
   Blocks,
   Bot,
-  CheckCheck,
   ChevronDown,
   CircleHelp,
-  Command,
   FileCode2,
   Fingerprint,
   FolderKanban,
-  Gauge,
   GitBranch,
   KeyRound,
-  Layers3,
   LockKeyhole,
   LogOut,
   Menu,
-  Plus,
   RefreshCw,
   ShieldCheck,
-  Sparkles,
-  Terminal,
-  X,
 } from "lucide-react";
-import { projectPath, request, setSessionToken } from "./api";
-import { navigate, useHashRoute, useRemote } from "./hooks";
+import { request, setSessionToken } from "./api";
+import { navigate, useHashRoute } from "./hooks";
 import { CatalogList, ResourceEditor } from "./Catalog";
-import { CreateRun, RunDetail, RunList, RunTable } from "./Runs";
-import type {
-  Page,
-  Principal,
-  Resource,
-  ResourceType,
-  RunSummary,
-  Session,
-} from "./types";
+import { RunDetail, RunList } from "./Runs";
+import {
+  ApplicationHome,
+  ApplicationStudio,
+  SharedCapabilities,
+  TaskWorkspace,
+  PlatformManagement,
+} from "./Studio";
+import type { ResourceType, Session } from "./types";
 import { RESOURCE_TYPES } from "./types";
 import {
-  Badge,
   Breadcrumb,
   Empty,
   ErrorNotice,
@@ -59,9 +49,9 @@ function Brand({ compact = false }: { compact?: boolean }) {
         <span />
       </span>
       <strong>
-        harness<span> / </span>
+        harness<span> studio</span>
       </strong>
-      <span className="brand-caption">AGENT PLATFORM</span>
+      <span className="brand-caption">BUILD · RUN · DELIVER</span>
     </div>
   );
 }
@@ -135,18 +125,17 @@ export default function App() {
   const principal = session.principal;
   const project = principal.project;
   const projects = session.projects ?? [{ id: project }];
-  const parts = route.split("/").filter(Boolean);
+  const parts = route.split("?")[0].split("/").filter(Boolean);
   const nav = [
-    ["/", "概览", Gauge],
-    ["/agents", "Agent 工作台", Bot],
-    ["/resources", "资源目录", Layers3],
-    ["/runs", "运行记录", Activity],
-    ["/inbox", "审批与对账", ShieldCheck],
-    ["/access", "项目与权限", Fingerprint],
+    ["/", "应用", Bot],
+    ["/capabilities", "共享能力", Blocks],
+    ["/tasks", "任务工作台", FolderKanban],
+    ["/manage", "平台管理", ShieldCheck],
   ] as const;
-  const active =
-    parts[0] === "resources" && parts[1] === "Agent"
-      ? "/agents"
+  const active = ["apps", "agents"].includes(parts[0] ?? "")
+    ? "/"
+    : ["resources", "runs", "inbox", "access"].includes(parts[0] ?? "")
+      ? "/manage"
       : `/${parts[0] ?? ""}`;
   return (
     <div className="app-shell">
@@ -156,11 +145,11 @@ export default function App() {
           <span className="workspace-avatar">H</span>
           <div>
             <strong>Agent 工作空间</strong>
-            <span>内部平台 · STAGE 03</span>
+            <span>构建 · 体验 · 发布</span>
           </div>
           <ChevronDown size={15} />
         </div>
-        <span className="nav-label">管理控制台</span>
+        <span className="nav-label">WORKSPACE</span>
         <nav aria-label="主导航">
           {nav.map(([path, name, Icon]) => (
             <a
@@ -170,14 +159,13 @@ export default function App() {
             >
               <Icon size={19} />
               <span>{name}</span>
-              {path === "/inbox" && <span className="nav-dot" />}
             </a>
           ))}
         </nav>
         <div className="sidebar-note">
           <GitBranch size={19} />
-          <strong>版本固定，执行可追溯</strong>
-          <p>从发布契约到实际运行，所有变更都有据可查。</p>
+          <strong>从想法到可用的助手</strong>
+          <p>组合获批能力，在同一个工作台里试用、评测和交付。</p>
         </div>
         <div className="sidebar-bottom">
           <button onClick={() => setIdentity(true)}>
@@ -256,10 +244,26 @@ export default function App() {
           {Boolean(error) && (
             <ErrorNotice error={error} onRetry={() => setError(undefined)} />
           )}
-          {route === "/" ? (
-            <Overview project={project} principal={principal} />
-          ) : route === "/agents" ? (
-            <CatalogList project={project} agents />
+          {route === "/" || route === "/agents" ? (
+            <ApplicationHome project={project} principal={principal} />
+          ) : parts[0] === "apps" && parts[1] ? (
+            <ApplicationStudio
+              key={route}
+              project={project}
+              principal={principal}
+              id={decodeURIComponent(parts[1])}
+            />
+          ) : route === "/capabilities" ? (
+            <SharedCapabilities project={project} principal={principal} />
+          ) : parts[0] === "tasks" ? (
+            <TaskWorkspace
+              key={route}
+              project={project}
+              principal={principal}
+              id={parts[1] ? decodeURIComponent(parts[1]) : undefined}
+            />
+          ) : route === "/manage" ? (
+            <PlatformManagement project={project} principal={principal} />
           ) : route === "/resources" ? (
             <CatalogList project={project} />
           ) : parts[0] === "resources" &&
@@ -303,7 +307,7 @@ export default function App() {
               title="页面不存在"
               action={
                 <button className="button" onClick={() => navigate("/")}>
-                  返回概览
+                  返回应用
                 </button>
               }
             />
@@ -311,7 +315,7 @@ export default function App() {
         </main>
         <footer className="workspace-footer">
           <span>Harness Agent Platform</span>
-          <span>配置有版本 · 执行有边界 · 结果可核验</span>
+          <span>构建应用 → 立即体验 → 评测发布 → 任务交付</span>
         </footer>
       </div>
       {identity && (
@@ -375,15 +379,18 @@ function Login({
   onLogin: (session: Session) => void;
   initialError?: unknown;
 }) {
-  const [project, setProject] = useState("ops-dev");
+  const [project, setProject] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [token, setToken] = useState("");
   const [captchaCode, setCaptchaCode] = useState("");
   const [captcha, setCaptcha] = useState<{
-    captchaId: string;
-    imageDataUrl: string;
-    expiresInSeconds: number;
+    captchaId?: string;
+    imageDataUrl?: string;
+    expiresInSeconds?: number;
+    required?: boolean;
+    provider?: string;
+    notice?: string;
   }>();
   const [captchaError, setCaptchaError] = useState<unknown>();
   const [mode, setMode] = useState<"password" | "token">("password");
@@ -395,13 +402,17 @@ function Login({
     setCaptchaCode("");
     try {
       const reply = await request<{
-        captchaId: string;
-        imageDataUrl: string;
-        expiresInSeconds: number;
+        captchaId?: string;
+        imageDataUrl?: string;
+        expiresInSeconds?: number;
+        required?: boolean;
+        provider?: string;
+        notice?: string;
       }>("/auth/captcha", { consoleEndpoint: true });
       if (
+        reply.data.required !== false &&
         !/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(
-          reply.data.imageDataUrl,
+          reply.data.imageDataUrl ?? "",
         )
       )
         throw new Error("验证码响应格式无效。");
@@ -423,13 +434,16 @@ function Login({
           ? await request<Session>("", {
               session: true,
               method: "POST",
-              body: { projectId: project.trim(), userToken: token.trim() },
+              body: {
+                ...(project.trim() ? { projectId: project.trim() } : {}),
+                userToken: token.trim(),
+              },
             })
           : await request<Session>("/login", {
               consoleEndpoint: true,
               method: "POST",
               body: {
-                projectId: project.trim(),
+                ...(project.trim() ? { projectId: project.trim() } : {}),
                 username,
                 password,
                 captchaId: captcha?.captchaId,
@@ -451,38 +465,38 @@ function Login({
       <div className="login-story">
         <Brand />
         <div className="login-story-main">
-          <span className="eyebrow">THE EXECUTION LAYER FOR AGENTS</span>
+          <span className="eyebrow">TURN IDEAS INTO WORKING AGENTS</span>
           <h1>
-            让 Agent 的每一步，
+            把一个想法，
             <br />
-            都值得信赖。
+            变成可用的 Agent。
           </h1>
           <p>
-            以清晰的契约组织能力，
+            组合模型、知识和工具，
             <br />
-            以可核验的执行连接业务。
+            在同一处构建、体验和交付。
           </p>
           <div className="login-diagram">
             <div className="diagram-line" />
             <span>
               <FileCode2 size={24} />
-              <strong>配置</strong>
-              <small>精确版本</small>
+              <strong>构建</strong>
+              <small>组合能力</small>
             </span>
             <span>
               <GitBranch size={24} />
-              <strong>执行</strong>
-              <small>统一账本</small>
+              <strong>体验</strong>
+              <small>立即试用</small>
             </span>
             <span>
               <ShieldCheck size={24} />
-              <strong>核验</strong>
-              <small>证据闭环</small>
+              <strong>交付</strong>
+              <small>评测发布</small>
             </span>
           </div>
         </div>
         <div className="login-story-footer">
-          <span className="live-dot" /> Harness · Agent 管理平台
+          <span className="live-dot" /> Harness · Agent 应用平台
         </div>
       </div>
       <div className="login-form-area">
@@ -491,17 +505,22 @@ function Login({
             <Fingerprint size={29} />
           </span>
           <span className="eyebrow">WELCOME TO YOUR WORKSPACE</span>
-          <h2>登录管理控制台</h2>
-          <p>使用已有 OpsAgent 账号，进入授权项目。</p>
+          <h2>登录应用工作台</h2>
+          <p>使用已接入的身份，进入你有权访问的工作空间。</p>
           <form onSubmit={submit}>
-            <Field label="项目标识" required>
-              <input
-                required
-                autoComplete="off"
-                value={project}
-                onChange={(event) => setProject(event.target.value)}
-              />
-            </Field>
+            <details className="login-workspace-option">
+              <summary>指定工作空间（可选）</summary>
+              <Field
+                label="工作空间标识"
+                hint="留空自动进入获授权的工作空间，登录后可切换。"
+              >
+                <input
+                  autoComplete="off"
+                  value={project}
+                  onChange={(event) => setProject(event.target.value)}
+                />
+              </Field>
+            </details>
             {mode === "password" ? (
               <>
                 <Field label="账号" required>
@@ -522,35 +541,41 @@ function Login({
                     onChange={(event) => setPassword(event.target.value)}
                   />
                 </Field>
-                <Field label="图形验证码" required>
-                  <div className="captcha-field">
-                    <input
-                      required
-                      value={captchaCode}
-                      onChange={(event) => setCaptchaCode(event.target.value)}
-                      autoComplete="off"
-                    />
-                    {captcha ? (
-                      <button
-                        type="button"
-                        aria-label="刷新验证码"
-                        className="captcha-image"
-                        onClick={refreshCaptcha}
-                      >
-                        <img src={captcha.imageDataUrl} alt="登录验证码" />
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        className="button"
-                        onClick={refreshCaptcha}
-                      >
-                        <RefreshCw size={16} />
-                        刷新
-                      </button>
-                    )}
-                  </div>
-                </Field>
+                {captcha?.required === false ? (
+                  <Notice>
+                    {captcha.notice ?? "当前使用本机隔离验收身份。"}
+                  </Notice>
+                ) : (
+                  <Field label="图形验证码" required>
+                    <div className="captcha-field">
+                      <input
+                        required
+                        value={captchaCode}
+                        onChange={(event) => setCaptchaCode(event.target.value)}
+                        autoComplete="off"
+                      />
+                      {captcha ? (
+                        <button
+                          type="button"
+                          aria-label="刷新验证码"
+                          className="captcha-image"
+                          onClick={refreshCaptcha}
+                        >
+                          <img src={captcha.imageDataUrl} alt="登录验证码" />
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="button"
+                          onClick={refreshCaptcha}
+                        >
+                          <RefreshCw size={16} />
+                          刷新
+                        </button>
+                      )}
+                    </div>
+                  </Field>
+                )}
                 {Boolean(captchaError) && (
                   <ErrorNotice error={captchaError} onRetry={refreshCaptcha} />
                 )}
@@ -608,197 +633,6 @@ function Login({
   );
 }
 
-function Overview({
-  project,
-  principal,
-}: {
-  project: string;
-  principal: Principal;
-}) {
-  const resources = useRemote<Page<Resource>>(
-    `${projectPath(project)}/catalog/resources`,
-  );
-  const runs = useRemote<Page<RunSummary>>(
-    `${projectPath(project)}/runs?limit=6`,
-  );
-  const [create, setCreate] = useState(false);
-  const agents = resources.data?.items.filter(
-    (resource) => resource.type === "Agent",
-  );
-  return (
-    <>
-      <PageHeading
-        eyebrow="WORKSPACE OVERVIEW"
-        title="项目概览"
-        description="一处管理 Agent 的配置、发布与运行。"
-        actions={
-          <button
-            className="button primary"
-            onClick={() => navigate("/resources/new/Agent")}
-          >
-            <Plus size={17} />
-            创建 Agent
-          </button>
-        }
-      />
-      <div className="overview-hero">
-        <div>
-          <span className="tag dark-tag">{project}</span>
-          <h2>
-            从可信配置，
-            <br />
-            走向可靠执行。
-          </h2>
-          <p>把能力组合为 Agent，让每次执行都有清晰的版本、边界与依据。</p>
-          <button
-            className="button hero-button"
-            onClick={() => navigate("/agents")}
-          >
-            打开 Agent 工作台 <ArrowRight size={17} />
-          </button>
-        </div>
-        <div className="hero-visual" aria-hidden="true">
-          <div className="visual-grid" />
-          <div className="flow-orbit orbit-one" />
-          <div className="flow-orbit orbit-two" />
-          <span className="flow-node node-one">
-            <FileCode2 size={23} />
-          </span>
-          <span className="flow-node node-two">
-            <GitBranch size={23} />
-          </span>
-          <span className="flow-node node-three">
-            <ShieldCheck size={23} />
-          </span>
-          <span className="flow-center">
-            <Bot size={51} />
-            <small>HARNESS</small>
-          </span>
-          <span className="visual-label">CONFIGURE → EXECUTE → VERIFY</span>
-        </div>
-      </div>
-      <div className="overview-stats">
-        {[
-          [Bot, "Agent", agents?.length],
-          [Layers3, "配置资源", resources.data?.items.length],
-          [
-            CheckCheck,
-            "发布版本",
-            resources.data?.items.reduce(
-              (sum, resource) => sum + resource.versions.length,
-              0,
-            ),
-          ],
-          [Activity, "近期运行 · 最多 6 条", runs.data?.items.length],
-        ].map(([Icon, label, count]) => {
-          const Symbol = Icon as typeof Bot;
-          return (
-            <div className="panel overview-stat" key={String(label)}>
-              <span className="stat-icon">
-                <Symbol size={20} />
-              </span>
-              <div>
-                <span>{String(label)}</span>
-                <strong>{count === undefined ? "—" : String(count)}</strong>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-      <div className="section-title large">
-        <div>
-          <h2>快速开始</h2>
-          <p>围绕已有能力，完成一次可核验的发布。</p>
-        </div>
-      </div>
-      <div className="quick-grid">
-        {[
-          [
-            Layers3,
-            "01",
-            "配置基础资源",
-            "选择模型与工具，定义提示词和执行边界。",
-            "/resources",
-          ],
-          [
-            GitBranch,
-            "02",
-            "组合与发布 Agent",
-            "绑定精确资源版本，校验工作流和回归用例。",
-            "/agents",
-          ],
-          [
-            Activity,
-            "03",
-            "观察执行结果",
-            "查看状态、审批内容、输出与调用关联。",
-            "/runs",
-          ],
-        ].map(([Icon, number, title, text, path]) => {
-          const Symbol = Icon as typeof Bot;
-          return (
-            <button
-              className="quick-card"
-              key={String(number)}
-              onClick={() => navigate(String(path))}
-            >
-              <div>
-                <Symbol size={22} />
-                <span>{String(number)}</span>
-              </div>
-              <h3>
-                {String(title)}
-                <ArrowRight size={16} />
-              </h3>
-              <p>{String(text)}</p>
-            </button>
-          );
-        })}
-      </div>
-      {Boolean(resources.error) && (
-        <ErrorNotice error={resources.error} onRetry={resources.reload} />
-      )}
-      <div className="panel recent-panel">
-        <div className="panel-heading">
-          <div>
-            <h3>最近运行</h3>
-            <p>当前项目与身份可见的最新记录</p>
-          </div>
-          <button className="text-button" onClick={() => navigate("/runs")}>
-            全部运行 <ArrowRight size={15} />
-          </button>
-        </div>
-        {runs.loading ? (
-          <Loading />
-        ) : runs.error ? (
-          <ErrorNotice error={runs.error} onRetry={runs.reload} />
-        ) : runs.data?.items.length ? (
-          <RunTable items={runs.data.items} />
-        ) : (
-          <Empty
-            title="还没有运行记录"
-            description="发布 Agent 后，用业务输入发起第一条运行。"
-            action={
-              principal.permissions.includes("runs:create") && (
-                <button className="button" onClick={() => setCreate(true)}>
-                  <PlayIcon />
-                  创建运行
-                </button>
-              )
-            }
-          />
-        )}
-      </div>
-      {create && (
-        <CreateRun project={project} onClose={() => setCreate(false)} />
-      )}
-    </>
-  );
-}
-function PlayIcon() {
-  return <Terminal size={16} />;
-}
-
 function AccessPage({
   session,
   switching,
@@ -837,7 +671,7 @@ function AccessPage({
       <PageHeading
         eyebrow="IDENTITY & PROJECT ACCESS"
         title="项目与权限"
-        description="复用现有 OpsAgent 身份体系，明确应用、有效用户与项目授权边界。"
+        description="查看当前身份、接入应用与工作空间的生效授权。"
       />
       <div className="access-identity-grid">
         {[
@@ -856,8 +690,7 @@ function AccessPage({
         })}
       </div>
       <Notice>
-        授权以每次请求的服务端核验为准，界面按钮只是操作提示。账号、角色与项目授权在原
-        OpsAgent 身份系统维护，中台不另建账号或权限来源。
+        授权以每次请求的服务端核验为准，界面按钮只是操作提示。账号、角色与工作空间授权由当前接入的身份提供方维护。
       </Notice>
       <div className="panel access-projects">
         <div className="panel-heading">

@@ -2,6 +2,8 @@
 
 适用于本仓库 `harness-platform-service` 的内部试用版本。核心和平台 SQL 状态版本仍为 1；阶段三增加独立 `catalog=1` 组件及诊断 trace 表，不修改已有 SDK Run。阶段二部署示例见 [deployment.example.json](../deploy/platform/deployment.example.json)，完整控制台与独立试点配置见 [阶段三部署说明](phase3-deployment.md)。
 
+第四阶段增加 `studio=1` 和 `capabilities=1` 组件。现有身份默认保持 Ops 适配；独立 loopback 验收身份及通用模型配置见 [身份配置](phase4-identity-and-models.md)。产品对象与边界见 [第四阶段实施记录](phase4-implementation.md)。
+
 ## 启动与身份
 
 1. 使用 Java 17、Node.js 24 LTS（至少 24.15.0）与 pnpm 11.19.0，执行 `deploy/platform/build.ps1`，先构建前端再验证、打包 Java。可执行包为 `harness-platform-service/target/harness-platform-service-0.1.0-SNAPSHOT.jar`。直接运行 `mvnw.cmd clean verify` 只验证 Java；全新检出若未先构建前端，不会包含控制台资源。
@@ -51,5 +53,9 @@ manifest 是受信部署文件，不是公开 API 输入。每份 release 包含
 使用 PowerShell 7 的 [restore-proof.ps1](../deploy/platform/restore-proof.ps1) 可在停止写入后复现“新建隔离库、恢复、逐表哈希比较”；脚本不会覆盖原库或启动恢复 worker。
 
 阶段三备份还必须包括四张 `catalog_*` 表、共享 `platform_releases` 和 `harness_platform_trace`。恢复脚本自动检测并比较目录与 trace，共 15 个表组。不要只备份当前默认版本；既有 Run、历史审批与目录依赖均绑定不可变版本。控制台会话仅保存在进程内，重启后重新登录，不从数据库恢复浏览器会话。
+
+第四阶段恢复脚本已改为自动枚举**全部基础表**，包括六张新增 Studio/能力/来源表；不再依赖上面的历史固定表组数。它比较完整行哈希、行数、表结构和表集合，遇到源库在证明期间变化即失败。独立 `local-test` 的私有身份配置、密钥和委托状态目录也需要单独保留；SQL 恢复证明不等于身份目录或生产恢复演练已完成。
+
+Studio 和共享能力的命令有独立的持久收据接口。浏览器对不确定结果只查询精确原命令并核对当前资源版本，查询不到时继续阻断；不使用新键盲重发。调用返回旧快照并不赋予当前读取权限，文档、答案和导出仍逐次校验。未知命令元数据可在同一浏览器会话刷新后恢复，不保存请求体或凭据。
 
 本机进程验收脚本见 `validation/platform/`；真实 GitHub 写与 DeepSeek 质量基线另见 `docs/validation/20260918/`，不要用合成进程 fixture 冒充外部服务质量。

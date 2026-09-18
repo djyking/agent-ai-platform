@@ -22,9 +22,15 @@ public final class PlatformService {
   private final Harness harness;
   private final RuntimeAccess access;
   private final IdentityProvider identities;
+  private final ProtectedOutputPolicy outputPolicy;
   private final SignedTokens tokens;
   private final Clock clock;
   private CatalogService catalog;
+  private StudioService studio;
+
+  public void studio(StudioService studio) {
+    this.studio = Objects.requireNonNull(studio);
+  }
 
   public void catalog(CatalogService catalog) {
     this.catalog = Objects.requireNonNull(catalog);
@@ -39,12 +45,35 @@ public final class PlatformService {
       IdentityProvider identities,
       SignedTokens tokens,
       Clock clock) {
+    this(
+        config,
+        store,
+        repository,
+        harness,
+        access,
+        identities,
+        tokens,
+        clock,
+        ProtectedOutputPolicy.legacyIdentity(identities));
+  }
+
+  public PlatformService(
+      Deployment config,
+      JdbcRunStore store,
+      PlatformRepository repository,
+      Harness harness,
+      RuntimeAccess access,
+      IdentityProvider identities,
+      SignedTokens tokens,
+      Clock clock,
+      ProtectedOutputPolicy outputPolicy) {
     this.config = config;
     this.store = store;
     this.repository = repository;
     this.harness = harness;
     this.access = access;
     this.identities = identities;
+    this.outputPolicy = Objects.requireNonNull(outputPolicy);
     this.tokens = tokens;
     this.clock = clock;
   }
@@ -148,6 +177,7 @@ public final class PlatformService {
           Command race = repository.command(c, hash);
           if (race != null) return replay(race, digest);
           if (catalog != null) catalog.requireNewRun(c, p.project(), release.releaseId());
+          if (studio != null) studio.requireNewRun(c, p, release.releaseId());
           repository.admit(c, config.project(p.project()), p.application(), limits.maxTokens());
           Duration remaining =
               Duration.between(clock.instant(), delegationDeadline).minusMillis(50);
@@ -229,21 +259,11 @@ public final class PlatformService {
     if (run.output == null
         || owned.release().publicOutput()
         || !p.permits("runs:output:read")
+        || !p.project().equals(owned.project())
         || !p.application().equals(owned.application())
         || !p.subject().equals(owned.subject())) return false;
-    // Only the exact, untransformed domain retrieval result has a complete citation provenance.
-    var workflow = owned.release().workflow();
-    if (owned.release().model() != null
-        || workflow.nodes().size() != 2
-        || !(workflow.nodes().get(workflow.start())
-            instanceof io.github.djyking.harness.capabilities.workflow.WorkflowDefinition.Tool tool)
-        || !tool.toolName()
-            .equals(io.github.djyking.harness.integrations.opsagent.OpsAgentRagTool.KEY)
-        || !(workflow.nodes().get(tool.next())
-            instanceof io.github.djyking.harness.capabilities.workflow.WorkflowDefinition.End end)
-        || !end.output().equals(tool.output())) return false;
     try {
-      return identities.canReadProtectedOutput(p, owned, run.output);
+      return outputPolicy.canRead(p, owned, run.output);
     } catch (RuntimeException ex) {
       return false;
     }
@@ -387,12 +407,12 @@ public final class PlatformService {
               : "RUN_STATUS_CHANGED";
       case "TOOL_RECONCILED" -> "TOOL_RECONCILED";
       case "RUN_COMPLETED",
-              "RUN_FAILED",
-              "RUN_EXPIRED",
-              "RUN_CANCELLED",
-              "RUN_PAUSED",
-              "RUN_STOPPED",
-              "RUN_BUDGET_EXCEEDED" ->
+          "RUN_FAILED",
+          "RUN_EXPIRED",
+          "RUN_CANCELLED",
+          "RUN_PAUSED",
+          "RUN_STOPPED",
+          "RUN_BUDGET_EXCEEDED" ->
           "RUN_STATUS_CHANGED";
       default -> null;
     };

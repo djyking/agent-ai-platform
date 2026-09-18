@@ -58,7 +58,13 @@ public final class ConsoleSessions {
 
   public synchronized Session create(String project, String userToken, Session previous) {
     if (!enabled()) throw new ApiFailure(503, "CONSOLE_NOT_CONFIGURED");
-    service.authenticate(project, credential, userToken);
+    if (userToken == null || userToken.isBlank() || userToken.length() > 8192)
+      throw new ApiFailure(401, "UNAUTHENTICATED");
+    if (project == null || project.isBlank()) project = discover(userToken);
+    else {
+      ApiJson.identifier(project);
+      service.authenticate(project, credential, userToken);
+    }
     sessions.values().removeIf(s -> !s.expiresAt().isAfter(clock.instant()));
     if (sessions.size() >= capacity && (previous == null || !sessions.containsKey(previous.id())))
       throw new ApiFailure(429, "SESSION_CAPACITY_REACHED");
@@ -67,6 +73,20 @@ public final class ConsoleSessions {
     if (previous != null) sessions.remove(previous.id());
     sessions.put(session.id(), session);
     return session;
+  }
+
+  /** Project names are disclosed only after the user's original authority grants that scope. */
+  private String discover(String userToken) {
+    for (var project : deployment.projects()) {
+      try {
+        service.authenticate(project.id(), credential, userToken);
+        return project.id();
+      } catch (ApiFailure failure) {
+        if (failure.status >= 500 || failure.status == 429) throw failure;
+        if (!Set.of(401, 403, 404).contains(failure.status)) throw failure;
+      }
+    }
+    throw new ApiFailure(403, "NO_AUTHORIZED_PROJECT");
   }
 
   public void remove(Session session) {
@@ -98,7 +118,8 @@ public final class ConsoleSessions {
         service.authenticate(project.id(), credential, session.userToken());
         projects.addObject().put("id", project.id());
       } catch (ApiFailure failure) {
-        if (failure.status >= 500) throw failure;
+        if (failure.status >= 500 || failure.status == 429) throw failure;
+        if (!Set.of(401, 403, 404).contains(failure.status)) throw failure;
       }
     }
     return out;

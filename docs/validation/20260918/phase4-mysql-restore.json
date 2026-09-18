@@ -1,0 +1,185 @@
+{
+  "sourceDatabaseOverwritten": false,
+  "at": "2026-09-18T10:42:31.5213560Z",
+  "tableDiscovery": "ALL_BASE_TABLES",
+  "restoredWorkersStarted": false,
+  "checks": [
+    {
+      "tableName": "capability_commands",
+      "sha256": "1fb1885c02b07a5d9160beba578ab7e22cf6aeacd4957e3fd950458335ab1b06",
+      "exactMatch": true,
+      "definitionSha256": "ee8a5fa0e834d610b32069b7e2804556409bc795a0c10764726b1fa06ce8bb59",
+      "rowCount": 9,
+      "tableGroup": "capability_commands"
+    },
+    {
+      "tableName": "capability_records",
+      "sha256": "7488ec72292f9951c445d5a6231ea53a8275e20258908cbc7bd7f57ebe80d1c2",
+      "exactMatch": true,
+      "definitionSha256": "857f3b07bef8c160b79c12512c900e0e437ce5c2f7886ebfd0cd2cddf205dd2c",
+      "rowCount": 7,
+      "tableGroup": "capability_records"
+    },
+    {
+      "tableName": "capability_versions",
+      "sha256": "937f7ec366cf5a546d5e6d7f59bf7769fd441647901272a7ba03f3ae05244645",
+      "exactMatch": true,
+      "definitionSha256": "6083f6b71ce5cd049d23b4ca7d6a6b6a4146cba38fd1ff593fc9877d0c4655d2",
+      "rowCount": 9,
+      "tableGroup": "capability_versions"
+    },
+    {
+      "tableName": "catalog_commands",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exactMatch": true,
+      "definitionSha256": "ac661c2afaec7ffff1ddc4f762ea223c20dd5640ddf00a09064ed1406bdafde5",
+      "rowCount": 0,
+      "tableGroup": "catalog_commands"
+    },
+    {
+      "tableName": "catalog_release_links",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exactMatch": true,
+      "definitionSha256": "561e689cd7e148b5e65f458e64063732c559f536791130fa09b153088a0b37a9",
+      "rowCount": 0,
+      "tableGroup": "catalog_release_links"
+    },
+    {
+      "tableName": "catalog_resources",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exactMatch": true,
+      "definitionSha256": "526e4bc6e3eab97ae2224c5cdcb4f2341979a1d863955c83cbee46f0be002b41",
+      "rowCount": 0,
+      "tableGroup": "catalog_resources"
+    },
+    {
+      "tableName": "catalog_versions",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exactMatch": true,
+      "definitionSha256": "68048e7d7b61d7c623e7e9ea79e1e448d27160b1aacb0cb9d9ea69c2709a2338",
+      "rowCount": 0,
+      "tableGroup": "catalog_versions"
+    },
+    {
+      "tableName": "harness_platform_trace",
+      "sha256": "caab7a60604994c2306f5a8854e96a87920cd853515f781d5754cd16a819af7c",
+      "exactMatch": true,
+      "definitionSha256": "6e21c02e4fee4facc748e5a3380209600c581719e943168e50b23462697e19bd",
+      "rowCount": 29,
+      "tableGroup": "harness_platform_trace"
+    },
+    {
+      "tableName": "harness_run_events",
+      "sha256": "dd70e50e8c823bf484b9486b3b4f0fd97ad071e799bcc48bc4f6eb5a654707c2",
+      "exactMatch": true,
+      "definitionSha256": "83d914864e96428ef177c737ad50f51c744418ca80e8b2e1546fbf7b858a3f19",
+      "rowCount": 251,
+      "tableGroup": "harness_run_events"
+    },
+    {
+      "tableName": "harness_runs",
+      "sha256": "c0970da243825591446b8ca60a45b46f18ef832e87dfcf0f4c23d1ec8f7c8459",
+      "exactMatch": true,
+      "definitionSha256": "52b0beee4926c09c14df30a54e78e200478a9166f98a8740a59ab0c45688f603",
+      "rowCount": 16,
+      "tableGroup": "harness_runs"
+    },
+    {
+      "tableName": "harness_schema",
+      "sha256": "6bd43737539ff184aae73f1634fae35a6ee186a28e4b1f9b041a67c03dbb7d0a",
+      "exactMatch": true,
+      "definitionSha256": "fdb218b764ecba764d21a115b44864ff08741a9f7778980976c29a84100d509b",
+      "rowCount": 5,
+      "tableGroup": "harness_schema"
+    },
+    {
+      "tableName": "knowledge_run_sources",
+      "sha256": "e2ff2340d7072caa9298808e0899ece8de7d3937c034046709e6f00cc0774812",
+      "exactMatch": true,
+      "definitionSha256": "a5c623dbf20c3732698a36053afc2cf427b84bcc434047b494cbaa77016b480e",
+      "rowCount": 13,
+      "tableGroup": "knowledge_run_sources"
+    },
+    {
+      "tableName": "platform_command_audit",
+      "sha256": "759cbb43d91e38fc15c9d61f07753d8ca938a3dbccde8f2061855a7f5de0ad34",
+      "exactMatch": true,
+      "definitionSha256": "bb5a8b5c7a7d5a39ae3fe620dcc037850ba82570d1e5bb3da3a370a2ebd3f6be",
+      "rowCount": 16,
+      "tableGroup": "platform_command_audit"
+    },
+    {
+      "tableName": "platform_commands",
+      "sha256": "820bf3789223e5e320f1738780f553b1f7505603acb197a958edf4ce58c4d276",
+      "exactMatch": true,
+      "definitionSha256": "111f5c6338255670b92fc3d72854830563e92360e46b7f8fbf3a4a984d2c796f",
+      "rowCount": 16,
+      "tableGroup": "platform_commands"
+    },
+    {
+      "tableName": "platform_evidence",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exactMatch": true,
+      "definitionSha256": "4f61c3d09baf474b7f3b26d6d2444519b54769e183bf88da8f9202598e665813",
+      "rowCount": 0,
+      "tableGroup": "platform_evidence"
+    },
+    {
+      "tableName": "platform_releases",
+      "sha256": "5096856919ff739e858f56fb7603fa67508a258ff234722f56341ed67763b02f",
+      "exactMatch": true,
+      "definitionSha256": "121c01bcca3d6310c66680448f2cebab74cde0e9b1cb5f081a9938fae40ae446",
+      "rowCount": 20,
+      "tableGroup": "platform_releases"
+    },
+    {
+      "tableName": "platform_runs",
+      "sha256": "b2a4be4930c9b6724b7431367b7877c62b268b0f2a006cf1fa0d4291fe914d63",
+      "exactMatch": true,
+      "definitionSha256": "cf3c3391a00bb046c5b7a215385aaaca44a532248f69bba4151557c32837e3f9",
+      "rowCount": 16,
+      "tableGroup": "platform_runs"
+    },
+    {
+      "tableName": "platform_scope_locks",
+      "sha256": "ab7f937ff551882cd32ee7d238577f86971319fd9eb0fe702df455fd8b20bb10",
+      "exactMatch": true,
+      "definitionSha256": "8a909116f22f7daf22d8e88e37756fc25017c121f7d2005505d1884b105c2fad",
+      "rowCount": 1,
+      "tableGroup": "platform_scope_locks"
+    },
+    {
+      "tableName": "platform_slots",
+      "sha256": "c671392343a89d29af99c5bf8053d2b452fac7d62e810b9f4b8426b37efc0fb1",
+      "exactMatch": true,
+      "definitionSha256": "46d9e102b1ff3534eb138a7def88fa14a1e4c0347a6d98bfac1156515c9123dd",
+      "rowCount": 4,
+      "tableGroup": "platform_slots"
+    },
+    {
+      "tableName": "studio_commands",
+      "sha256": "50bb48449433787fe64e4c5544dfa7a005f20f4acb1eccd729ed662011426bf0",
+      "exactMatch": true,
+      "definitionSha256": "52a50d4948c3a238a353719819abfb3745ea970cc45fe76cfe080e05037c0090",
+      "rowCount": 35,
+      "tableGroup": "studio_commands"
+    },
+    {
+      "tableName": "studio_documents",
+      "sha256": "570d3d999597e432fc908a35e464a79547df3377fb902f61a91c6dc6dc5b23ff",
+      "exactMatch": true,
+      "definitionSha256": "1ff0b551ef0ca35879bb36773f0a79e5e95b89e0fc0cd813367cd4bdd9abb23d",
+      "rowCount": 58,
+      "tableGroup": "studio_documents"
+    }
+  ],
+  "schemaVersion": 2,
+  "privateBackupRetained": true,
+  "restoredDatabase": "harness_restore_b3f6479a0eb54de0",
+  "definitionComparison": "MYSQL_INFORMATION_SCHEMA_V1",
+  "mysqlVersion": "8.0.46",
+  "boundary": "Every discovered base table and semantic definition compared after logical restore into a fresh isolated schema; no external action replay, production RPO/RTO, or identity database restore claimed",
+  "backupSha256": "92b70e5a407e8af2453b50655d58e888296a4a748b8af68cfe9090ca32c451fd",
+  "status": "PASSED",
+  "sourceDatabase": "harness_platform_phase4"
+}

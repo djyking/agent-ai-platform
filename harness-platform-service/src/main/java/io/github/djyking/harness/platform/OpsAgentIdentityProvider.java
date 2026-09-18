@@ -1,7 +1,6 @@
 package io.github.djyking.harness.platform;
 
 import io.github.djyking.harness.integrations.opsagent.OpsAgentIdentityClient;
-import io.github.djyking.harness.integrations.opsagent.OpsAgentProjectionClient;
 import java.net.URI;
 import java.time.*;
 import java.util.Map;
@@ -11,7 +10,7 @@ public final class OpsAgentIdentityProvider implements IdentityProvider {
   private final OpsAgentIdentityClient client;
   private final Map<String, String> applicationSecrets;
   private final SecretProvider secrets;
-  private final OpsAgentProjectionClient projection;
+  private final ProtectedOutputPolicy outputPolicy;
 
   public OpsAgentIdentityProvider(
       URI origin, Map<String, String> applications, SecretProvider secrets) {
@@ -23,11 +22,11 @@ public final class OpsAgentIdentityProvider implements IdentityProvider {
     client = new OpsAgentIdentityClient(origin, Duration.ofSeconds(5));
     applicationSecrets = Map.copyOf(applications);
     this.secrets = secrets;
-    projection =
-        ragOrigin == null ? null : new OpsAgentProjectionClient(ragOrigin, Duration.ofSeconds(5));
+    outputPolicy = new OpsAgentProtectedOutputPolicy(this, ragOrigin);
   }
 
   private String credential(String application) {
+    if (!applicationSecrets.containsKey(application)) throw ApiFailure.denied();
     return "Bearer " + secrets.resolve(applicationSecrets.get(application));
   }
 
@@ -97,23 +96,6 @@ public final class OpsAgentIdentityProvider implements IdentityProvider {
       Principal reader,
       PlatformRepository.Owned owned,
       com.fasterxml.jackson.databind.JsonNode output) {
-    if (projection == null
-        || !reader.application().equals(owned.application())
-        || !reader.project().equals(owned.project())
-        || !reader.subject().equals(owned.subject())
-        || !reader.permits("opsagent:rag:search")
-        || !reader.permits("tool:opsagent/rag-search")
-        || !output.isObject()
-        || output.size() != 2
-        || !output.path("evidence").isTextual()
-        || !output.path("citations").isArray()) return false;
-    try {
-      String authorization =
-          toolAuthorization(
-              owned.application(), owned.project(), owned.delegation(), owned.runId());
-      return projection.allowed(authorization, output.path("citations"));
-    } catch (RuntimeException ex) {
-      return false;
-    }
+    return outputPolicy.canRead(reader, owned, output);
   }
 }

@@ -1,6 +1,5 @@
 package io.github.djyking.harness.platform;
 
-import java.net.URI;
 import java.time.Clock;
 import org.springframework.context.annotation.*;
 import org.springframework.core.env.Environment;
@@ -26,8 +25,8 @@ public class ConsoleConfiguration implements WebMvcConfigurer {
   }
 
   @Bean
-  public ConsoleIdentityLogin consoleIdentityLogin(PlatformRuntime runtime) {
-    return new ConsoleIdentityLogin(URI.create(runtime.deployment.identityOrigin()));
+  public IdentityLogin consoleIdentityLogin(IdentityProviders.Bundle identities) {
+    return identities.login();
   }
 
   @Override
