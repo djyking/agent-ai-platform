@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "candidateCommit": "fe8a898c411b65bed9fea6089d5218ca013ec4bc",
+  "actionsRun": "https://github.com/djyking/agent-ai-platform/actions/runs/35310779962",
+  "jobs": {
+    "api-contract": "success",
+    "ubuntu-latest": "success",
+    "windows-latest": "failure"
+  },
+  "failedTest": "OpsAgentRagToolTest.responseWaitUsesInvocationDeadline",
+  "expected": "UNKNOWN",
+  "observed": "PERMANENT",
+  "testPrecondition": "Invocation deadline was created 100ms before descriptor serialization and the request call; no dispatch synchronization established that the request reached the wire.",
+  "productionBoundary": "OpsAgentRagTool.requireRemaining rejects an already expired pre-dispatch deadline as PERMANENT; UNKNOWN is for an attempted call without a known result.",
+  "logSha256": "ad3afcc32fbc4c6ad9226cfddbf7ffc0a4214565b328a7db336deb910899b41a",
+  "resolution": "Test-only correction: construct descriptor/input and warm the same HTTP client before the measured call; use explicit server-entered and response-release latches; require dispatch before asserting UNKNOWN. Independently assert an already expired request is PERMANENT with no additional dispatch. No production code, deadline semantics, or accepted failure kinds were loosened.",
+  "localVerification": {
+    "command": "mvnw.cmd -pl harness-integrations-opsagent -am test -B -ntp -Dtest=OpsAgentRagToolTest,OpsAgentIdentityClientTest,OpsAgentProjectionClientTest -Dsurefire.failIfNoSpecifiedTests=false",
+    "moduleTests": 16,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "logSha256": "adc9c284f63b50578f96fa64346fbc030c2781eed30c99528d128da20e21b5b0"
+  },
+  "unchangedAcceptedPlatformJarSha256": "e1b5eccd9275f1caf3473f930d7ccbbf6d31fb3b125c1c228af17d2f129871f6",
+  "testSourceSha256": "3550eac259686dbca68a7908c6a7d1d25c4fc467fc3ee00da67d7d3f0070f105"
+}

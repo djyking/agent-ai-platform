@@ -34,7 +34,7 @@ SDK 仍可独立嵌入，不依赖 Spring。集中服务承担 API 与 worker �
 - **备份隔离恢复：** 两个平台数据库各恢复到全新独立库，10 组表数据/哈希逐项一致，保留已接受命令、预算、审批与 UNKNOWN 证据；恢复库未启动 worker。[故障验收库报告](validation/20260918/mysql-platform-restore.json) / [Ops 平台库报告](validation/20260918/mysql-ops-platform-restore.json)。未覆盖原库，没有尝试重放外部效果。
 - **OpsAgent 最终源码：** [隔离测试 16/16](validation/20260918/opsagent-isolated-report.json)，[Auth/RAG/Knowledge 定向 verify 15/15，含 Checkstyle 与打包](validation/20260918/opsagent-targeted-verify.json)。仅本任务 10 个新增文件保存在 [可复核补丁](validation/20260918/opsagent-phase12.patch) 和 [文件哈希](validation/20260918/opsagent-phase12-files.json)，保留原工作区其他未提交修改。HTTP 宿主与最终 Ops 源码的一处错误码防溢出加固差异已在报告注明，源码测试覆盖该加固。
 - **原 CI 取消竞争：** [确定性前后对比](validation/20260918/cancellation-race.json) 在旧实现得到 RUNNING/IN_FLIGHT、零派发；修复后 CANCELLED/PREPARED、零派发。不是增加 sleep 或放宽断言。另修复等待审批/人工输入暂停后恢复误失败，保留原审批实例和期限。
-- **API 契约：** 11 操作、11 schema 示例、31 HTTP 示例和 33 正反案例通过。`Verify` workflow 分别检查 Windows、Linux、API，并关闭矩阵 fail-fast，避免一个失败把另一个证据取消。远端对应提交结果见 [该功能分支的 Actions](https://github.com/djyking/agent-ai-platform/actions?query=branch%3Acodex%2Fharness-phase1-phase2)。
+- **API 契约：** 11 操作、11 schema 示例、31 HTTP 示例和 33 正反案例通过。`Verify` workflow 分别检查 Windows、Linux、API，并关闭矩阵 fail-fast，避免一个失败把另一个证据取消。首轮远端 Linux/API 通过，Windows 揭示旧 100ms 响应超时测试未确认已派发的前提；已仅用测试预热和服务端双门闩修正，定向 16/16 通过，已验收生产 JAR 不变，见 [诊断与修复](validation/20260918/ci-timeout-test-diagnosis.json)。远端对应提交结果见 [该功能分支的 Actions](https://github.com/djyking/agent-ai-platform/actions?query=branch%3Acodex%2Fharness-phase1-phase2)。
 
 ## 接入与当前边界
 

@@ -17,6 +17,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
@@ -229,35 +232,79 @@ class OpsAgentRagToolTest {
             actor,
             Instant.now().minusMillis(1),
             "trace");
-    assertEquals(
-        "OPSAGENT_RETRIEVAL_DEADLINE_EXCEEDED",
+    var expiredFailure =
         assertThrows(
-                InvocationException.class,
-                () -> small.invoke(small.descriptor(), arguments(), expired))
-            .getMessage());
+            InvocationException.class,
+            () -> small.invoke(small.descriptor(), arguments(), expired));
+    assertEquals(FailureKind.PERMANENT, expiredFailure.kind());
+    assertEquals("OPSAGENT_RETRIEVAL_DEADLINE_EXCEEDED", expiredFailure.getMessage());
     assertEquals(1, requests.get());
   }
 
   @Test
   void responseWaitUsesInvocationDeadline() throws Exception {
-    URI origin = server(200, success(), null, 1000);
-    var tool = tool(origin);
-    var shortDeadline =
-        new ExecutionContext(
-            "run",
-            "search",
-            "run:search",
-            "run:search:1",
-            actor,
-            Instant.now().plusMillis(100),
-            "trace");
-    long start = System.nanoTime();
-    var exception =
-        assertThrows(
-            InvocationException.class,
-            () -> tool.invoke(tool.descriptor(), arguments(), shortDeadline));
-    assertEquals(FailureKind.UNKNOWN, exception.kind());
-    assertTrue(Duration.ofNanos(System.nanoTime() - start).toMillis() < 800);
+    var requestEntered = new CountDownLatch(1);
+    var releaseResponse = new CountDownLatch(1);
+    server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+    server.createContext(
+        "/internal/rag/search",
+        exchange -> {
+          try {
+            exchange.getRequestBody().readAllBytes();
+            if (requests.incrementAndGet() > 1) {
+              requestEntered.countDown();
+              if (!releaseResponse.await(30, TimeUnit.SECONDS)) return;
+            }
+            byte[] bytes = success().getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, bytes.length);
+            exchange.getResponseBody().write(bytes);
+          } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+          } finally {
+            exchange.close();
+          }
+        });
+    server.start();
+    var config =
+        OpsAgentRagConfig.defaults(URI.create("http://127.0.0.1:" + server.getAddress().getPort()));
+    var tool = new OpsAgentRagTool(config, (endpoint, audience, context) -> "Bearer fixture-token");
+    var descriptor = tool.descriptor();
+    var input = arguments();
+    // Warm descriptor/schema serialization and the actual HTTP connection before starting the
+    // deadline under test. The second response remains gated even after that deadline expires.
+    tool.invoke(descriptor, input, context());
+    assertEquals(1, requests.get());
+    assertEquals(Duration.ofSeconds(15), config.requestTimeout());
+    var worker = Executors.newSingleThreadExecutor();
+    try {
+      var invocation =
+          worker.submit(
+              () -> {
+                var shortDeadline =
+                    new ExecutionContext(
+                        "run",
+                        "search",
+                        "run:search",
+                        "run:search:1",
+                        actor,
+                        Instant.now().plusSeconds(3),
+                        "trace");
+                return assertThrows(
+                    InvocationException.class, () -> tool.invoke(descriptor, input, shortDeadline));
+              });
+      assertTrue(requestEntered.await(5, TimeUnit.SECONDS), "The timed request must dispatch");
+      // 5 seconds to observe dispatch plus 8 seconds to complete is below the configured 15-second
+      // transport timeout. No response is released, so only the invocation deadline can stop it.
+      var exception = invocation.get(8, TimeUnit.SECONDS);
+      assertEquals(1, releaseResponse.getCount());
+      assertEquals(2, requests.get());
+      assertEquals(FailureKind.UNKNOWN, exception.kind());
+      assertEquals("OPSAGENT_RETRIEVAL_OUTCOME_UNKNOWN", exception.getMessage());
+    } finally {
+      releaseResponse.countDown();
+      worker.shutdownNow();
+      assertTrue(worker.awaitTermination(5, TimeUnit.SECONDS));
+    }
   }
 
   @Test
