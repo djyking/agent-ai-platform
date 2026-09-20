@@ -1086,7 +1086,9 @@ function PreviewResult({
         <div className="studio-response">{outputText(run.output.value)}</div>
       ) : (
         <p className="studio-placeholder">
-          {["WAITING_APPROVAL", "WAITING_INPUT"].includes(run?.status ?? "")
+          {task.data?.payloadArchived || run?.payloadArchived
+            ? "正文已到保留期限，在线输入与结果已清理。"
+            : ["WAITING_APPROVAL", "WAITING_INPUT"].includes(run?.status ?? "")
             ? "需要人工处理，请进入原任务查看精确请求。"
             : run?.status === "NEEDS_ATTENTION"
               ? "执行结果需要核对，请在任务中查看原因与证据；不要重复提交原任务。"
@@ -1687,7 +1689,9 @@ export function TaskWorkspace({
             </div>
           ) : (
             <p className="studio-placeholder">
-              {data.run?.status === "COMPLETED"
+              {data.payloadArchived || data.run?.payloadArchived
+                ? "正文已到保留期限，在线输入、结果与导出已清理。任务状态和必要防重记录仍保留。"
+                : data.run?.status === "COMPLETED"
                 ? "当前身份无法读取此任务输出。"
                 : attention
                   ? "完成下方人工处理后，结果会回到当前任务。"
@@ -2082,6 +2086,12 @@ export function PlatformManagement({
   principal: Principal;
 }) {
   const entries = [
+    {
+      icon: Activity,
+      title: "运行治理",
+      text: "查看容量、排队、用量和告警，预览数据保留计划。",
+      path: "/operations",
+    },
     {
       icon: Fingerprint,
       title: "身份与工作空间",

@@ -17,7 +17,7 @@ def utc():
 
 
 class WireFixture:
-    def __init__(self, port: int, directory: Path, tokens: dict[str, str], verifier_token: str):
+    def __init__(self, port: int, directory: Path, tokens: dict[str, str], verifier_token: str, model_delay: float = 0):
         self.directory = directory
         self.journal = directory / "fixture-journal.private.jsonl"
         self.journal.touch(exist_ok=False)
@@ -27,6 +27,9 @@ class WireFixture:
         self.holds: dict[str, threading.Event] = {}
         self.active = 0
         self.max_active = 0
+        self.active_models = 0
+        self.max_active_models = 0
+        self.model_delay = model_delay
         fixture = self
 
         class Handler(BaseHTTPRequestHandler):
@@ -78,10 +81,19 @@ class WireFixture:
                 except (ValueError, UnicodeError):
                     return self.respond(400)
                 if self.path == "/chat/completions":
+                    with fixture.lock:
+                        fixture.active_models += 1
+                        fixture.max_active_models = max(fixture.max_active_models, fixture.active_models)
                     fixture.append({"kind": "model", "worker": worker, "chargedTokens": 22})
-                    return self.respond(200, {"id": "synthetic-model-response", "object": "chat.completion", "model": "synthetic-process-acceptance",
-                        "choices": [{"index": 0, "message": {"role": "assistant", "content": "synthetic-process-budget-ok"}, "finish_reason": "stop"}],
-                        "usage": {"prompt_tokens": 17, "completion_tokens": 5, "total_tokens": 22}})
+                    try:
+                        if fixture.model_delay:
+                            time.sleep(fixture.model_delay)
+                        return self.respond(200, {"id": "synthetic-model-response", "object": "chat.completion", "model": "synthetic-process-acceptance",
+                            "choices": [{"index": 0, "message": {"role": "assistant", "content": "synthetic-process-budget-ok"}, "finish_reason": "stop"}],
+                            "usage": {"prompt_tokens": 17, "completion_tokens": 5, "total_tokens": 22}})
+                    finally:
+                        with fixture.lock:
+                            fixture.active_models -= 1
                 if self.path != "/mcp":
                     return self.respond(404)
                 if "id" not in request:

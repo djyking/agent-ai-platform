@@ -10,6 +10,12 @@ import java.util.*;
 public final class RunState {
   public int schemaVersion = 1;
   public String runtimeVersion = "1";
+
+  /** Terminal payload was archived by the host; execution and control mutations are forbidden. */
+  @com.fasterxml.jackson.annotation.JsonInclude(
+      com.fasterxml.jackson.annotation.JsonInclude.Include.NON_DEFAULT)
+  public boolean payloadArchived;
+
   public String id;
   public String creationKey;
   public String creationDigest;

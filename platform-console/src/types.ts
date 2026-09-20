@@ -69,6 +69,7 @@ export type RunSummary = {
   clientReference?: string;
 };
 export type Run = RunSummary & {
+  payloadArchived?: boolean;
   projectId: string;
   controls: { pauseRequested: boolean; cancelRequested: boolean };
   usage: {

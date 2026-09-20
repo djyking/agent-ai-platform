@@ -27,6 +27,15 @@ public final class PlatformRuntime implements AutoCloseable {
   public final CapabilityService capabilities;
   public final PlatformTrace traces;
   public final PlatformWorker worker;
+  public final ExecutionGovernance governance;
+  public final OperationsService operations;
+  private final java.util.concurrent.ScheduledExecutorService monitoring =
+      java.util.concurrent.Executors.newSingleThreadScheduledExecutor(
+          r -> {
+            Thread thread = new Thread(r, "platform-monitoring");
+            thread.setDaemon(true);
+            return thread;
+          });
   private final List<AutoCloseable> connections = new ArrayList<>();
 
   public PlatformRuntime(
@@ -40,10 +49,31 @@ public final class PlatformRuntime implements AutoCloseable {
       SecretProvider secrets,
       IdentityProvider identity,
       ProtectedOutputPolicy outputPolicy) {
+    this(
+        dataSource,
+        config,
+        secrets,
+        identity,
+        outputPolicy,
+        true,
+        ExecutionGovernanceConfig.defaults(),
+        identity.getClass().getName());
+  }
+
+  public PlatformRuntime(
+      DataSource dataSource,
+      Deployment config,
+      SecretProvider secrets,
+      IdentityProvider identity,
+      ProtectedOutputPolicy outputPolicy,
+      boolean bootstrapSchema,
+      ExecutionGovernanceConfig governanceConfig,
+      String identityBinding) {
     deployment = config;
     store = new JdbcRunStore(dataSource);
-    store.initializeSchema();
-    repository = new PlatformRepository(store);
+    if (bootstrapSchema) store.initializeSchema();
+    else store.validateSchema();
+    repository = new PlatformRepository(store, bootstrapSchema);
     SignedTokens signing = new SignedTokens(secrets.resolve(config.signingSecret()));
     for (String reference : config.applicationSecrets().values()) secrets.resolve(reference);
     RuntimeAccess access = new RuntimeAccess(repository, identity);
@@ -147,6 +177,13 @@ public final class PlatformRuntime implements AutoCloseable {
     for (Deployment.Release release : config.releases()) config.validateRelease(release, tools);
     // Do not publish a new immutable manifest until all capabilities and secrets are valid.
     repository.initialize(config);
+    governance =
+        new ExecutionGovernance(
+            repository,
+            governanceConfig,
+            config,
+            GovernanceSettings.bindingFingerprint(config, secrets, identityBinding));
+    governance.initialize();
     Set<String> catalogSecrets = new HashSet<>();
     catalogSecrets.add(secrets.resolve(config.signingSecret()));
     for (String reference : config.applicationSecrets().values())
@@ -171,7 +208,7 @@ public final class PlatformRuntime implements AutoCloseable {
           for (String key : binding.toolKeys()) capabilities.assertToolEnabled(project, key);
           if (studioRef.get() != null) studioRef.get().requireExecution(project, release);
         });
-    traces = new PlatformTrace(dataSource);
+    traces = new PlatformTrace(dataSource, bootstrapSchema);
     harness =
         new Harness(
             store,
@@ -181,7 +218,8 @@ public final class PlatformRuntime implements AutoCloseable {
             traces,
             Clock.systemUTC(),
             Duration.ofMillis(config.leaseMillis()),
-            new InvocationExecutor(config.concurrency(), config.concurrency() * 2));
+            new InvocationExecutor(config.concurrency(), config.concurrency() * 2),
+            governance);
     harness.registerProgram(WorkflowProgram.PROGRAM, new WorkflowProgram());
     service =
         new PlatformService(
@@ -210,15 +248,32 @@ public final class PlatformRuntime implements AutoCloseable {
     studioRef.set(studio);
     service.studio(studio);
     access.principalCheck(studio::requireRunExecution);
-    worker = new PlatformWorker(config, store, repository, harness);
+    worker = new PlatformWorker(config, store, repository, harness, governance);
+    operations = new OperationsService(config, repository);
+    if (bootstrapSchema) operations.initialize();
+    else operations.validateSchema();
+    operations.governance(governance::overview);
   }
 
   public void start() {
     if (deployment.workerEnabled()) worker.start();
+    monitoring.scheduleWithFixedDelay(
+        () -> {
+          try {
+            operations.refreshAlerts();
+          } catch (RuntimeException unavailable) {
+            System.getLogger(PlatformRuntime.class.getName())
+                .log(System.Logger.Level.WARNING, "OPERATIONS_REFRESH_UNAVAILABLE");
+          }
+        },
+        0,
+        15,
+        java.util.concurrent.TimeUnit.SECONDS);
   }
 
   @Override
   public void close() {
+    monitoring.shutdownNow();
     worker.close();
     harness.close();
     for (AutoCloseable c : connections)

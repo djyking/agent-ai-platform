@@ -102,6 +102,7 @@ export type StudioExperiment = {
   }[];
 };
 export type StudioTask = TaskLink & {
+  payloadArchived?: boolean;
   createdAt?: string;
   name?: string;
   status?: string;

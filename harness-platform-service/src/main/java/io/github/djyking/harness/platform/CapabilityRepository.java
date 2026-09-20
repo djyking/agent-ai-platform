@@ -17,6 +17,23 @@ public final class CapabilityRepository {
   }
 
   public void initialize() {
+    if (!platform.bootstrapSchema()) {
+      platform.transaction(
+          c -> {
+            SchemaValidation.require(
+                c,
+                "capabilities",
+                1,
+                Map.of(
+                    "capability_records", "project_id,kind,record_id,revision,document_json",
+                    "capability_versions", "project_id,kind,record_id,version_no,document_json",
+                    "capability_commands",
+                        "command_hash,request_digest,response_json,project_id,actor_scope,kind,record_id,operation,accepted_at",
+                    "knowledge_run_sources", "run_id,source_hash,project_id,source_json"));
+            return null;
+          });
+      return;
+    }
     platform.transaction(
         c -> {
           boolean mysql = c.getMetaData().getDatabaseProductName().equalsIgnoreCase("MySQL");

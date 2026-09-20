@@ -13,6 +13,9 @@ public final class PlatformWorker implements AutoCloseable {
   private final JdbcRunStore store;
   private final PlatformRepository repository;
   private final Harness harness;
+  private final ExecutionGovernance governance;
+  private int projectCursor;
+  private long lastHeartbeat;
   private final ScheduledExecutorService scheduler =
       Executors.newSingleThreadScheduledExecutor(
           r -> {
@@ -26,6 +29,16 @@ public final class PlatformWorker implements AutoCloseable {
 
   public PlatformWorker(
       Deployment config, JdbcRunStore store, PlatformRepository repository, Harness harness) {
+    this(config, store, repository, harness, null);
+  }
+
+  public PlatformWorker(
+      Deployment config,
+      JdbcRunStore store,
+      PlatformRepository repository,
+      Harness harness,
+      ExecutionGovernance governance) {
+    this.governance = governance;
     this.config = config;
     this.store = store;
     this.repository = repository;
@@ -62,13 +75,24 @@ public final class PlatformWorker implements AutoCloseable {
 
   public void poll() {
     if (closing.get()) return;
+    if (governance != null && System.nanoTime() - lastHeartbeat > TimeUnit.SECONDS.toNanos(1)) {
+      governance.heartbeat(active.size(), false);
+      for (Deployment.Project project : config.projects()) governance.settle(project.id());
+      lastHeartbeat = System.nanoTime();
+    }
     for (String id : store.expirable(100))
       try {
         repository.owned(id);
         harness.expire(id);
       } catch (ApiFailure | RunStore.Conflict ignored) {
       }
-    for (String id : store.ready(config.concurrency() * 4)) {
+    List<String> projects = config.projects().stream().map(Deployment.Project::id).toList();
+    if (projects.isEmpty()) return;
+    int first =
+        governance == null
+            ? Math.floorMod(projectCursor++, projects.size())
+            : governance.nextProject(projects.size());
+    for (String id : repository.readyFair(projects, config.concurrency() * 4, first)) {
       if (closing.get() || active.size() >= config.concurrency()) break;
       PlatformRepository.Owned owned;
       try {
@@ -131,6 +155,13 @@ public final class PlatformWorker implements AutoCloseable {
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
       workers.shutdownNow();
+    } finally {
+      if (governance != null)
+        try {
+          governance.heartbeat(active.size(), true);
+        } catch (RuntimeException ignored) {
+          /* Offline metadata retains its last heartbeat. */
+        }
     }
   }
 }

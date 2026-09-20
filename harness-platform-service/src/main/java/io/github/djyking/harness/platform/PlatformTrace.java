@@ -16,7 +16,26 @@ public final class PlatformTrace implements Telemetry {
   private final StructuredTelemetry logs = new StructuredTelemetry();
 
   public PlatformTrace(DataSource dataSource) {
+    this(dataSource, true);
+  }
+
+  public PlatformTrace(DataSource dataSource, boolean bootstrapSchema) {
     this.dataSource = dataSource;
+    if (!bootstrapSchema) {
+      try (var c = dataSource.getConnection()) {
+        SchemaValidation.require(
+            c,
+            null,
+            0,
+            java.util.Map.of(
+                "harness_platform_trace",
+                "sequence_id,run_id,trace_id,invocation_id,attempt_id,node_id,operation_name,target_name,outcome,started_at,duration_ms"));
+        requireWindowIndex(c);
+      } catch (SQLException ex) {
+        throw new IllegalStateException("Trace schema migration required");
+      }
+      return;
+    }
     try (var c = dataSource.getConnection();
         var s = c.createStatement()) {
       s.execute(
@@ -41,9 +60,38 @@ public final class PlatformTrace implements Telemetry {
           // Concurrent API/worker startup may have created precisely the same index.
           if (race.getErrorCode() != 1061 && !"42S11".equals(race.getSQLState())) throw race;
         }
+      if (!windowIndex(c)) {
+        try {
+          s.execute(
+              "CREATE INDEX ix_harness_trace_window ON"
+                  + " harness_platform_trace(started_at,operation_name,run_id)");
+        } catch (SQLException race) {
+          if (race.getErrorCode() != 1061 && !"42S11".equals(race.getSQLState())) throw race;
+        }
+      }
+      requireWindowIndex(c);
     } catch (SQLException ex) {
       throw new IllegalStateException("Trace schema unavailable");
     }
+  }
+
+  private static boolean windowIndex(Connection c) throws SQLException {
+    var columns = new java.util.TreeMap<Integer, String>();
+    for (String table : new String[] {"harness_platform_trace", "HARNESS_PLATFORM_TRACE"}) {
+      try (var r = c.getMetaData().getIndexInfo(c.getCatalog(), null, table, false, false)) {
+        while (r.next())
+          if ("ix_harness_trace_window".equalsIgnoreCase(r.getString("INDEX_NAME")))
+            columns.put(
+                r.getInt("ORDINAL_POSITION"),
+                r.getString("COLUMN_NAME").toLowerCase(java.util.Locale.ROOT));
+      }
+    }
+    return new java.util.ArrayList<>(columns.values())
+        .equals(java.util.List.of("started_at", "operation_name", "run_id"));
+  }
+
+  private static void requireWindowIndex(Connection c) throws SQLException {
+    if (!windowIndex(c)) throw new IllegalStateException("Trace window index migration required");
   }
 
   @Override

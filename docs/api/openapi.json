@@ -2072,6 +2072,10 @@
           },
           "attention": {
             "$ref": "#/components/schemas/Attention"
+          },
+          "payloadArchived": {
+            "type": "boolean",
+            "description": "True after reviewed terminal payload retention. Execution cannot be reopened; the original creation and command keys remain reserved."
           }
         },
         "required": [
@@ -2148,6 +2152,10 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 128
+          },
+          "payloadArchived": {
+            "type": "boolean",
+            "description": "True after reviewed terminal payload retention. Execution cannot be reopened; the original creation and command keys remain reserved."
           }
         },
         "required": [
@@ -2303,6 +2311,10 @@
             "minLength": 1,
             "maxLength": 512,
             "description": "Run status URL. Following it requires runs:read; an approval-only actor instead uses the authorized approval read URL. Acceptance does not grant additional read permissions."
+          },
+          "payloadArchived": {
+            "type": "boolean",
+            "description": "True after reviewed terminal payload retention. Execution cannot be reopened; the original creation and command keys remain reserved."
           }
         },
         "required": [
@@ -2721,6 +2733,10 @@
           },
           "controls": {
             "$ref": "#/components/schemas/Controls"
+          },
+          "payloadArchived": {
+            "type": "boolean",
+            "description": "True after reviewed terminal payload retention. Execution cannot be reopened; the original creation and command keys remain reserved."
           }
         },
         "required": [

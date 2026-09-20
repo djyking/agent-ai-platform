@@ -36,12 +36,12 @@ Linux/macOS 使用 `bash ./mvnw`，将目录替换为本机路径；需要直接
 | `harness-integrations-opsagent` | OpsAgent 内部知识检索适配、可信宿主身份扩展点、检索 Workflow | OpsAgent 试点按需引用 |
 | `harness-evals` | 第二类研发知识场景、9 项工程回归数据集、严格离线录制回放 | 回归与评估 |
 | `harness-validation` | 显式触发的真实模型、GitHub 受控写、质量基线及独立 MySQL 验收 CLI | 接入验证 |
-| `harness-platform-service` | 11 操作 HTTP API、OpsAgent 身份桥、SQL worker、平台归属/幂等/审批/共享配额 | 集中服务部署 |
+| `harness-platform-service` | 执行/目录/Studio/治理 API、现有身份桥、SQL 多 worker、共享并发/速率/预算、告警与保留策略 | 集中服务部署 |
 | `harness-platform-client` | JDK HTTP 薄客户端、运行/审批/对账与已发布 Agent 发现，不包含执行引擎 | 独立业务调用方 |
 | `support-pilot` | 独立应用身份的合成客服试点，FAQ、人工确认、运行记录 | 接入示例 |
-| `platform-console` | React/TypeScript 控制台、八类资源、Workflow 编辑、发布回归、运行/事件/trace、审批与 UNKNOWN 对账 | 与平台服务同源部署 |
+| `platform-console` | React/TypeScript 控制台、应用 Studio、任务结果、资源与发布、审批/UNKNOWN 对账、运行治理与保留审阅 | 与平台服务同源部署 |
 
-模型管理分两层：SDK 的 `ModelProfile` 固定某次运行的 provider、模型名、参数和限额，`ModelRouter` 负责宿主显式注册的 provider 路由；控制台可选择受信模型并缩减预算，密钥中心和供应商成本治理留待后续。Prompt、RAG、Workflow 是可选能力包，统一通过 Harness 执行模型/工具动作。
+模型管理分两层：SDK 的 `ModelProfile` 固定某次运行的 provider、模型名、参数和限额，`ModelRouter` 负责宿主显式注册的 provider 路由；控制台可选择受信模型并缩减预算。集中服务增加供应商/模型/工具共享并发、速率、熔断及项目/应用日月 token 预留，密钥仍由部署管理员提供引用；供应商账单金额和独立密钥中心尚未实现。Prompt、RAG、Workflow 是可选能力包，统一通过 Harness 执行模型/工具动作。
 
 ## 业务项目如何引用
 
@@ -90,11 +90,13 @@ try (var harness = new Harness(new InMemoryRunStore(),
 
 ## 当前范围与后续建设
 
-RAG 提供小语料词法检索及外部检索扩展点；Workflow 提供有界图执行和结构化节点编辑。尚无向量索引托管、并行工作流/补偿。平台已有 SQL 多 worker 与项目/应用基本配额，尚未实现生产容量治理与分布式速率限制。MCP 首版为 Streamable HTTP 和宿主管理的请求头凭据；stdio、OAuth 流程、模型流式/多模态是后续适配方向。
+RAG 提供小语料词法检索及外部检索扩展点；Workflow 提供有界图执行和结构化节点编辑。尚无向量索引托管、并行工作流/补偿。平台已有 SQL 多 worker、共享容量/速率/预算治理及审阅后数据保留处理；生产可用性与跨主机灾备仍待环境和观察验收。MCP 首版为 Streamable HTTP 和宿主管理的请求头凭据；stdio、OAuth 流程、模型流式/多模态是后续适配方向。
 
 阶段一、二包括现有 OpsAgent 身份桥、持久请求路由、真实 GitHub 受控写及 DeepSeek 质量基线，以及集中执行 API/worker，见 [阶段一、二交付记录](docs/phase12-implementation.md)。阶段三增加控制台、资源目录与发布、薄 HTTP 客户端和客服试点，验收状态与边界见 [阶段三实施记录](docs/phase3-implementation.md)。
 
 阶段四将首页重做为应用 Studio：从模板构建、同页真实体验、固定样本评测到发布，再进入任务与结果工作台。新增独立身份选择、文本知识版本/ACL、模型与 MCP 连接生命周期，原高级资源和运行治理继续保留。范围、验证与后续阶段见 [第四阶段实施记录](docs/phase4-implementation.md)。
+
+第五阶段交付本机工程和 Linux 部署包：共享执行治理、健康/指标/告警、正文加密归档与审阅清理、独立迁移、备份/恢复脚本及治理控制台。本机短时容量与故障验收见 [第五阶段实施记录](docs/phase5-implementation.md)，部署见 [第五阶段部署说明](docs/phase5-deployment.md)。本机 24 小时、Linux 7 天观察和真实跨主机 RPO/RTO 尚未完成，不能据此称为生产验收通过。ACP（Agent Communication Protocol）列入后续专项，本轮没有实现。
 
 构建完整控制台服务使用 `./deploy/platform/build.ps1`（Node.js 24、pnpm 11.19.0、JDK 17）；访问服务的 `/console/`。部署与三应用配置见 [阶段三部署说明](docs/phase3-deployment.md)，资源协议见 [目录 API](docs/catalog-api.md)，备份与恢复见 [平台运维说明](docs/platform-operations.md)。直接运行 Maven 仅构建 Java；控制台资源需先执行 `pnpm --dir platform-console install --frozen-lockfile` 与 `pnpm --dir platform-console build`。
 

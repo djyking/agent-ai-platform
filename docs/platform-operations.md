@@ -1,13 +1,15 @@
 # 平台本机运行与恢复
 
-适用于本仓库 `harness-platform-service` 的内部试用版本。核心和平台 SQL 状态版本仍为 1；阶段三增加独立 `catalog=1` 组件及诊断 trace 表，不修改已有 SDK Run。阶段二部署示例见 [deployment.example.json](../deploy/platform/deployment.example.json)，完整控制台与独立试点配置见 [阶段三部署说明](phase3-deployment.md)。
+本文保留阶段二至四的本机试用流程。**当前第五阶段部署、迁移与恢复以 [第五阶段部署说明](phase5-deployment.md) 为准**：平台 SQL 组件为 `platform=2`、`platform-run-projection=1`，核心 `run-store=1`、`run-index=1` 保持独立；预发布/生产启动仅验证 schema，由独立迁移账号执行 DDL。完整本机交付与未完成的生产验收见 [实施记录](phase5-implementation.md)。
+
+历史阶段二核心/平台均为版本 1；阶段三增加独立 `catalog=1` 组件及诊断 trace 表。阶段二部署示例见 [deployment.example.json](../deploy/platform/deployment.example.json)，阶段三配置见 [阶段三部署说明](phase3-deployment.md)。不要将这些历史示例当成第五阶段的完整生产部署配置。
 
 第四阶段增加 `studio=1` 和 `capabilities=1` 组件。现有身份默认保持 Ops 适配；独立 loopback 验收身份及通用模型配置见 [身份配置](phase4-identity-and-models.md)。产品对象与边界见 [第四阶段实施记录](phase4-implementation.md)。
 
 ## 启动与身份
 
 1. 使用 Java 17、Node.js 24 LTS（至少 24.15.0）与 pnpm 11.19.0，执行 `deploy/platform/build.ps1`，先构建前端再验证、打包 Java。可执行包为 `harness-platform-service/target/harness-platform-service-0.1.0-SNAPSHOT.jar`。直接运行 `mvnw.cmd clean verify` 只验证 Java；全新检出若未先构建前端，不会包含控制台资源。
-2. 准备专用 MySQL 8.0 数据库，使用 InnoDB。首次启动会幂等创建 core/platform 表；DDL 是启动管理动作，不参与 Run 命令事务。平台显式 DDL 见 [V001__platform.sql](../deploy/platform/V001__platform.sql)，核心 DDL 以 `JdbcRunStore.initializeSchema` 为准。身份列使用区分大小写的 `utf8mb4_bin`；未知版本或旧的不兼容排序规则拒绝启动，不能自动改版本号。
+2. 准备专用 MySQL 8.0 数据库，使用 InnoDB。历史本机启动及当前 development/bootstrap 模式会初始化表；第五阶段 staging/production 必须先独立迁移、再以 DML 账号和 validate 模式启动。早期 [V001__platform.sql](../deploy/platform/V001__platform.sql) 不包含第五阶段扩展，当前迁移以制品中的 `migrate` CLI 为准。身份列使用区分大小写的 `utf8mb4_bin`；未知版本或不兼容排序规则拒绝启动，不能手改版本号绕过校验。
 3. 配置现有 OpsAgent Auth 身份桥、应用凭据摘要、项目/用户授权。平台不维护用户或密码库；控制台登录由服务端转发至固定的现有身份服务。凭据通过 `env:NAME` 或 `file:absolute-path` 解析，不能写在 manifest、Run 输入、Git 或命令行中。
 4. 设置 `HARNESS_CONFIG`、`HARNESS_JDBC_URL`、`HARNESS_JDBC_USER`、`HARNESS_JDBC_PASSWORD`。示例还需要 `HARNESS_SIGNING_KEY`（至少 32 字符）与 `HARNESS_APP_CREDENTIAL`。保护环境文件/密钥文件的本机 ACL。
 5. `java -jar <jar> releases <manifest>` 离线输出每个发布的 `releaseRef`；然后 `deploy/platform/start.ps1 -Config <manifest> -Port 8097`。默认只监听 `127.0.0.1`；本阶段验收不开放公网。

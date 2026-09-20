@@ -181,7 +181,8 @@ final class StudioHttpContractTest {
   }
 
   @Test
-  void providerBindingChangeCannotReusePassingEvaluationOrExecuteOldPreview() throws Exception {
+  void providerBindingChangeRequiresMigrationAndCannotReusePassingEvaluationOrExecuteOldPreview()
+      throws Exception {
     try (var f = new StudioLifecycleSecurityTest.Fixture()) {
       JsonNode saved = f.save("research", f.draft(), "\"s0\"", "binding-save-app");
       JsonNode evaluated = f.evaluate("research", saved, "binding-evaluate-app");
@@ -218,16 +219,32 @@ final class StudioHttpContractTest {
               old.concurrency(),
               old.leaseMillis(),
               false);
+      String previousFingerprint = f.runtime.governance.fingerprint();
+      SecretProvider secrets =
+          ref ->
+              ref.equals("env:APP")
+                  ? "app-a-credential"
+                  : "synthetic-local-fixture-signing-and-model-secret-0123456789";
       f.runtime.close();
-      f.runtime =
-          new PlatformRuntime(
-              f.data,
+      IllegalStateException startup =
+          assertThrows(
+              IllegalStateException.class,
+              () -> new PlatformRuntime(f.data, changed, secrets, f.identities));
+      assertTrue(startup.getMessage().contains("EXECUTION_CONFIG_MISMATCH"));
+      assertEquals(1, f.modelCalls.get(), "Rejected startup must not invoke the changed provider");
+
+      // The evaluation is terminal and all fixture workers are stopped. Use the reviewed
+      // governance CAS migration rather than deleting its ledger to bypass the new guard.
+      var nextGovernance =
+          new ExecutionGovernance(
+              f.runtime.repository,
+              ExecutionGovernanceConfig.defaults(),
               changed,
-              ref ->
-                  ref.equals("env:APP")
-                      ? "app-a-credential"
-                      : "synthetic-local-fixture-signing-and-model-secret-0123456789",
-              f.identities);
+              GovernanceSettings.bindingFingerprint(
+                  changed, secrets, f.identities.getClass().getName()));
+      nextGovernance.migrateConfiguration(previousFingerprint);
+      f.runtime = new PlatformRuntime(f.data, changed, secrets, f.identities);
+      assertEquals(nextGovernance.fingerprint(), f.runtime.governance.fingerprint());
       JsonNode body = Json.object().put("reviewConfirmed", true).put("evaluationId", experiment);
       ApiFailure failure =
           assertThrows(

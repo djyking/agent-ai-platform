@@ -80,6 +80,7 @@ public final class StudioService {
             "disabled",
             "publishedVersions",
             "lastTask",
+            "payloadArchived",
             "updatedAt")) if (app.has(field)) out.set(field, app.get(field));
     if (app.path("defaultVersion").asInt() > 0)
       platform.transaction(
@@ -668,9 +669,13 @@ public final class StudioService {
           ObjectNode result = taskLink(task);
           JsonNode run = runs.get(p, task.path("runId").asText()).body();
           result.set("run", run);
+          if (task.path("payloadArchived").asBoolean() || run.path("payloadArchived").asBoolean())
+            result.put("payloadArchived", true);
           var snapshot =
               documents.get(c, p.project(), "SNAPSHOT", task.path("snapshotId").asText(), true);
-          if (p.permits("runs:output:read")
+          if (!result.path("payloadArchived").asBoolean()
+              && task.has("input")
+              && p.permits("runs:output:read")
               && knowledge.canReadSources(p, snapshot.path("knowledgeRefs")))
             result.set("input", task.path("input"));
           ArrayNode artifacts = result.putArray("artifacts");

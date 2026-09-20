@@ -17,6 +17,21 @@ public final class StudioRepository {
   }
 
   public void initialize() {
+    if (!platform.bootstrapSchema()) {
+      platform.transaction(
+          c -> {
+            SchemaValidation.require(
+                c,
+                "studio",
+                1,
+                Map.of(
+                    "studio_documents", "project_id,document_kind,document_id,document_json",
+                    "studio_commands",
+                        "command_hash,request_digest,project_id,actor_scope,resource_id,operation,response_json,accepted_at"));
+            return null;
+          });
+      return;
+    }
     platform.transaction(
         c -> {
           boolean mysql = c.getMetaData().getDatabaseProductName().equalsIgnoreCase("MySQL");

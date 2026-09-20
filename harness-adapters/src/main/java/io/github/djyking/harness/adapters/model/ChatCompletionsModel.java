@@ -71,7 +71,7 @@ public final class ChatCompletionsModel implements ModelGateway {
     } catch (Exception transportFailure) {
       if (pending != null) pending.cancel(true);
       // Billing and generation may have completed even if the client lost the response.
-      throw new InvocationException(FailureKind.UNKNOWN, "MODEL_CALL_OUTCOME_UNKNOWN");
+      throw new InvocationException(FailureKind.UNKNOWN, transportCode(transportFailure));
     }
     int status = response.statusCode();
     if (status == 401 || status == 403)
@@ -88,6 +88,24 @@ public final class ChatCompletionsModel implements ModelGateway {
       // bodies.
       throw new InvocationException(FailureKind.UNKNOWN, "MODEL_RESPONSE_INVALID_USAGE_UNKNOWN");
     }
+  }
+
+  /** Fixed categories only: never publish a throwable message, URL or provider response body. */
+  static String transportCode(Throwable failure) {
+    for (int depth = 0; failure != null && depth < 12; depth++, failure = failure.getCause()) {
+      if (failure instanceof java.net.http.HttpConnectTimeoutException)
+        return "MODEL_CONNECT_TIMEOUT_USAGE_UNKNOWN";
+      if (failure instanceof javax.net.ssl.SSLException) return "MODEL_TLS_FAILURE_USAGE_UNKNOWN";
+      if (failure instanceof java.net.UnknownHostException
+          || failure instanceof java.nio.channels.UnresolvedAddressException)
+        return "MODEL_DNS_FAILURE_USAGE_UNKNOWN";
+      if (failure instanceof java.net.ConnectException)
+        return "MODEL_CONNECT_FAILURE_USAGE_UNKNOWN";
+      if (failure instanceof java.net.http.HttpTimeoutException
+          || failure instanceof java.util.concurrent.TimeoutException)
+        return "MODEL_RESPONSE_TIMEOUT_USAGE_UNKNOWN";
+    }
+    return "MODEL_CALL_OUTCOME_UNKNOWN";
   }
 
   private ObjectNode encode(ModelRequest request) {

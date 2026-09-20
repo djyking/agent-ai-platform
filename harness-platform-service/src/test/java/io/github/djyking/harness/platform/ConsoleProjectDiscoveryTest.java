@@ -1,16 +1,16 @@
 package io.github.djyking.harness.platform;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.github.djyking.harness.core.Json;
 import java.time.Clock;
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.h2.jdbcx.JdbcDataSource;
 import org.junit.jupiter.api.*;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -18,6 +18,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 class ConsoleProjectDiscoveryTest {
   private MockMvc mvc;
   private ConsoleSessions sessions;
+  private PlatformRuntime runtime;
   private final AtomicInteger failedStatus = new AtomicInteger(403);
   private final AtomicInteger loginCalls = new AtomicInteger();
   private final String token = "synthetic-server-held-user-token";
@@ -40,20 +41,56 @@ class ConsoleProjectDiscoveryTest {
             1,
             10000,
             false);
-    var service = mock(PlatformService.class);
-    when(service.authenticate(anyString(), anyString(), anyString()))
-        .thenAnswer(
-            invocation -> {
-              if (!invocation.getArgument(2).equals(token))
-                throw new ApiFailure(401, "UNAUTHENTICATED");
-              if (invocation.getArgument(0).equals("hidden-first-project"))
-                throw new ApiFailure(failedStatus.get(), "AUTHORITY_REJECTED");
-              if (!invocation.getArgument(0).equals("studio")) throw ApiFailure.hidden();
-              return new IdentityProvider.Principal(
-                  "console", "studio", "alice", Set.of("runs:read"));
-            });
+    // Exercise the actual PlatformService authentication boundary. The explicit identity
+    // fixture avoids Mockito's JVM-agent self-attachment and fails on unexpected execution.
+    IdentityProvider authority =
+        new IdentityProvider() {
+          public Principal authenticate(
+              String project, String applicationCredential, String userToken) {
+            if (!applicationCredential.equals("synthetic-app-credential")
+                || !userToken.equals(token)) throw new ApiFailure(401, "UNAUTHENTICATED");
+            if (project.equals("hidden-first-project"))
+              throw new ApiFailure(failedStatus.get(), "AUTHORITY_REJECTED");
+            if (!project.equals("studio")) throw ApiFailure.hidden();
+            return new Principal("console", "studio", "alice", Set.of("runs:read"));
+          }
+
+          public String delegate(
+              Principal principal,
+              String applicationCredential,
+              String userToken,
+              String runId,
+              Instant deadline) {
+            throw new AssertionError("Project discovery must not delegate execution");
+          }
+
+          public Principal current(
+              String application, String project, String delegationId, String runId) {
+            throw new AssertionError("Project discovery must not inspect a delegated execution");
+          }
+
+          public String toolAuthorization(
+              String application, String project, String delegationId, String runId) {
+            throw new AssertionError("Project discovery must not authorize tools");
+          }
+        };
+    var data = new JdbcDataSource();
+    data.setURL(
+        "jdbc:h2:mem:console-discovery-" + UUID.randomUUID() + ";MODE=MySQL;DB_CLOSE_DELAY=-1");
+    data.setUser("synthetic-console");
+    data.setPassword("synthetic-console-password");
+    runtime =
+        new PlatformRuntime(
+            data,
+            deployment,
+            reference ->
+                reference.equals("env:APP")
+                    ? "synthetic-app-credential"
+                    : "synthetic-discovery-only-signing-key-0123456789",
+            authority);
     sessions =
-        new ConsoleSessions(service, deployment, "synthetic-app-credential", Clock.systemUTC(), 2);
+        new ConsoleSessions(
+            runtime.service, deployment, "synthetic-app-credential", Clock.systemUTC(), 2);
     var local =
         new IdentityLogin() {
           public boolean captchaRequired() {
@@ -81,6 +118,11 @@ class ConsoleProjectDiscoveryTest {
         MockMvcBuilders.standaloneSetup(new ConsoleController(sessions, local))
             .setControllerAdvice(new ApiErrors())
             .build();
+  }
+
+  @AfterEach
+  void close() {
+    if (runtime != null) runtime.close();
   }
 
   private static List<String> toList(Iterator<String> values) {

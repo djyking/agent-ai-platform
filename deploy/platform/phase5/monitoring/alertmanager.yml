@@ -1,0 +1,13 @@
+global:
+  resolve_timeout: 5m
+route:
+  receiver: local-evidence-only
+  group_by: [alertname, project, instance]
+  group_wait: 10s
+  group_interval: 1m
+  repeat_interval: 4h
+receivers:
+  - name: local-evidence-only
+    webhook_configs:
+      - url: http://alert-test-sink:8080/alerts
+        send_resolved: true

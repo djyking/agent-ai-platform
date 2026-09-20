@@ -94,10 +94,52 @@ public final class JdbcRunStore implements RunStore {
             throw new JdbcStorageException("Unsupported run-store SQL schema version");
         }
       }
+      initializeIndex(connection);
       verifyTransactionalTables(connection);
     } catch (SQLException e) {
       throw failure("initialize schema", e);
     }
+  }
+
+  /** Production startup performs no DDL and cannot repair a partially applied migration. */
+  public void validateSchema() {
+    transaction(
+        connection -> {
+          Map<String, String> columns =
+              Map.of(
+                  "harness_schema", "component,schema_version",
+                  "harness_runs",
+                      "run_id,creation_scope,creation_digest,revision,fence,lease_until,run_status,next_attempt_at,created_at,snapshot_json,event_sequence",
+                  "harness_run_events", "run_id,event_sequence,event_json",
+                  "harness_run_index",
+                      "run_id,run_status,charged_tokens,model_calls,tool_calls,updated_at,terminal_at,deadline_at,expirable_at");
+          for (var table : columns.entrySet())
+            try (var query =
+                connection.prepareStatement(
+                    "SELECT " + table.getValue() + " FROM " + table.getKey() + " WHERE 1=0")) {
+              query.executeQuery().close();
+            }
+          try (var query =
+                  connection.prepareStatement(
+                      "SELECT r.run_id FROM harness_runs r LEFT JOIN harness_run_index i ON"
+                          + " i.run_id=r.run_id WHERE i.run_id IS NULL LIMIT 1");
+              var rows = query.executeQuery()) {
+            if (rows.next()) throw new JdbcStorageException("Incomplete run-index migration");
+          }
+          for (String component : List.of("run-store", "run-index")) {
+            try (var query =
+                connection.prepareStatement(
+                    "SELECT schema_version FROM harness_schema WHERE component=?")) {
+              query.setString(1, component);
+              try (var result = query.executeQuery()) {
+                if (!result.next() || result.getInt(1) != 1)
+                  throw new JdbcStorageException("Explicit migration required: " + component);
+              }
+            }
+          }
+          verifyTransactionalTables(connection);
+          return null;
+        });
   }
 
   @Override
@@ -135,6 +177,7 @@ public final class JdbcRunStore implements RunStore {
               statement.setLong(11, 1);
               statement.executeUpdate();
             }
+            index(connection, proposed, true);
             append(
                 connection,
                 proposed.id,
@@ -172,6 +215,7 @@ public final class JdbcRunStore implements RunStore {
     return transaction(
         connection -> {
           Row row = require(connection, id, true);
+          if (row.state.payloadArchived) throw new Conflict("Archived Run is immutable");
           long now =
               dialect.nowMillis(connection); // Read after row lock, never use worker wall time.
           if (!eligible(row.state, now)) return null;
@@ -232,27 +276,22 @@ public final class JdbcRunStore implements RunStore {
   }
 
   /**
-   * Schema v1 has no indexed deadline columns. Scan only idle wait snapshots; a later schema can
-   * index deadlines without changing the worker contract. The returned batch remains bounded.
+   * Due wait lookup uses a narrow indexed projection; snapshots are never scanned by the sweeper.
    */
   @Override
   public List<String> expirable(int limit) {
     checkLimit(limit);
     return transaction(
         connection -> {
-          long now = dialect.nowMillis(connection);
           List<String> ids = new ArrayList<>();
           try (PreparedStatement statement =
-                  connection.prepareStatement(
-                      "SELECT snapshot_json, revision, fence, lease_until, event_sequence"
-                          + " FROM harness_runs WHERE run_status IN"
-                          + " ('PAUSED','WAITING_APPROVAL','WAITING_INPUT','NEEDS_ATTENTION')"
-                          + " ORDER BY created_at, run_id");
-              ResultSet rows = statement.executeQuery()) {
-            while (rows.next() && ids.size() < limit) {
-              RunState state = decode(rows).state;
-              if (io.github.djyking.harness.core.StateGuards.expirable(state, now))
-                ids.add(state.id);
+              connection.prepareStatement(
+                  "SELECT run_id FROM harness_run_index WHERE expirable_at<=? ORDER BY"
+                      + " expirable_at,run_id LIMIT ?")) {
+            statement.setLong(1, dialect.nowMillis(connection));
+            statement.setInt(2, limit);
+            try (ResultSet result = statement.executeQuery()) {
+              while (result.next()) ids.add(result.getString(1));
             }
           }
           return List.copyOf(ids);
@@ -267,6 +306,7 @@ public final class JdbcRunStore implements RunStore {
     return transaction(
         connection -> {
           Row row = require(connection, next.id, true);
+          if (row.state.payloadArchived) throw new Conflict("Archived Run is immutable");
           checkLease(row.state, next, dialect.nowMillis(connection));
           checkBaseline(row.state, next);
           checkUsage(row.state, next, true);
@@ -285,6 +325,7 @@ public final class JdbcRunStore implements RunStore {
     return transaction(
         connection -> {
           Row row = require(connection, id, true);
+          if (row.state.payloadArchived) throw new Conflict("Archived Run is immutable");
           if (row.state.revision != expectedRevision) throw new RevisionConflict();
           RunState next =
               Objects.requireNonNull(mutation.apply(row.state.copy()), "Mutation returned null")
@@ -352,8 +393,101 @@ public final class JdbcRunStore implements RunStore {
       if (statement.executeUpdate() != 1)
         throw new Conflict("Run revision or fencing token changed");
     }
+    index(connection, next, false);
     append(connection, next.id, sequence, event);
     return next.copy();
+  }
+
+  private void initializeIndex(Connection connection) throws SQLException {
+    String engine = dialect == JdbcDialect.MYSQL ? " ENGINE=InnoDB" : "";
+    try (Statement statement = connection.createStatement()) {
+      statement.executeUpdate(
+          "CREATE TABLE IF NOT EXISTS harness_run_index (run_id VARCHAR(128) PRIMARY KEY,"
+              + " run_status VARCHAR(32) NOT NULL, charged_tokens BIGINT NOT NULL, model_calls"
+              + " INTEGER NOT NULL, tool_calls INTEGER NOT NULL, updated_at BIGINT NOT NULL,"
+              + " terminal_at BIGINT, deadline_at BIGINT, expirable_at BIGINT, INDEX"
+              + " harness_wait_due_idx(expirable_at,run_id), INDEX"
+              + " harness_active_idx(run_status,run_id), FOREIGN KEY(run_id) REFERENCES"
+              + " harness_runs(run_id))"
+              + engine);
+    }
+    // Explicit migration/startup only. Batch by primary key; normal reads/writes never scan
+    // snapshots.
+    String after = "";
+    while (true) {
+      List<RunState> states = new ArrayList<>();
+      try (PreparedStatement statement =
+          connection.prepareStatement(
+              "SELECT r.snapshot_json,r.revision,r.fence,r.lease_until,r.event_sequence FROM"
+                  + " harness_runs r LEFT JOIN harness_run_index i ON i.run_id=r.run_id WHERE"
+                  + " i.run_id IS NULL AND r.run_id>? ORDER BY r.run_id LIMIT 200")) {
+        statement.setString(1, after);
+        try (ResultSet rows = statement.executeQuery()) {
+          while (rows.next()) states.add(decode(rows).state);
+        }
+      }
+      if (states.isEmpty()) break;
+      for (RunState state : states) index(connection, state, true);
+      after = states.get(states.size() - 1).id;
+    }
+    try (PreparedStatement query =
+            connection.prepareStatement(
+                "SELECT schema_version FROM harness_schema WHERE component='run-index'");
+        ResultSet result = query.executeQuery()) {
+      if (result.next()) {
+        if (result.getInt(1) != 1) throw new JdbcStorageException("Unsupported run-index schema");
+      } else
+        try (Statement statement = connection.createStatement()) {
+          statement.executeUpdate(
+              "INSERT INTO harness_schema(component,schema_version) VALUES('run-index',1)");
+        }
+    }
+  }
+
+  private void index(Connection connection, RunState state, boolean insert) throws SQLException {
+    long now = dialect.nowMillis(connection);
+    Long expiry = null;
+    if (java.util.Set.of(
+                RunStatus.PAUSED,
+                RunStatus.WAITING_APPROVAL,
+                RunStatus.WAITING_INPUT,
+                RunStatus.NEEDS_ATTENTION)
+            .contains(state.status)
+        && (state.pending == null || state.pending.phase == InvocationPhase.PREPARED)) {
+      expiry = state.deadline.toEpochMilli();
+      if (state.approval != null)
+        expiry = Math.min(expiry, state.approval.expiresAt().toEpochMilli());
+    }
+    boolean terminal =
+        java.util.Set.of(
+                RunStatus.COMPLETED,
+                RunStatus.FAILED,
+                RunStatus.CANCELLED,
+                RunStatus.EXPIRED,
+                RunStatus.BUDGET_EXCEEDED)
+            .contains(state.status);
+    String sql =
+        insert
+            ? "INSERT INTO"
+                  + " harness_run_index(run_status,charged_tokens,model_calls,tool_calls,updated_at,terminal_at,deadline_at,expirable_at,run_id)"
+                  + " VALUES(?,?,?,?,?,?,?,?,?)"
+            : "UPDATE harness_run_index SET"
+                  + " run_status=?,charged_tokens=?,model_calls=?,tool_calls=?,updated_at=?,terminal_at=COALESCE(terminal_at,?),deadline_at=?,expirable_at=?"
+                  + " WHERE run_id=?";
+    try (PreparedStatement statement = connection.prepareStatement(sql)) {
+      statement.setString(1, state.status.name());
+      statement.setLong(2, state.chargedTokens);
+      statement.setInt(3, state.modelCalls);
+      statement.setInt(4, state.toolCalls);
+      statement.setLong(5, now);
+      if (terminal) statement.setLong(6, now);
+      else statement.setNull(6, Types.BIGINT);
+      instant(statement, 7, state.deadline);
+      if (expiry == null) statement.setNull(8, Types.BIGINT);
+      else statement.setLong(8, expiry);
+      statement.setString(9, state.id);
+      statement.executeUpdate();
+    }
   }
 
   private void append(Connection connection, String id, long sequence, RunEvent event)

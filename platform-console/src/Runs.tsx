@@ -621,12 +621,16 @@ export function RunDetail({
               ) : (
                 <Empty
                   title={
-                    terminal.has(data.status)
+                    data.payloadArchived
+                      ? "正文已到保留期限"
+                      : terminal.has(data.status)
                       ? "当前输出不可见"
                       : "执行结果尚未就绪"
                   }
                   description={
-                    terminal.has(data.status)
+                    data.payloadArchived
+                      ? "在线输入与结果已按保留策略清理。状态、用量及必要防重记录仍保留。"
+                      : terminal.has(data.status)
                       ? "发布策略、当前知识权限或原委托有效期决定结果可见性。平台不会返回不可授权的历史内容。"
                       : "刷新运行状态查看结果。暂停、审批或人工输入期间不会生成最终输出。"
                   }

@@ -20,6 +20,7 @@ import { request, setSessionToken } from "./api";
 import { navigate, useHashRoute } from "./hooks";
 import { CatalogList, ResourceEditor } from "./Catalog";
 import { RunDetail, RunList } from "./Runs";
+import { Operations } from "./Operations";
 import {
   ApplicationHome,
   ApplicationStudio,
@@ -134,7 +135,7 @@ export default function App() {
   ] as const;
   const active = ["apps", "agents"].includes(parts[0] ?? "")
     ? "/"
-    : ["resources", "runs", "inbox", "access"].includes(parts[0] ?? "")
+    : ["resources", "runs", "inbox", "access", "operations"].includes(parts[0] ?? "")
       ? "/manage"
       : `/${parts[0] ?? ""}`;
   return (
@@ -264,6 +265,8 @@ export default function App() {
             />
           ) : route === "/manage" ? (
             <PlatformManagement project={project} principal={principal} />
+          ) : route === "/operations" ? (
+            <Operations key={project + principal.subject} project={project} principal={principal} />
           ) : route === "/resources" ? (
             <CatalogList project={project} />
           ) : parts[0] === "resources" &&

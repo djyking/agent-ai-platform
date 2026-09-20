@@ -40,6 +40,24 @@ class JdbcRunStoreTest {
   }
 
   @Test
+  void validateOnlyRejectsMissingIndexRowsAndColumnsInsteadOfRepairingThem() throws Exception {
+    RunState run = store.create(initial("index-validation"));
+    try (var c = dataSource.getConnection();
+        var statement = c.prepareStatement("DELETE FROM harness_run_index WHERE run_id=?")) {
+      statement.setString(1, run.id);
+      statement.executeUpdate();
+    }
+    assertThrows(JdbcStorageException.class, store::validateSchema);
+    store.initializeSchema();
+    assertDoesNotThrow(store::validateSchema);
+    try (var c = dataSource.getConnection();
+        var statement = c.createStatement()) {
+      statement.execute("ALTER TABLE harness_run_index DROP COLUMN charged_tokens");
+    }
+    assertThrows(JdbcStorageException.class, store::validateSchema);
+  }
+
+  @Test
   void snapshotsAndReturnedValuesAreDetachedAndSurviveReopening() {
     RunState initial = initial("copy");
     initial.memory.put("question", "original");

@@ -42,9 +42,28 @@ public final class PlatformRepository {
       long verifiedAt) {}
 
   private final JdbcRunStore store;
+  private final boolean bootstrapSchema;
+  private ExecutionGovernance governance;
 
   public PlatformRepository(JdbcRunStore store) {
+    this(store, true);
+  }
+
+  public PlatformRepository(JdbcRunStore store, boolean bootstrapSchema) {
     this.store = store;
+    this.bootstrapSchema = bootstrapSchema;
+  }
+
+  public boolean bootstrapSchema() {
+    return bootstrapSchema;
+  }
+
+  public void governance(ExecutionGovernance value) {
+    this.governance = value;
+  }
+
+  public JdbcRunStore runStore() {
+    return store;
   }
 
   public <T> T transaction(JdbcRunStore.JdbcWork<T> work) {
@@ -53,6 +72,10 @@ public final class PlatformRepository {
 
   /** Startup bootstrap only. MySQL DDL commits implicitly; never call from a Run command. */
   public void initialize(Deployment config) {
+    if (!bootstrapSchema) {
+      validateSchema(config);
+      return;
+    }
     transaction(
         c -> {
           boolean mysql = c.getMetaData().getDatabaseProductName().equalsIgnoreCase("MySQL");
@@ -61,7 +84,7 @@ public final class PlatformRepository {
                   c.prepareStatement(
                       "SELECT schema_version FROM harness_schema WHERE" + " component='platform'");
               ResultSet r = s.executeQuery()) {
-            if (r.next() && r.getInt(1) != 1)
+            if (r.next() && r.getInt(1) != 1 && r.getInt(1) != 2)
               throw new IllegalStateException("Unsupported platform schema");
           }
           String[] ddl = {
@@ -127,7 +150,8 @@ public final class PlatformRepository {
                       "SELECT schema_version FROM harness_schema WHERE" + " component='platform'");
               ResultSet r = s.executeQuery()) {
             if (r.next()) {
-              if (r.getInt(1) != 1) throw new IllegalStateException("Unsupported platform schema");
+              if (r.getInt(1) != 1 && r.getInt(1) != 2)
+                throw new IllegalStateException("Unsupported platform schema");
             } else
               try {
                 execute(
@@ -138,6 +162,10 @@ public final class PlatformRepository {
                 if (!constraint(ex)) throw ex;
               }
           }
+          PlatformRunProjection.initialize(c);
+          // Older platform binaries require version 1 and must not admit unprojected Runs after
+          // this offline upgrade. Core's independent run-index schema remains unchanged.
+          execute(c, "UPDATE harness_schema SET schema_version=2 WHERE component='platform'");
           for (Deployment.Project p : config.projects()) ensureScope(c, p.id());
           for (Deployment.Release release : config.releases()) {
             try (PreparedStatement s =
@@ -181,6 +209,94 @@ public final class PlatformRepository {
           for (Deployment.Project p : config.projects())
             slots(c, "project:" + p.id(), p.concurrency());
           return null;
+        });
+  }
+
+  public void validateSchema(Deployment config) {
+    transaction(
+        c -> {
+          PlatformRunProjection.validate(c);
+          SchemaValidation.require(
+              c,
+              "platform",
+              2,
+              Map.of(
+                  "platform_scope_locks", "scope_key",
+                  "platform_releases", "project_id,release_id,digest,manifest_json",
+                  "platform_runs",
+                      "run_id,project_id,application_id,subject_id,delegation_id,release_json,limits_json,client_reference,created_at,reserved_tokens",
+                  "platform_commands", "scope_hash,request_digest,run_id,response_json,accepted_at",
+                  "platform_command_audit",
+                      "command_hash,run_id,actor_scope,operation,reason_text,accepted_at",
+                  "platform_evidence",
+                      "evidence_id,project_id,run_id,invocation_id,invocation_digest,result_json,verifier,verified_at",
+                  "platform_slots", "pool_id,slot_index,owner_id,lease_until"));
+          try (var query =
+                  prepare(
+                      c, "SELECT schema_version FROM harness_schema WHERE component='platform'");
+              var result = query.executeQuery()) {
+            if (!result.next() || result.getInt(1) != 2)
+              throw new IllegalStateException("Platform migration required");
+          }
+          for (Deployment.Project project : config.projects()) {
+            try (var query =
+                    prepare(
+                        c,
+                        "SELECT scope_key FROM platform_scope_locks WHERE scope_key=?",
+                        project.id());
+                var result = query.executeQuery()) {
+              if (!result.next()) throw new IllegalStateException("Project bootstrap required");
+            }
+          }
+          for (Deployment.Release release : config.releases()) {
+            try (var query =
+                    prepare(
+                        c,
+                        "SELECT digest FROM platform_releases WHERE project_id=? AND release_id=?",
+                        release.projectId(),
+                        release.releaseId());
+                var result = query.executeQuery()) {
+              if (!result.next() || !release.digest().equals(result.getString(1)))
+                throw new IllegalStateException(
+                    "Release bootstrap required or immutable release mismatch");
+            }
+          }
+          return null;
+        });
+  }
+
+  /**
+   * Bounded per-project ready lookup prevents an old backlog in one project starving all others.
+   */
+  public List<String> readyFair(List<String> projects, int limit, int first) {
+    return transaction(
+        c -> {
+          List<List<String>> queues = new ArrayList<>();
+          long current = now(c);
+          for (int i = 0; i < projects.size(); i++) {
+            List<String> queue = new ArrayList<>();
+            try (var query =
+                    prepare(
+                        c,
+                        "SELECT r.run_id FROM platform_runs p JOIN harness_runs r ON"
+                            + " r.run_id=p.run_id WHERE p.project_id=? AND r.run_status IN"
+                            + " ('QUEUED','RUNNING') AND (r.lease_until IS NULL OR"
+                            + " r.lease_until<=?) AND (r.next_attempt_at IS NULL OR"
+                            + " r.next_attempt_at<=?) ORDER BY r.created_at,r.run_id LIMIT ?",
+                        projects.get((first + i) % projects.size()),
+                        current,
+                        current,
+                        limit);
+                var rows = query.executeQuery()) {
+              while (rows.next()) queue.add(rows.getString(1));
+            }
+            queues.add(queue);
+          }
+          List<String> out = new ArrayList<>();
+          for (int i = 0; i < limit && out.size() < limit; i++)
+            for (List<String> queue : queues)
+              if (i < queue.size() && out.size() < limit) out.add(queue.get(i));
+          return out;
         });
   }
 
@@ -253,6 +369,8 @@ public final class PlatformRepository {
         o.clientReference,
         o.createdAt,
         o.limits.maxTokens());
+    PlatformRunProjection.attach(c, o);
+    if (governance != null) governance.reserveBudget(c, o);
   }
 
   public Command command(Connection c, String hash) throws SQLException {
@@ -301,13 +419,16 @@ public final class PlatformRepository {
   public void admit(
       Connection c, Deployment.Project project, String application, long requestedTokens)
       throws SQLException {
+    if (governance != null) governance.admitBudget(c, project.id(), application, requestedTokens);
     long projectCount = 0, projectTokens = 0, appCount = 0, appTokens = 0;
     try (PreparedStatement s =
             prepare(
                 c,
-                "SELECT p.application_id,p.reserved_tokens,r.run_status FROM"
-                    + " platform_runs p JOIN harness_runs r ON p.run_id=r.run_id"
-                    + " WHERE p.project_id=? FOR UPDATE",
+                "SELECT p.application_id,p.reserved_tokens,r.run_status FROM harness_run_index r"
+                    + " JOIN platform_runs p ON p.run_id=r.run_id WHERE p.project_id=? AND"
+                    + " r.run_status IN"
+                    + " ('QUEUED','RUNNING','PAUSED','WAITING_APPROVAL','WAITING_INPUT','NEEDS_ATTENTION')"
+                    + " FOR UPDATE",
                 project.id());
         ResultSet r = s.executeQuery()) {
       while (r.next()) {
@@ -502,8 +623,7 @@ public final class PlatformRepository {
     String sql =
         c.getMetaData().getDatabaseProductName().equalsIgnoreCase("MySQL")
             ? "SELECT CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3))*1000 AS SIGNED)"
-            : "SELECT DATEDIFF('MILLISECOND', TIMESTAMP '1970-01-01 00:00:00',"
-                + " CURRENT_TIMESTAMP)";
+            : "SELECT CAST(EXTRACT(EPOCH FROM CURRENT_TIMESTAMP(3))*1000 AS BIGINT)";
     try (Statement s = c.createStatement();
         ResultSet r = s.executeQuery(sql)) {
       r.next();

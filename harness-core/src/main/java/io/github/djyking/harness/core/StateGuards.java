@@ -11,6 +11,7 @@ public final class StateGuards {
 
   public static void validateInitial(RunState run) {
     validateVersion(run);
+    if (run.payloadArchived) throw new IllegalArgumentException("New runs cannot be archived");
     if (run.id == null || run.id.isBlank() || run.id.length() > 128)
       throw new IllegalArgumentException("Run id must contain 1 to 128 characters");
     if (run.creationKey == null || run.creationKey.isBlank())
@@ -44,6 +45,8 @@ public final class StateGuards {
 
   public static void checkBaseline(RunState before, RunState after) {
     validateVersion(after);
+    if (before.payloadArchived || after.payloadArchived)
+      throw new RunStore.Conflict("Archived payload is immutable; host retention is required");
     if (!Objects.equals(before.id, after.id)
         || !Objects.equals(before.creationKey, after.creationKey)
         || !Objects.equals(before.creationDigest, after.creationDigest)

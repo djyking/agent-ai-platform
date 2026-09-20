@@ -63,6 +63,6 @@ PUT 正文为 `{ "name": "显示名", "spec": {...}, "regressionCases": [...] }`
 
 ## 数据与升级
 
-新增 `catalog_resources`、`catalog_versions`、`catalog_release_links`、`catalog_commands` 四表，复用 `platform_releases` 和项目锁；`harness_schema` 新增独立 `catalog=1` 组件。启动建表是幂等增量迁移，不修改既有 Run 表或历史快照。MySQL 使用 InnoDB，身份/项目/资源键采用 utf8mb4_bin。备份、恢复需包含这些目录表与同一时间点的核心/平台账本；不能仅复制当前默认 Agent。
+新增 `catalog_resources`、`catalog_versions`、`catalog_release_links`、`catalog_commands` 四表，复用 `platform_releases` 和项目锁；`harness_schema` 新增独立 `catalog=1` 组件。阶段三及 development/bootstrap 使用启动初始化；第五阶段 staging/production 改为独立迁移命令和只读 schema 验证，不在服务启动时建表，见 [第五阶段部署说明](phase5-deployment.md)。目录升级不改历史 Run 快照。MySQL 使用 InnoDB，身份/项目/资源键采用 utf8mb4_bin。备份、恢复需包含这些目录表与同一时间点的核心/平台账本；不能仅复制当前默认 Agent。
 
 当前管理资源列表最多返回 1000 项，版本与审计长期保存，未引入自动清理或生产规模检索服务。这是内部 MVP 的范围，生产保留期、容量和升级兼容矩阵按后续治理阶段验收。

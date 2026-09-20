@@ -16,6 +16,7 @@ public final class Harness implements AutoCloseable {
   private final Clock clock;
   private final Duration lease;
   private final InvocationExecutor executor;
+  private final InvocationGate invocationGate;
   private final Map<String, Program> programs = new ConcurrentHashMap<>();
 
   public Harness(RunStore store, ModelGateway models, ToolRegistry tools) {
@@ -49,6 +50,29 @@ public final class Harness implements AutoCloseable {
       Clock clock,
       Duration lease,
       InvocationExecutor executor) {
+    this(
+        store,
+        models,
+        tools,
+        access,
+        telemetry,
+        clock,
+        lease,
+        executor,
+        InvocationGate.unlimited());
+  }
+
+  public Harness(
+      RunStore store,
+      ModelGateway models,
+      ToolRegistry tools,
+      AccessPolicy access,
+      Telemetry telemetry,
+      Clock clock,
+      Duration lease,
+      InvocationExecutor executor,
+      InvocationGate invocationGate) {
+    this.invocationGate = Objects.requireNonNull(invocationGate);
     this.store = Objects.requireNonNull(store);
     this.models = Objects.requireNonNull(models);
     this.tools = Objects.requireNonNull(tools);
@@ -329,6 +353,12 @@ public final class Harness implements AutoCloseable {
             run.leaseUntil.minusMillis(500));
     if (!deadline.isAfter(clock.instant()))
       return finish(run, RunStatus.EXPIRED, "NO_EXECUTION_TIME_REMAINING");
+    InvocationGate.Reservation reservation = invocationGate.reserve(run, timeoutMillis);
+    if (!reservation.granted()) {
+      run.nextAttemptAt = Objects.requireNonNull(reservation.retryAt());
+      run.status = RunStatus.QUEUED;
+      return saveWorker(run, event(run, "CAPACITY_DEFERRED", Map.of()), true);
+    }
     p.attempts++;
     p.phase = InvocationPhase.IN_FLIGHT;
     if (descriptor != null) run.toolCalls++;
@@ -336,11 +366,16 @@ public final class Harness implements AutoCloseable {
       run.modelCalls++;
       run.chargedTokens += p.tokenReservation;
     }
-    run =
-        saveWorker(
-            run,
-            event(run, "ATTEMPT_STARTED", Map.of("attempt", Integer.toString(p.attempts))),
-            false);
+    try {
+      run =
+          saveWorker(
+              run,
+              event(run, "ATTEMPT_STARTED", Map.of("attempt", Integer.toString(p.attempts))),
+              false);
+    } catch (RuntimeException failure) {
+      reservation.abandon();
+      throw failure;
+    }
     p = run.pending;
     ExecutionContext context =
         new ExecutionContext(
@@ -371,14 +406,24 @@ public final class Harness implements AutoCloseable {
         ToolResult result =
             executor.invoke(
                 span.wrap(
-                    () -> {
-                      checkDispatch(dispatch);
-                      ToolRegistry.Entry entry = tools.require(descriptor.key());
-                      if (!entry.descriptor().digest().equals(dispatch.pending.contractDigest))
-                        throw new InvocationException(FailureKind.DENIED, "TOOL_CONTRACT_CHANGED");
-                      authorizeTool(dispatch, entry.descriptor());
-                      return entry.handler().invoke(entry.descriptor(), arguments, context);
-                    }),
+                    () ->
+                        reservation.invoke(
+                            () -> {
+                              ToolRegistry.Entry entry = tools.require(descriptor.key());
+                              validateAtDispatch(
+                                  dispatch,
+                                  context,
+                                  () -> {
+                                    if (!entry
+                                        .descriptor()
+                                        .digest()
+                                        .equals(dispatch.pending.contractDigest))
+                                      throw new InvocationException(
+                                          FailureKind.DENIED, "TOOL_CONTRACT_CHANGED");
+                                    authorizeTool(dispatch, entry.descriptor());
+                                  });
+                              return entry.handler().invoke(entry.descriptor(), arguments, context);
+                            })),
                 context,
                 clock);
         if (result == null)
@@ -397,12 +442,19 @@ public final class Harness implements AutoCloseable {
       ModelResponse response =
           executor.invoke(
               span.wrap(
-                  () -> {
-                    checkDispatch(dispatch);
-                    access.check(dispatch.actor, "model:invoke", request.profile().id());
-                    validateModelTools(dispatch, request.tools());
-                    return models.invoke(request, context);
-                  }),
+                  () ->
+                      reservation.invoke(
+                          () -> {
+                            validateAtDispatch(
+                                dispatch,
+                                context,
+                                () -> {
+                                  access.check(
+                                      dispatch.actor, "model:invoke", request.profile().id());
+                                  validateModelTools(dispatch, request.tools());
+                                });
+                            return models.invoke(request, context);
+                          })),
               context,
               clock);
       if (response == null)
@@ -426,6 +478,7 @@ public final class Harness implements AutoCloseable {
       return failedAttempt(
           mergeControls(run), descriptor, FailureKind.UNKNOWN, "CALL_RESULT_UNKNOWN");
     } finally {
+      reservation.abandon();
       try {
         span.close();
       } catch (RuntimeException ignored) {
@@ -448,6 +501,7 @@ public final class Harness implements AutoCloseable {
     boolean retry =
         descriptor != null
             && descriptor.policy().retrySafe()
+            && (kind != FailureKind.UNKNOWN || invocationGate.permitsUnknownRetry())
             && !run.cancelRequested
             && !run.pauseRequested
             && run.deadline.isAfter(clock.instant())
@@ -529,6 +583,18 @@ public final class Harness implements AutoCloseable {
    * Check at actual worker dispatch, after any queue delay. Controls cannot undo a call already
    * dispatched.
    */
+  private void validateAtDispatch(
+      RunState snapshot, ExecutionContext context, Runnable authorization) {
+    try {
+      if (Thread.currentThread().isInterrupted() || !context.deadline().isAfter(clock.instant()))
+        throw new InvocationException(FailureKind.TRANSIENT, "CALL_NOT_DISPATCHED_DEADLINE");
+      checkDispatch(snapshot);
+      authorization.run();
+    } catch (InvocationException failure) {
+      throw new InvocationGate.NotDispatched(failure.kind(), failure.getMessage());
+    }
+  }
+
   private void checkDispatch(RunState snapshot) {
     RunState current = store.get(snapshot.id);
     if (current.fence != snapshot.fence

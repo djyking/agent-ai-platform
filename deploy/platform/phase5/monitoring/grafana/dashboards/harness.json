@@ -1,0 +1,149 @@
+{
+  "uid": "harness-operations",
+  "title": "Harness operations",
+  "schemaVersion": 41,
+  "version": 1,
+  "refresh": "30s",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Instance readiness",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "harness-prometheus"
+      },
+      "targets": [
+        {
+          "expr": "harness_database_ready",
+          "legendFormat": "{{instance}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Run state (shared database counted once)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "harness-prometheus"
+      },
+      "targets": [
+        {
+          "expr": "max by (project,status) (harness_runs)",
+          "legendFormat": "{{project}} {{status}}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Oldest queued task (seconds)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "harness-prometheus"
+      },
+      "targets": [
+        {
+          "expr": "max by (project) (harness_queue_oldest_age_seconds)",
+          "legendFormat": "{{project}}"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Backup/archive age (seconds; absent means unverified)",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "harness-prometheus"
+      },
+      "targets": [
+        {
+          "expr": "time() - harness_backup_last_success_timestamp_seconds",
+          "legendFormat": "full backup"
+        },
+        {
+          "expr": "time() - harness_binlog_last_success_timestamp_seconds",
+          "legendFormat": "binlog"
+        },
+        {
+          "expr": "time() - harness_backup_offsite_last_success_timestamp_seconds",
+          "legendFormat": "offsite receipt"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Synchronous API P95 by route (seconds)",
+      "description": "Process-local histogram rates; authorization included, asynchronous model execution excluded.",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 0,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "harness-prometheus"
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, route) (rate(harness_http_request_duration_seconds_bucket[5m])))",
+          "legendFormat": "{{route}}"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Recorded model/tool mean latency (last 15 minutes)",
+      "description": "Shared SQL window gauges counted once; missing/incomplete spans are not inferred. Do not apply rate to these gauges.",
+      "type": "timeseries",
+      "gridPos": {
+        "x": 12,
+        "y": 16,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "harness-prometheus"
+      },
+      "targets": [
+        {
+          "expr": "max by (project, operation) (harness_dependency_duration_seconds_window_mean)",
+          "legendFormat": "{{project}} {{operation}}"
+        }
+      ]
+    }
+  ]
+}

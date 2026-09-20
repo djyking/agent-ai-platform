@@ -251,6 +251,7 @@ public final class PlatformService {
             .put("createdAt", run.createdAt.toString())
             .put("deadline", run.deadline.toString());
     out.set("releaseRef", owned.release().reference());
+    if (run.payloadArchived) out.put("payloadArchived", true);
     if (owned.clientReference() != null) out.put("clientReference", owned.clientReference());
     return out;
   }
@@ -286,7 +287,8 @@ public final class PlatformService {
     ObjectNode output = Json.object().put("visibility", "OMITTED");
     // Public/synthetic output is an explicit publisher assertion, not a client-controlled flag.
     // Protected retrieval requires current ACL on every citation and the exact original owner.
-    if (run.output != null
+    if (!run.payloadArchived
+        && run.output != null
         && (owned.release().publicOutput() || protectedAllowed)
         && p.permits("runs:output:read")) {
       if (Json.write(run.output).getBytes(StandardCharsets.UTF_8).length <= 65536

@@ -12,6 +12,26 @@ import org.springframework.web.bind.annotation.*;
 @SpringBootApplication
 public class PlatformApplication {
   public static void main(String[] args) {
+    if (args.length == 2 && args[0].equals("resolve-permit")) {
+      try {
+        PermitResolution.run(
+            Path.of(args[1]), new org.springframework.core.env.StandardEnvironment());
+      } catch (Exception ex) {
+        System.err.println("Permit resolution failed; no evidence content is logged");
+        System.exit(1);
+      }
+      return;
+    }
+    if (args.length == 1 && args[0].equals("migrate")) {
+      try {
+        SchemaMigration.run(new org.springframework.core.env.StandardEnvironment());
+      } catch (Exception ex) {
+        System.err.println(
+            "Schema migration failed; credentials and database details are not logged");
+        System.exit(1);
+      }
+      return;
+    }
     if (args.length == 2 && args[0].equals("import-evidence")) {
       try {
         EvidenceImport.run(Path.of(args[1]));
@@ -51,6 +71,7 @@ public class PlatformApplication {
   @Bean
   public IdentityProviders.Bundle identityProviders(
       Deployment deployment, SecretProvider secrets, Environment env) {
+    RuntimeSettings.from(env);
     return IdentityProviders.create(deployment, secrets, env);
   }
 
@@ -59,9 +80,29 @@ public class PlatformApplication {
       DataSource dataSource,
       Deployment deployment,
       SecretProvider secrets,
-      IdentityProviders.Bundle identity) {
+      IdentityProviders.Bundle identity,
+      Environment env) {
+    RuntimeSettings settings = RuntimeSettings.from(env);
     return new PlatformRuntime(
-        dataSource, deployment, secrets, identity.identity(), identity.outputPolicy());
+        dataSource,
+        deployment,
+        secrets,
+        identity.identity(),
+        identity.outputPolicy(),
+        settings.bootstrapSchema(),
+        GovernanceSettings.load(env),
+        env.getProperty("HARNESS_IDENTITY_PROVIDER", "opsagent"));
+  }
+
+  @Bean
+  public OperationsService operationsService(PlatformRuntime runtime) {
+    return runtime.operations;
+  }
+
+  @Bean
+  public RetentionService retentionService(PlatformRuntime runtime, Environment env) {
+    return new RetentionService(
+        runtime.repository, new RetentionArchive(env.getProperty("HARNESS_RETENTION_KEY")));
   }
 
   @Bean
@@ -96,22 +137,22 @@ public class PlatformApplication {
 
   @RestController
   public static class Health {
-    private final DataSource dataSource;
+    private final PlatformRuntime runtime;
 
-    public Health(DataSource dataSource) {
-      this.dataSource = dataSource;
+    public Health(PlatformRuntime runtime) {
+      this.runtime = runtime;
     }
 
-    @GetMapping("/health")
+    @GetMapping("/health/live")
+    public java.util.Map<String, String> live() {
+      return java.util.Map.of("status", "UP");
+    }
+
+    @GetMapping({"/health", "/health/ready"})
     public java.util.Map<String, String> health() {
-      try (var c = dataSource.getConnection();
-          var s = c.createStatement();
-          var r = s.executeQuery("SELECT 1")) {
-        r.next();
-        return java.util.Map.of("status", "UP");
-      } catch (java.sql.SQLException ex) {
+      if (!runtime.operations.health() || !runtime.governance.ready(true))
         throw new ApiFailure(503, "TEMPORARILY_UNAVAILABLE");
-      }
+      return java.util.Map.of("status", "UP");
     }
   }
 }

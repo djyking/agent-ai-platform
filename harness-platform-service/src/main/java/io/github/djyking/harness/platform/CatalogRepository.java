@@ -17,6 +17,25 @@ public final class CatalogRepository {
   }
 
   public void initialize() {
+    if (!platform.bootstrapSchema()) {
+      platform.transaction(
+          c -> {
+            SchemaValidation.require(
+                c,
+                "catalog",
+                1,
+                Map.of(
+                    "catalog_resources",
+                        "project_id,resource_type,resource_id,revision,document_json",
+                    "catalog_versions",
+                        "project_id,resource_type,resource_id,version_no,digest,document_json,disabled",
+                    "catalog_release_links", "project_id,release_id,agent_id,version_no,refs_json",
+                    "catalog_commands",
+                        "command_hash,request_digest,project_id,actor_scope,resource_type,resource_id,operation,response_json,accepted_at"));
+            return null;
+          });
+      return;
+    }
     platform.transaction(
         c -> {
           boolean mysql = c.getMetaData().getDatabaseProductName().equalsIgnoreCase("MySQL");

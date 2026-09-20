@@ -1,0 +1,8 @@
+[Unit]
+Description=Daily encrypted full Harness backup
+[Timer]
+OnCalendar=*-*-* 02:00:00 UTC
+Persistent=true
+Unit=harness-backup@full.service
+[Install]
+WantedBy=timers.target
