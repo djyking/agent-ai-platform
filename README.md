@@ -1,8 +1,12 @@
-# Agent AI Platform
+# Agent 应用平台（Agent Platform）
 
-可嵌入 Java 应用的 Agent Harness 与公共能力，当前版本 `0.1.0-SNAPSHOT`。支持业务应用通过 Maven 引用 SDK，也提供复用同一内核的集中执行服务。
+面向内部业务的 Agent 应用平台，统一构建、发布、运行与治理，当前版本 `0.1.0-SNAPSHOT`。平台为多个业务应用提供共享的模型、工具、知识、审批与运行治理能力，承担企业内部 Agent 中台的角色。
 
-已实现 AgentLoop、内部/MCP 工具治理、模型适配、Prompt、轻量 RAG、Workflow、SQL 持久化以及日志/tracing。嵌入式 SDK 不依赖 Spring 或 OpsAgent 业务代码；`harness-platform-service` 提供集中执行、资源目录与发布、现有身份接入和持久 worker，独立中文控制台位于 `platform-console/`。
+独立中文控制台位于 `platform-console/`，支持从模板构建应用、试用、固定样本评测与发布，并提供任务结果、审批及运行治理。`harness-platform-service` 提供集中执行、资源目录与发布、现有身份接入、持久 worker，以及跨应用的共享并发、速率与预算治理。
+
+底层 Harness 执行内核已实现 AgentLoop、内部/MCP 工具治理、模型适配、Prompt、轻量 RAG、Workflow、SQL 持久化以及日志/tracing。同一内核也可通过 Maven SDK 嵌入 Java 业务应用，嵌入式 SDK 不依赖 Spring 或 OpsAgent 业务代码。
+
+产品名称统一使用“Agent 应用平台 / Agent Platform”；“Agent 中台”用于说明内部业务定位。Harness 保留为执行内核与 SDK 的技术名称，现有 `harness-*` 模块、Java 包名、API 路径和配置前缀保持兼容，仓库名仍为 `agent-ai-platform`。
 
 ## 快速运行
 

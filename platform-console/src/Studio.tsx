@@ -138,7 +138,7 @@ export function ApplicationHome({
   return (
     <>
       <PageHeading
-        eyebrow="BUILD WITH HARNESS"
+        eyebrow="BUILD WITH AGENT PLATFORM"
         title="应用"
         description="从一个任务开始，把模型、知识与工具组合成可以交付的助手。"
         actions={

@@ -1,4 +1,4 @@
-# 执行 API 契约
+# Agent 应用平台执行 API 契约
 
 `openapi.json` 是 OpenAPI 3.1 / JSON Schema 2020-12 文档，版本 `0.1.0`，由 `harness-platform-service` 实现。 架构、权限映射、CAS 差距及实施要求见 [阶段 2 API 设计](../phase2-api-design.md)。服务地址使用 `.invalid` 占位域名，示例均为合成数据。
 

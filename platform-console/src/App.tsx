@@ -50,9 +50,9 @@ function Brand({ compact = false }: { compact?: boolean }) {
         <span />
       </span>
       <strong>
-        harness<span> studio</span>
+        Agent<span> 应用平台</span>
       </strong>
-      <span className="brand-caption">BUILD · RUN · DELIVER</span>
+      <span className="brand-caption">BUILD · PUBLISH · RUN · GOVERN</span>
     </div>
   );
 }
@@ -317,8 +317,8 @@ export default function App() {
           )}
         </main>
         <footer className="workspace-footer">
-          <span>Harness Agent Platform</span>
-          <span>构建应用 → 立即体验 → 评测发布 → 任务交付</span>
+          <span>Agent 应用平台 · Agent Platform</span>
+          <span>统一构建、发布、运行与治理</span>
         </footer>
       </div>
       {identity && (
@@ -499,7 +499,7 @@ function Login({
           </div>
         </div>
         <div className="login-story-footer">
-          <span className="live-dot" /> Harness · Agent 应用平台
+          <span className="live-dot" /> Agent 应用平台 · Agent Platform
         </div>
       </div>
       <div className="login-form-area">
