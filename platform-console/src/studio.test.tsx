@@ -529,7 +529,7 @@ describe("application Studio product workflow", () => {
   });
   it("restores a pending application command from session storage after a page reload", async () => {
     const id = "page-reloaded-app";
-    const { persistPending } = await import("./pending-commands");
+    const { persistPending, readPending } = await import("./pending-commands");
     persistPending("studio", `project/console/builder/${id}`, {
       key: "lost-operation-0001",
       resource: id,
@@ -546,10 +546,17 @@ describe("application Studio product workflow", () => {
       <ApplicationStudio project="project" principal={principal} id={id} />,
     );
     await screen.findByRole("button", { name: "读取原操作结果" });
-    expect(screen.getByLabelText(/目标与行为/)).toBeDisabled();
+    // The recovery action can render before the application draft has loaded.
+    expect(await screen.findByLabelText(/目标与行为/)).toBeDisabled();
     expect(screen.getByRole("button", { name: "保存草稿" })).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "读取原操作结果" }));
     await screen.findByText(/资源不存在/);
+    expect(screen.getByLabelText(/目标与行为/)).toBeDisabled();
+    expect(screen.getByRole("button", { name: "保存草稿" })).toBeDisabled();
+    expect(readPending("studio", `project/console/builder/${id}`, id)).toEqual({
+      key: "lost-operation-0001",
+      resource: id,
+    });
     expect(
       fetch.mock.calls.filter(([, init]) => init.method !== "GET"),
     ).toHaveLength(0);
