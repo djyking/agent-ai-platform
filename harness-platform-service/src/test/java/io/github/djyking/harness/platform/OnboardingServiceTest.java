@@ -382,7 +382,7 @@ class OnboardingServiceTest {
 
   @Test
   void privateOutputsRejectConflictsAndCredentialReuseIsStable() throws Exception {
-    Path directory = temporary.resolve("private-output");
+    Path directory = temporary.toRealPath().resolve("private-output");
     OnboardingProvisioner.ensurePrivateDirectory(directory);
     Path secret = directory.resolve("secret");
     String credential = OnboardingProvisioner.secret(secret);

@@ -1,6 +1,6 @@
 {
   "format": "harness-phase6-public-evidence-v1",
-  "recordedAt": "2026-10-20T11:18:02.200232+00:00",
+  "recordedAt": "2026-10-20T11:27:18.886767+00:00",
   "scope": "Local synthetic engineering acceptance; not production readiness",
   "platformBuild": {
     "command": "mvn clean verify -B -ntp",
@@ -11,7 +11,8 @@
     "failures": 0,
     "errors": 0,
     "skipped": 0,
-    "sourceFilesVerified": 282
+    "sourceFilesVerified": 183,
+    "sourceComparisonScope": "Production inputs; excludes test fixtures"
   },
   "artifactSha256": {
     "platform": "672430d2087b867481cb4daebfb84f7d14ef9d9adeb24e6e8b78b8ae02b4cb99",
@@ -124,7 +125,7 @@
     "observationId": "soak-37cce5a194aa44da8b70f37279c651a2",
     "startedAt": "2026-10-20T11:17:07.294844+00:00",
     "requestedSeconds": 86400,
-    "elapsedMonotonicSeconds": 0.0,
+    "elapsedMonotonicSeconds": 600.313,
     "completed24Hours": false,
     "continuous": true
   }
