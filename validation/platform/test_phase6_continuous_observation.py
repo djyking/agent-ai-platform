@@ -1,4 +1,6 @@
 import json
+import concurrent.futures
+import errno
 from contextlib import contextmanager, redirect_stdout
 import http.client
 import http.server
@@ -11,8 +13,8 @@ import unittest
 from unittest.mock import patch
 
 from phase6_continuous_observation import (
-    Identity, Observer, MAX_RESPONSE_BYTES, atomic_json, continuity_failure, percentile,
-    http as observation_http,
+    Identity, Observer, LoopbackTransport, MAX_RESPONSE_BYTES, MAX_CONNECTION_IDLE_SECONDS,
+    atomic_json, continuity_failure, percentile, safe_error_numbers, http as observation_http,
 )
 
 
@@ -53,9 +55,20 @@ def tracked_connections():
     class TrackedConnection(http.client.HTTPConnection):
         def __init__(self, *args, **kwargs):
             self.close_calls = 0
+            self.connect_calls = 0
+            self.request_calls = 0
+            self.thread_id = threading.get_ident()
             self.responses = []
             super().__init__(*args, **kwargs)
             instances.append(self)
+
+        def connect(self):
+            self.connect_calls += 1
+            return super().connect()
+
+        def request(self, *args, **kwargs):
+            self.request_calls += 1
+            return super().request(*args, **kwargs)
 
         def getresponse(self):
             response = super().getresponse()
@@ -122,6 +135,312 @@ def finish_with_clock(observer, elapsed, previous_elapsed=None):
 
 
 class ContinuousObservationTest(unittest.TestCase):
+    def test_pool_reuses_fully_consumed_responses_and_current_request_headers(self):
+        received = []
+
+        class Handler(QuietHandler):
+            def do_GET(self):
+                received.append(self.headers.get("Authorization"))
+                self.reply(200, b'{"items":[]}')
+
+        transport = LoopbackTransport()
+        instances, connection = tracked_connections()
+        with local_server(Handler) as server, patch("phase6_continuous_observation.HTTPConnection", connection):
+            try:
+                for number in range(8):
+                    status, reply = observation_http(
+                        "http://127.0.0.1:" + str(server.server_port), "GET", "/runs",
+                        {"Authorization": "synthetic-token-" + str(number)}, transport=transport)
+                    self.assertEqual((200, {"items": []}), (status, reply))
+                snapshot = transport.snapshot()
+                self.assertEqual((1, 7, 0, 1),
+                                 tuple(snapshot[key] for key in ("opened", "reused", "discarded", "active")))
+                self.assertTrue(snapshot["threadLocal"])
+                self.assertTrue(snapshot["noRetry"])
+                self.assertEqual(5, snapshot["maxIdleSeconds"])
+            finally:
+                transport.close_all()
+        self.assertEqual(["synthetic-token-" + str(i) for i in range(8)], received)
+        self.assertEqual(1, len(instances))
+        self.assertEqual(1, instances[0].connect_calls)
+        self.assertEqual(8, instances[0].request_calls)
+        self.assertTrue(all(response.closed for response in instances[0].responses))
+        self.assertIsNone(instances[0].sock)
+        self.assertEqual(0, transport.snapshot()["active"])
+        self.assertEqual(1, transport.snapshot()["discarded"])
+        transport.close_all()
+        self.assertEqual(1, transport.snapshot()["discarded"])
+        with self.assertRaisesRegex(RuntimeError, "TRANSPORT_CLOSED"):
+            observation_http("http://127.0.0.1:1", "GET", "/", transport=transport)
+
+    def test_pool_isolates_threads_and_origins_and_closes_connections_from_finished_threads(self):
+        class Handler(QuietHandler):
+            def do_GET(self):
+                self.reply(200, b'{}')
+
+        transport = LoopbackTransport()
+        barrier = threading.Barrier(2)
+        instances, connection = tracked_connections()
+        with local_server(Handler) as first, local_server(Handler) as second, \
+                patch("phase6_continuous_observation.HTTPConnection", connection):
+            origins = ["http://127.0.0.1:" + str(server.server_port) for server in (first, second)]
+
+            def worker():
+                for origin in origins:
+                    observation_http(origin, "GET", "/", transport=transport)
+                barrier.wait(timeout=5)
+                for origin in origins:
+                    observation_http(origin, "GET", "/", transport=transport)
+
+            try:
+                with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+                    futures = [pool.submit(worker) for _ in range(2)]
+                    for future in futures:
+                        future.result(timeout=10)
+                self.assertEqual(4, len(instances))
+                self.assertEqual(2, len({instance.thread_id for instance in instances}))
+                self.assertEqual(4, transport.snapshot()["opened"])
+                self.assertEqual(4, transport.snapshot()["reused"])
+                self.assertEqual(4, transport.snapshot()["active"])
+                self.assertTrue(all(instance.connect_calls == 1 and instance.request_calls == 2
+                                    for instance in instances))
+            finally:
+                transport.close_all()
+        self.assertTrue(all(instance.sock is None for instance in instances))
+        self.assertEqual(4, transport.snapshot()["discarded"])
+
+    def test_idle_expiry_replaces_connection_before_send_without_replaying_a_request(self):
+        calls = []
+
+        class Handler(QuietHandler):
+            def do_GET(self):
+                calls.append(self.path)
+                self.reply(200, b'{}')
+
+        transport = LoopbackTransport()
+        instances, connection = tracked_connections()
+        with local_server(Handler) as server, patch("phase6_continuous_observation.HTTPConnection", connection):
+            origin = "http://127.0.0.1:" + str(server.server_port)
+            try:
+                observation_http(origin, "GET", "/first", transport=transport)
+                future_clock = time.monotonic() + MAX_CONNECTION_IDLE_SECONDS + 1
+                with patch("phase6_continuous_observation.time.monotonic", return_value=future_clock):
+                    observation_http(origin, "GET", "/next", transport=transport)
+                self.assertEqual(2, transport.snapshot()["opened"])
+                self.assertEqual(0, transport.snapshot()["reused"])
+                self.assertEqual(1, transport.snapshot()["discarded"])
+                self.assertIsNone(instances[0].sock)
+                self.assertEqual([1, 1], [instance.request_calls for instance in instances])
+            finally:
+                transport.close_all()
+        self.assertEqual(["/first", "/next"], calls)
+
+    def test_server_declared_close_is_not_retained(self):
+        class Handler(QuietHandler):
+            def do_GET(self):
+                self.reply(200, b'{}', {"Connection": "close"})
+
+        transport = LoopbackTransport()
+        instances, connection = tracked_connections()
+        with local_server(Handler) as server, patch("phase6_continuous_observation.HTTPConnection", connection):
+            try:
+                for _ in range(2):
+                    self.assertEqual((200, {}), observation_http(
+                        "http://127.0.0.1:" + str(server.server_port), "GET", "/", transport=transport))
+                self.assertEqual(2, len(instances))
+                self.assertEqual(0, transport.snapshot()["active"])
+                self.assertEqual(0, transport.snapshot()["reused"])
+                self.assertEqual(2, transport.snapshot()["discarded"])
+            finally:
+                transport.close_all()
+
+    def test_stale_keepalive_failure_is_counted_once_and_only_next_sample_connects(self):
+        calls = []
+        closed = threading.Event()
+
+        class Handler(QuietHandler):
+            def do_GET(self):
+                calls.append(self.path)
+                self.reply(200, b'{"items":[]}')
+                if len(calls) == 1:
+                    # Deliberately omit Connection: close to simulate an idle peer close.
+                    self.close_connection = True
+
+            def finish(self):
+                super().finish()
+                closed.set()
+
+        instances, connection = tracked_connections()
+        with tempfile.TemporaryDirectory() as directory, local_server(Handler) as server, \
+                patch("phase6_continuous_observation.HTTPConnection", connection):
+            observer = observation_fixture(directory, "http://127.0.0.1:" + str(server.server_port))
+            try:
+                observer.collect(observer.measure(1))
+                self.assertTrue(closed.wait(timeout=5))
+                observer.collect(observer.measure(2))
+                self.assertEqual(1, observer.total["errors"])
+                self.assertEqual(1, len(instances))
+                self.assertEqual(2, instances[0].request_calls)
+                self.assertEqual(1, instances[0].connect_calls)
+                self.assertEqual(0, observer.transport.snapshot()["active"])
+                observer.collect(observer.measure(3))
+                self.assertEqual(1, observer.total["errors"])
+                self.assertEqual(2, len(instances))
+                self.assertEqual(2, len(calls))
+                rows = (observer.directory / "diagnostics.jsonl").read_text().splitlines()
+                self.assertEqual(1, len(rows))
+                row = json.loads(rows[0])
+                self.assertEqual(2, row["sequence"])
+                self.assertEqual(0, row["status"])
+                self.assertIn(row["phase"], ("SEND", "RESPONSE_HEADERS"))
+                self.assertIs(observer.report["qualityPassed"], False)
+            finally:
+                observer.transport.close_all()
+                observer.db.close()
+
+    def test_dropped_post_response_preserves_unknown_write_and_never_resends_it(self):
+        received_keys = []
+
+        class Handler(QuietHandler):
+            def do_POST(self):
+                self.rfile.read(int(self.headers["Content-Length"]))
+                received_keys.append(self.headers["Idempotency-Key"])
+                if len(received_keys) == 1:
+                    self.close_connection = True
+                else:
+                    self.reply(202, b'{"run":{"id":"synthetic-second-run"}}')
+
+        with tempfile.TemporaryDirectory() as directory, local_server(Handler) as server:
+            observer = observation_fixture(directory, "http://127.0.0.1:" + str(server.server_port))
+            try:
+                for sequence in (0, 10):
+                    key = observer.tag + "-" + str(sequence)
+                    observer.db.execute("INSERT INTO commands VALUES(?,?,NULL,-1,0)", (sequence, key))
+                    observer.collect(observer.measure(sequence))
+                rows = observer.db.execute(
+                    "SELECT sequence,status,run_id FROM commands ORDER BY sequence").fetchall()
+                self.assertEqual([(0, 0, None), (10, 202, "synthetic-second-run")], rows)
+                self.assertEqual([observer.tag + "-0", observer.tag + "-10"], received_keys)
+                self.assertEqual(1, observer.total["errors"])
+                self.assertEqual(2, observer.transport.snapshot()["opened"])
+                row = json.loads((observer.directory / "diagnostics.jsonl").read_text())
+                self.assertEqual("RESPONSE_HEADERS", row["phase"])
+                self.assertEqual(0, row["sequence"])
+            finally:
+                observer.transport.close_all()
+                observer.db.close()
+
+    def test_connect_failure_keeps_safe_numeric_codes_and_cleanup_cannot_mask_it(self):
+        failure = OSError(errno.EADDRNOTAVAIL, "SYNTHETIC_PRIVATE_EXCEPTION")
+        failure.winerror = 10048
+        instances = []
+
+        class FailingConnection(http.client.HTTPConnection):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                self.connect_calls = self.send_calls = self.close_calls = 0
+                instances.append(self)
+
+            def connect(self):
+                self.connect_calls += 1
+                raise failure
+
+            def request(self, *args, **kwargs):
+                self.send_calls += 1
+                raise AssertionError("No request before connect")
+
+            def close(self):
+                self.close_calls += 1
+                super().close()
+                raise OSError(errno.ECONNRESET, "SYNTHETIC_PRIVATE_CLEANUP")
+
+        with tempfile.TemporaryDirectory() as directory, \
+                patch("phase6_continuous_observation.HTTPConnection", FailingConnection):
+            observer = observation_fixture(directory)
+            try:
+                observer.collect(observer.measure(1))
+                text = (observer.directory / "diagnostics.jsonl").read_text()
+                row = json.loads(text)
+                self.assertEqual("CONNECT", row["phase"])
+                self.assertEqual(errno.EADDRNOTAVAIL, row["errno"])
+                self.assertEqual(10048, row["winerror"])
+                self.assertEqual("TRANSPORT_ERROR", row["code"])
+                self.assertEqual(0, row["status"])
+                self.assertNotIn("SYNTHETIC_PRIVATE", text)
+                self.assertEqual((1, 0, 1), (instances[0].connect_calls,
+                                           instances[0].send_calls, instances[0].close_calls))
+                self.assertEqual(0, observer.transport.snapshot()["active"])
+            finally:
+                observer.transport.close_all()
+                observer.db.close()
+
+    def test_send_error_has_fixed_phase_and_no_implicit_reconnect(self):
+        class Handler(QuietHandler):
+            def do_GET(self):
+                raise AssertionError("Request must fail before transmission")
+
+        instances, tracked = tracked_connections()
+
+        class FailingSend(tracked):
+            def request(self, *args, **kwargs):
+                self.request_calls += 1
+                raise BrokenPipeError(errno.EPIPE, "SYNTHETIC_PRIVATE_SEND")
+
+        with tempfile.TemporaryDirectory() as directory, local_server(Handler) as server, \
+                patch("phase6_continuous_observation.HTTPConnection", FailingSend):
+            observer = observation_fixture(directory, "http://127.0.0.1:" + str(server.server_port))
+            try:
+                observer.collect(observer.measure(1))
+                row = json.loads((observer.directory / "diagnostics.jsonl").read_text())
+                self.assertEqual("SEND", row["phase"])
+                self.assertEqual(errno.EPIPE, row["errno"])
+                self.assertEqual("BrokenPipeError", row["exceptionClass"])
+                self.assertEqual(1, instances[0].request_calls)
+                self.assertEqual(1, instances[0].connect_calls)
+                self.assertEqual(0, instances[0].auto_open)
+                self.assertIsNone(instances[0].sock)
+            finally:
+                observer.transport.close_all()
+                observer.db.close()
+
+    def test_numeric_and_phase_allowlists_reject_private_strings_bools_and_unknown_values(self):
+        with tempfile.TemporaryDirectory() as directory:
+            observer = observation_fixture(directory)
+            try:
+                for number in ("SYNTHETIC_PRIVATE_NUMBER", True, 999999, None):
+                    failure = OSError()
+                    failure.errno = failure.winerror = number
+                    self.assertEqual({"errno": None, "winerror": None}, safe_error_numbers(failure))
+                    observer.record_diagnostic(
+                        "synthetic-time", 1, "GET", 0, "OSError", 0, "TRANSPORT_ERROR",
+                        phase="SYNTHETIC_PRIVATE_PHASE", errno=number, winerror=number)
+                text = (observer.directory / "diagnostics.jsonl").read_text()
+                self.assertNotIn("SYNTHETIC_PRIVATE", text)
+                for line in text.splitlines():
+                    row = json.loads(line)
+                    self.assertEqual("OBSERVER", row["phase"])
+                    self.assertIsNone(row["errno"])
+                    self.assertIsNone(row["winerror"])
+            finally:
+                observer.transport.close_all()
+                observer.db.close()
+
+    def test_preflight_failure_closes_transport(self):
+        with tempfile.TemporaryDirectory() as directory, \
+                patch.object(Observer, "validate_release",
+                             side_effect=ValueError("SYNTHETIC_RELEASE_NOT_IN_DEPLOYMENT")), \
+                patch.object(LoopbackTransport, "close_all", autospec=True,
+                             side_effect=LoopbackTransport.close_all) as close:
+            with self.assertRaisesRegex(ValueError, "SYNTHETIC_RELEASE_NOT_IN_DEPLOYMENT"):
+                observation_fixture(directory)
+            close.assert_called_once()
+            transport = close.call_args.args[0]
+            self.assertTrue(transport.closed)
+            report_path = next((Path(directory) / "reports").glob("*/report.json"))
+            report = json.loads(report_path.read_text())
+            self.assertEqual("FAILED_PREFLIGHT", report["status"])
+            self.assertEqual(0, report["transport"]["active"])
+
     def test_http_error_status_and_parse_failure_are_durable_without_private_content(self):
         replies = [(503, b"<html>SYNTHETIC_PRIVATE_BODY http://private.invalid</html>"),
                    (200, b"SYNTHETIC_PRIVATE_BAD_JSON"), (200, b"[]"), (200, b'{"items":[]}')]
@@ -145,7 +464,10 @@ class ContinuousObservationTest(unittest.TestCase):
                 self.assertEqual(["RESPONSE_INVALID_JSON", "RESPONSE_INVALID_JSON", "RESPONSE_INVALID_SHAPE"],
                                  [row["code"] for row in diagnostics])
                 for row in diagnostics:
-                    self.assertEqual({"at", "sequence", "method", "status", "exceptionClass", "latencyMillis", "code"}, set(row))
+                    self.assertEqual({"at", "sequence", "method", "status", "exceptionClass",
+                                      "latencyMillis", "code", "phase", "errno", "winerror"}, set(row))
+                self.assertEqual(["DECODE_JSON", "DECODE_JSON", "RESPONSE_VALIDATION"],
+                                 [row["phase"] for row in diagnostics])
                 observer.flush_window(complete_minute=True, service=healthy_service())
                 self.assertEqual(3, observer.windows[0]["errors"])
                 self.assertIs(observer.report["qualityPassed"], False)
@@ -153,6 +475,7 @@ class ContinuousObservationTest(unittest.TestCase):
                 self.assertNotIn("SYNTHETIC_PRIVATE", text)
                 self.assertNotIn("private.invalid", text)
             finally:
+                observer.transport.close_all()
                 observer.db.close()
 
     def test_malformed_accepted_write_preserves_key_without_attribute_error(self):
@@ -178,6 +501,7 @@ class ContinuousObservationTest(unittest.TestCase):
                 self.assertEqual([202] * 4, [row["status"] for row in diagnostics])
                 self.assertTrue(all(row["code"] in ("RESPONSE_INVALID_SHAPE", "RESPONSE_RUN_ID_MISSING") for row in diagnostics))
             finally:
+                observer.transport.close_all()
                 observer.db.close()
 
     def test_bad_status_line_and_truncated_success_record_safe_transport_diagnostics(self):
@@ -205,8 +529,10 @@ class ContinuousObservationTest(unittest.TestCase):
                 self.assertEqual([0, 200], [row["status"] for row in rows])
                 self.assertEqual(["BadStatusLine", "IncompleteRead"], [row["exceptionClass"] for row in rows])
                 self.assertEqual(["HTTP_PROTOCOL_ERROR", "RESPONSE_TRUNCATED"], [row["code"] for row in rows])
+                self.assertEqual(["RESPONSE_HEADERS", "RESPONSE_BODY"], [row["phase"] for row in rows])
                 self.assertNotIn("SYNTHETIC_PRIVATE", text)
             finally:
+                observer.transport.close_all()
                 observer.db.close()
 
     def test_real_response_timeout_retains_status_and_persists_exception_type(self):
@@ -232,8 +558,10 @@ class ContinuousObservationTest(unittest.TestCase):
                 self.assertEqual(200, row["status"])
                 self.assertEqual("TimeoutError", row["exceptionClass"])
                 self.assertEqual("TRANSPORT_TIMEOUT", row["code"])
+                self.assertEqual("RESPONSE_BODY", row["phase"])
                 self.assertEqual(1, observer.total["errors"])
             finally:
+                observer.transport.close_all()
                 observer.db.close()
 
     def test_failed_telemetry_preserves_window_and_marks_quality_immediately(self):
@@ -256,6 +584,7 @@ class ContinuousObservationTest(unittest.TestCase):
                 self.assertEqual(502, row["service"]["status"])
                 self.assertIs(json.loads((observer.directory / "report.json").read_text())["qualityPassed"], False)
             finally:
+                observer.transport.close_all()
                 observer.db.close()
 
     def test_slow_success_fails_only_the_window_p95_and_failure_is_sticky(self):
@@ -282,6 +611,7 @@ class ContinuousObservationTest(unittest.TestCase):
                 self.assertIs(observer.report["qualityPassed"], False)
                 self.assertEqual(report["firstQualityFailure"], observer.report["firstQualityFailure"])
             finally:
+                observer.transport.close_all()
                 observer.db.close()
 
     def test_suspend_crossing_deadline_is_failed_even_with_otherwise_complete_evidence(self):
@@ -465,6 +795,7 @@ class ContinuousObservationTest(unittest.TestCase):
         observer.route = "/v1/projects/phase6-soak/runs"
         observer.origin = "http://127.0.0.1"
         observer.ref = {}
+        observer.transport = None
         observer.headers = lambda key: {}
         with patch("phase6_continuous_observation.time.monotonic", side_effect=AssertionError("coarse latency clock")), \
                 patch("phase6_continuous_observation.time.perf_counter", side_effect=[10, 10.000123]), \

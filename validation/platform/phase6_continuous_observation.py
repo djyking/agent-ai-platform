@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import concurrent.futures
+import errno as errno_codes
 import hashlib
 from http.client import HTTPConnection, HTTPException, IncompleteRead
 import json
@@ -44,6 +45,30 @@ def continuity_failure(previous_wall: float, previous_mono: float,
 
 
 MAX_RESPONSE_BYTES = 2 * 1024 * 1024
+MAX_CONNECTION_IDLE_SECONDS = 5
+KNOWN_REQUEST_PHASES = frozenset({
+    "VALIDATE", "ENCODE_BODY", "AUTH_HEADERS", "CONNECT", "SEND",
+    "RESPONSE_HEADERS", "RESPONSE_BODY", "DECODE_JSON", "RESPONSE_VALIDATION",
+    "PERSIST_IDENTITY", "PREFLIGHT", "OBSERVER",
+})
+# Fixed numeric allowlists, never exception text or arbitrary exception attributes.
+KNOWN_WINSOCK_ERRORS = frozenset({
+    10004, 10009, 10013, 10014, 10022, 10024, 10035, 10036, 10037, 10038,
+    10039, 10040, 10041, 10042, 10043, 10044, 10045, 10046, 10047, 10048,
+    10049, 10050, 10051, 10052, 10053, 10054, 10055, 10056, 10057, 10058,
+    10060, 10061, 10064, 10065, 10067, 10091, 10092, 10093, 10101,
+    11001, 11002, 11003, 11004,
+})
+KNOWN_ERRNOS = KNOWN_WINSOCK_ERRORS | frozenset(
+    getattr(errno_codes, name) for name in (
+        "EACCES", "EPERM", "EADDRINUSE", "EADDRNOTAVAIL", "ECONNABORTED",
+        "ECONNREFUSED", "ECONNRESET", "EHOSTUNREACH", "EINTR", "EINVAL",
+        "EISCONN", "EMFILE", "ENFILE", "ENETDOWN", "ENETRESET", "ENETUNREACH",
+        "ENOBUFS", "ENOMEM", "ENOTCONN", "EPIPE", "ETIMEDOUT", "EWOULDBLOCK",
+        "EINPROGRESS", "EALREADY",
+    ) if hasattr(errno_codes, name)
+)
+KNOWN_WINERRORS = KNOWN_WINSOCK_ERRORS | frozenset({64, 121, 995, 996, 997, 1225, 1231, 1232})
 KNOWN_FAILURE_CODES = frozenset({
     "LOCAL_LOOPBACK_ORIGIN_REQUIRED", "RELATIVE_HTTP_REQUEST_TARGET_REQUIRED",
     "RESPONSE_TOO_LARGE", "OFFICIAL_TOKEN_REFRESH_FAILED",
@@ -51,6 +76,7 @@ KNOWN_FAILURE_CODES = frozenset({
     "MONOTONIC_SCHEDULER_GAP", "WALL_MONOTONIC_DIVERGENCE", "LOAD_GENERATOR_BACKLOG",
     "OFFERED_LOAD_SCHEDULER_GAP", "DEPLOYMENT_PROCESS_BINDING_CHANGED",
     "RESPONSE_RECORD_FAILED", "SERVICE_RESPONSE_INVALID_SHAPE",
+    "TRANSPORT_CLOSED",
 })
 KNOWN_EXCEPTION_CLASSES = frozenset({
     "TimeoutError", "ConnectionError", "ConnectionRefusedError", "ConnectionResetError",
@@ -89,6 +115,103 @@ def safe_exception(failure):
     return name, code
 
 
+def safe_error_number(value, allowed):
+    return value if type(value) is int and value in allowed else None
+
+
+def safe_error_numbers(failure):
+    return {
+        "errno": safe_error_number(getattr(failure, "errno", None), KNOWN_ERRNOS),
+        "winerror": safe_error_number(getattr(failure, "winerror", None), KNOWN_WINERRORS),
+    }
+
+
+def close_connection(connection):
+    try:
+        connection.close()
+        return True
+    except Exception:
+        # Cleanup must not replace the original request error or its phase.
+        return False
+
+
+class LoopbackTransport:
+    """One connection per origin per thread; never resend a failed sample.
+
+    Five seconds is a conservative client idle ceiling, not a promise that servers
+    cannot close sooner. A stale socket failure still counts as a failed sample.
+    opened counts allocated single-connect attempts, including failed connects.
+    discarded includes failures, idle expiry, server close and final cleanup.
+    """
+    def __init__(self):
+        self.local = threading.local()
+        self.lock = threading.Lock()
+        self.connections = set()
+        self.closed = False
+        self.opened = self.reused = self.discarded = 0
+
+    def acquire(self, origin, host, port, timeout):
+        entries = getattr(self.local, "entries", None)
+        if entries is None:
+            entries = self.local.entries = {}
+        entry = entries.get(origin)
+        if entry is not None:
+            connection, finished_at, previous_timeout = entry
+            # Retire idle connections before sending; this is not a request retry.
+            if (connection.sock is None or timeout != previous_timeout
+                    or time.monotonic() - finished_at >= MAX_CONNECTION_IDLE_SECONDS):
+                self.discard(origin, connection)
+                entry = None
+        with self.lock:
+            if self.closed:
+                raise RuntimeError("TRANSPORT_CLOSED")
+            if entry is not None:
+                self.reused += 1
+                return entry[0]
+            connection = HTTPConnection(host, port, timeout=timeout)
+            # http() connects explicitly once. Never let send() reconnect implicitly.
+            connection.auto_open = 0
+            self.connections.add(connection)
+            self.opened += 1
+        entries[origin] = (connection, time.monotonic(), timeout)
+        return connection
+
+    def release(self, origin, connection):
+        entries = self.local.entries
+        if entries.get(origin, (None,))[0] is connection:
+            entries[origin] = (connection, time.monotonic(), entries[origin][2])
+
+    def discard(self, origin, connection):
+        entries = getattr(self.local, "entries", {})
+        if entries.get(origin, (None,))[0] is connection:
+            del entries[origin]
+        with self.lock:
+            if connection in self.connections:
+                self.connections.remove(connection)
+                self.discarded += 1
+        close_connection(connection)
+
+    def snapshot(self):
+        with self.lock:
+            return {
+                "policy": "THREAD_LOCAL_ORIGIN_KEEP_ALIVE", "threadLocal": True,
+                "noRetry": True, "maxIdleSeconds": MAX_CONNECTION_IDLE_SECONDS,
+                "opened": self.opened, "reused": self.reused,
+                "discarded": self.discarded, "active": len(self.connections),
+            }
+
+    def close_all(self):
+        # The owner calls this only after all worker tasks have stopped.
+        with self.lock:
+            self.closed = True
+            connections = tuple(self.connections)
+            self.connections.clear()
+            self.discarded += len(connections)
+        for connection in connections:
+            close_connection(connection)
+        self.local.entries = {}
+
+
 def sample_failed(value):
     return (value["status"] != (202 if value["method"] == "POST" else 200)
             or value.get("code") is not None
@@ -124,22 +247,35 @@ def loopback_address(origin: str) -> tuple[str, int]:
     return match.group(1), port
 
 
-def http(origin: str, method: str, path: str, headers=None, body=None, timeout=15, metadata=None):
+def http(origin: str, method: str, path: str, headers=None, body=None, timeout=15, metadata=None,
+         transport=None):
+    metadata = {} if metadata is None else metadata
+    metadata["phase"] = "VALIDATE"
     host, port = loopback_address(origin)
     if not path.startswith("/") or path.startswith("//") or any(c in path for c in "\r\n#"):
         raise ValueError("RELATIVE_HTTP_REQUEST_TARGET_REQUIRED")
-    # Each sample has its own connection. HTTPConnection neither consults proxies nor
+    metadata["phase"] = "ENCODE_BODY"
+    encoded = None if body is None else json.dumps(body).encode()
+    # HTTPConnection neither consults proxies nor
     # constructs TLS contexts/loads Windows trust stores, and never follows redirects.
-    connection = HTTPConnection(host, port, timeout=timeout)
+    metadata["phase"] = "CONNECT"
+    connection = (HTTPConnection(host, port, timeout=timeout) if transport is None
+                  else transport.acquire(origin, host, port, timeout))
+    connection.auto_open = 0
+    reusable = False
     try:
+        if connection.sock is None:
+            connection.connect()
+        metadata["phase"] = "SEND"
         connection.request(
-            method, path,
-            body=None if body is None else json.dumps(body).encode(),
+            method, path, body=encoded,
             headers={"Content-Type": "application/json", "Accept": "application/json", **(headers or {})},
         )
-        with connection.getresponse() as response:
-            if metadata is not None:
-                metadata["status"] = response.status
+        metadata["phase"] = "RESPONSE_HEADERS"
+        response = connection.getresponse()
+        try:
+            metadata["status"] = response.status
+            metadata["phase"] = "RESPONSE_BODY"
             if response.length is not None and response.length > MAX_RESPONSE_BYTES:
                 raise ValueError("RESPONSE_TOO_LARGE")
             # One sentinel byte detects oversized bodies without unbounded reads.
@@ -148,9 +284,19 @@ def http(origin: str, method: str, path: str, headers=None, body=None, timeout=1
                 raise ValueError("RESPONSE_TOO_LARGE")
             if response.length not in (None, 0):
                 raise IncompleteRead(raw, response.length)
-            return response.status, json.loads(raw) if raw else {}
+            metadata["phase"] = "DECODE_JSON"
+            result = json.loads(raw) if raw else {}
+        finally:
+            response_closed = close_connection(response)
+        reusable = response_closed and not response.will_close and connection.sock is not None
+        return response.status, result
     finally:
-        connection.close()
+        if transport is None:
+            close_connection(connection)
+        elif reusable:
+            transport.release(origin, connection)
+        else:
+            transport.discard(origin, connection)
 
 
 def atomic_json(path: Path, value):
@@ -164,13 +310,14 @@ def atomic_json(path: Path, value):
 
 class Identity:
     """Normal OpsAgent refresh. No test endpoint, captcha bypass or forged JWT."""
-    def __init__(self, origin: str, token_file: Path):
+    def __init__(self, origin: str, token_file: Path, transport=None):
         self.origin = origin
         self.path = token_file
         self.tokens = json.loads(token_file.read_text(encoding="utf-8-sig"))
         self.lock = threading.Lock()
         self.refreshed_at = time.monotonic()
         self.refresh_count = 0
+        self.transport = transport
         if not self.tokens.get("accessToken") or not self.tokens.get("refreshToken"):
             raise ValueError("OFFICIAL_LOGIN_TOKENS_REQUIRED")
 
@@ -178,12 +325,15 @@ class Identity:
         with self.lock:
             return self.tokens["accessToken"]
 
-    def refresh(self):
+    def refresh(self, metadata=None):
+        metadata = {} if metadata is None else metadata
         with self.lock:
             status, reply = http(
                 self.origin, "POST", "/api/auth/refresh",
                 body={"refreshToken": self.tokens["refreshToken"], "lastActivityAt": utc()},
+                metadata=metadata, transport=self.transport,
             )
+            metadata["phase"] = "RESPONSE_VALIDATION"
             if (status != 200 or not isinstance(reply, dict) or reply.get("code") != 0
                     or not isinstance(reply.get("data"), dict)
                     or any(not isinstance(reply["data"].get(key), str) or not reply["data"][key]
@@ -191,6 +341,7 @@ class Identity:
                 raise RuntimeError("OFFICIAL_TOKEN_REFRESH_FAILED")
             next_tokens = reply["data"]
             # Write the rotated token before publishing it to worker threads.
+            metadata["phase"] = "PERSIST_IDENTITY"
             atomic_json(self.path, next_tokens)
             self.tokens = next_tokens
             self.refreshed_at = time.monotonic()
@@ -208,7 +359,9 @@ class Observer:
         for origin in [self.config["origin"], self.config["authOrigin"]]:
             loopback_address(origin)
         self.origin = self.config["origin"].rstrip("/")
-        self.identity = Identity(self.config["authOrigin"].rstrip("/"), Path(self.config["tokenFile"]))
+        self.transport = LoopbackTransport()
+        self.identity = Identity(self.config["authOrigin"].rstrip("/"), Path(self.config["tokenFile"]),
+                                 self.transport)
         self.credential = Path(self.config["applicationCredentialFile"]).read_text().strip()
         self.project = self.config["project"]
         self.route = "/v1/projects/" + self.project + "/runs"
@@ -248,7 +401,9 @@ class Observer:
             self.report["status"] = "FAILED_PREFLIGHT"
             name, code = safe_exception(failure)
             self.report["failureCode"] = code
-            self.record_diagnostic(utc(), None, None, 0, name, 0, code)
+            self.record_diagnostic(utc(), None, None, 0, name, 0, code,
+                                   phase="PREFLIGHT", **safe_error_numbers(failure))
+            self.transport.close_all()
             self.report["finishedAt"] = utc()
             self.save()
             self.db.close()
@@ -291,7 +446,8 @@ class Observer:
         self.report.update(elapsedMonotonicSeconds=round(elapsed, 3), updatedAt=utc(),
                            requests=dict(self.total), authRefreshes=self.identity.refresh_count,
                            completedWindows=len(self.windows),
-                           completedMinuteWindows=sum(v.get("completeMinute", False) for v in self.windows))
+                           completedMinuteWindows=sum(v.get("completeMinute", False) for v in self.windows),
+                           transport=self.transport.snapshot())
         atomic_json(self.directory / "report.json", self.report)
 
     def fail_quality(self, code, at, sequence=None, window=None):
@@ -302,13 +458,17 @@ class Observer:
             }
             self.save()
 
-    def record_diagnostic(self, at, sequence, method, status, exception_class, latency, code):
+    def record_diagnostic(self, at, sequence, method, status, exception_class, latency, code,
+                          phase="OBSERVER", errno=None, winerror=None):
         # A single collector thread writes only this fixed set of scalar fields.
         code = code if code in KNOWN_DIAGNOSTIC_CODES else "OBSERVER_EXCEPTION"
         if exception_class is not None and exception_class not in KNOWN_EXCEPTION_CLASSES:
             exception_class = "Exception"
         evidence = {"at": at, "sequence": sequence, "method": method, "status": status,
-                    "exceptionClass": exception_class, "latencyMillis": latency, "code": code}
+                    "exceptionClass": exception_class, "latencyMillis": latency, "code": code,
+                    "phase": phase if phase in KNOWN_REQUEST_PHASES else "OBSERVER",
+                    "errno": safe_error_number(errno, KNOWN_ERRNOS),
+                    "winerror": safe_error_number(winerror, KNOWN_WINERRORS)}
         with (self.directory / "diagnostics.jsonl").open("a", encoding="utf-8") as stream:
             stream.write(json.dumps(evidence, ensure_ascii=False) + "\n")
             stream.flush()
@@ -331,7 +491,8 @@ class Observer:
         method = "POST" if sequence % 10 == 0 else "GET"
         key = self.tag + "-" + str(sequence)
         before = time.perf_counter()
-        response_metadata = {}
+        response_metadata = {"phase": "AUTH_HEADERS"}
+        error_numbers = {"errno": None, "winerror": None}
         status, run_id, exception_class, code = 0, None, None, None
         try:
             body = None
@@ -341,7 +502,8 @@ class Observer:
                 body = {"releaseRef": self.ref, "inputs": {"value": "SYNTHETIC_PHASE6_OBSERVATION"},
                         "clientReference": key}
             status, reply = http(self.origin, method, path, self.headers(key if method == "POST" else None),
-                                 body, metadata=response_metadata)
+                                 body, metadata=response_metadata, transport=self.transport)
+            response_metadata["phase"] = "RESPONSE_VALIDATION"
             if status != (202 if method == "POST" else 200):
                 code = "HTTP_UNEXPECTED_STATUS"
             elif not isinstance(reply, dict):
@@ -357,9 +519,11 @@ class Observer:
         except (OSError, ValueError, TimeoutError, HTTPException) as failure:
             status = response_metadata.get("status", 0)
             exception_class, code = safe_exception(failure)
+            error_numbers = safe_error_numbers(failure)
         return {"sequence": sequence, "method": method, "status": status,
                 "latencyMillis": round((time.perf_counter() - before) * 1000, 3),
                 "at": utc(), "exceptionClass": exception_class, "code": code,
+                "phase": response_metadata["phase"], **error_numbers,
                 "key": key if method == "POST" else None, "runId": run_id}
 
     def collect(self, value):
@@ -377,18 +541,21 @@ class Observer:
         self.window.append(value)
         if failed:
             self.record_diagnostic(value["at"], value["sequence"], value["method"], value["status"],
-                                   value["exceptionClass"], value["latencyMillis"], value["code"])
+                                   value["exceptionClass"], value["latencyMillis"], value["code"],
+                                   phase=value.get("phase", "OBSERVER"),
+                                   errno=value.get("errno"), winerror=value.get("winerror"))
 
     def inspect_service(self):
         before = time.perf_counter()
-        metadata = {}
+        metadata = {"phase": "AUTH_HEADERS"}
         try:
             status, value = http(self.origin, "GET", "/v1/projects/" + self.project + "/operations",
-                                 self.headers(), metadata=metadata)
+                                 self.headers(), metadata=metadata, transport=self.transport)
+            metadata["phase"] = "RESPONSE_VALIDATION"
             if status != 200:
                 self.record_diagnostic(utc(), None, "GET", status, None,
                                        round((time.perf_counter() - before) * 1000, 3),
-                                       "HTTP_UNEXPECTED_STATUS")
+                                       "HTTP_UNEXPECTED_STATUS", phase=metadata["phase"])
                 return {"status": status, "available": False}
             if not isinstance(value, dict) or not isinstance(value.get("execution"), dict):
                 raise ValueError("SERVICE_RESPONSE_INVALID_SHAPE")
@@ -412,7 +579,8 @@ class Observer:
         except (OSError, ValueError, TimeoutError, HTTPException) as failure:
             name, code = safe_exception(failure)
             self.record_diagnostic(utc(), None, "GET", metadata.get("status", 0), name,
-                                   round((time.perf_counter() - before) * 1000, 3), code)
+                                   round((time.perf_counter() - before) * 1000, 3), code,
+                                   phase=metadata["phase"], **safe_error_numbers(failure))
             return {"status": metadata.get("status", 0), "available": False}
         ids = sorted(worker["workerId"] for worker in workers)
         if self.initial_workers is None:
@@ -454,6 +622,7 @@ class Observer:
         sequence = 0
         next_window = self.start + 60
         pool = concurrent.futures.ThreadPoolExecutor(max_workers=20)
+        failure_metadata = {"phase": "OBSERVER"}
         try:
             while True:
                 # Check before the deadline: suspension may jump directly beyond it.
@@ -467,7 +636,8 @@ class Observer:
                 if len(pending) >= 200:
                     raise RuntimeError("LOAD_GENERATOR_BACKLOG")
                 if now - self.identity.refreshed_at >= 600:
-                    self.identity.refresh()
+                    self.identity.refresh(metadata=failure_metadata)
+                    failure_metadata = {"phase": "OBSERVER"}
                 target = self.start + sequence / 10
                 if now >= target:
                     if now - target > 3:
@@ -525,12 +695,14 @@ class Observer:
             self.report["status"] = "INTERRUPTED" if isinstance(failure, KeyboardInterrupt) else "FAILED"
             name, code = safe_exception(failure)
             self.report["failureCode"] = code
-            self.record_diagnostic(utc(), None, None, 0, name, 0, code)
+            self.record_diagnostic(utc(), None, None, failure_metadata.get("status", 0), name, 0, code,
+                                   phase=failure_metadata["phase"], **safe_error_numbers(failure))
             self.report["completed24Hours"] = False
             for future in pending:
                 future.cancel()
         finally:
             pool.shutdown(wait=True, cancel_futures=True)
+            self.transport.close_all()
             # Preserve responses completed during failure shutdown; a write is never retried.
             for future in pending:
                 if future.done() and not future.cancelled():

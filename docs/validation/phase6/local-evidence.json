@@ -1,6 +1,6 @@
 {
   "format": "harness-phase6-public-evidence-v2",
-  "recordedAt": "2026-10-20T17:06:24.491933+00:00",
+  "recordedAt": "2026-10-20T17:33:25.518161+00:00",
   "scope": "Local synthetic engineering acceptance; not production readiness",
   "platformBuild": {
     "status": "PASSED",
@@ -383,6 +383,46 @@
         "errors": 1
       },
       "rootCause": "UNDETERMINED"
+    },
+    {
+      "attempt": 3,
+      "finalPlatformArtifact": false,
+      "status": "STOPPED_AFTER_REQUEST_ERROR",
+      "observationId": "soak-633d38a422f742839bd4c4c589c409c5",
+      "rawReportStatus": "RUNNING",
+      "reviewedAt": "2026-10-20T17:16:10.703257+00:00",
+      "rawReportWasModified": false,
+      "completed24Hours": false,
+      "serviceCrashEvidence": false,
+      "elapsedAtLastReport": 1440.047,
+      "writesRecordedBeforeDispatch": 1494,
+      "databaseReceipts": 1494,
+      "conflictingSequences": null,
+      "duplicateClientReferences": null,
+      "writesReplayed": 0,
+      "reportSha256": "a7e49a7b7a5c7021db22e0feae1e5d838d246f62a5cff4873cb52dcc8e097b11",
+      "windowsSha256": "516c289eb7a7375b27a36a1b39d7f02a045e27e2618f64cebf3c802c143eb369",
+      "databaseStatuses": {
+        "COMPLETED": 1494
+      },
+      "breachedWindows": [
+        {
+          "window": 21,
+          "requests": 600,
+          "errors": 1,
+          "p95Millis": 89.695,
+          "getP95Millis": 91.073,
+          "postP95Millis": 81.777,
+          "at": "2026-10-20T17:11:57.695534+00:00"
+        }
+      ],
+      "pendingResponsesReconciledReadOnlyCount": 1,
+      "requestsAtLastReport": {
+        "requests": 14400,
+        "getRequests": 12960,
+        "postRequests": 1440,
+        "errors": 1
+      }
     }
   ],
   "targetEnvironment": {
@@ -784,21 +824,21 @@
   "local24HourObservation": {
     "status": "RUNNING",
     "rawReportStatus": "RUNNING",
-    "observationId": "soak-633d38a422f742839bd4c4c589c409c5",
-    "startedAt": "2026-10-20T16:50:57.678501+00:00",
-    "updatedAt": "2026-10-20T17:05:57.744210+00:00",
+    "observationId": "soak-00d293fc7e434b29963ea84655b8787e",
+    "startedAt": "2026-10-20T17:31:54.235474+00:00",
+    "updatedAt": "2026-10-20T17:32:54.275991+00:00",
     "requestedSeconds": 86400,
-    "elapsedMonotonicSeconds": 900.062,
-    "completedWindows": 15,
-    "completedMinuteWindows": 15,
-    "authRefreshes": 1,
+    "elapsedMonotonicSeconds": 60.031,
+    "completedWindows": 1,
+    "completedMinuteWindows": 1,
+    "authRefreshes": 0,
     "rps": 10,
     "continuous": true,
     "qualityPassed": null,
     "requests": {
-      "requests": 9000,
-      "getRequests": 8100,
-      "postRequests": 900,
+      "requests": 600,
+      "getRequests": 540,
+      "postRequests": 60,
       "errors": 0
     },
     "thresholds": {
@@ -807,31 +847,41 @@
       "requiredDurationSeconds": 86400
     },
     "latestWindow": {
-      "window": 15,
+      "window": 1,
       "requests": 600,
       "getRequests": 540,
       "postRequests": 60,
       "errors": 0,
       "errorRate": 0.0,
-      "p95Millis": 90.191,
-      "getP95Millis": 90.191,
-      "postP95Millis": 86.742,
-      "elapsedMonotonicSeconds": 900.015
+      "p95Millis": 83.997,
+      "getP95Millis": 84.011,
+      "postP95Millis": 77.131,
+      "elapsedMonotonicSeconds": 60.0
     },
     "completed24Hours": false,
     "reportedCompleted24Hours": false,
     "qualityGateFailed": false,
     "active": true,
-    "observerScriptSha256": "4e625d110e43bfb77a955b3e4ea1b84297b7380a82f3f88e669b5aff741629d7",
+    "observerScriptSha256": "b095d143241cf865940ce592596ddd15a89615889f5b8203a230d7535d0590b9",
+    "transport": {
+      "policy": "THREAD_LOCAL_ORIGIN_KEEP_ALIVE",
+      "threadLocal": true,
+      "noRetry": true,
+      "maxIdleSeconds": 5,
+      "opened": 8,
+      "reused": 594,
+      "discarded": 5,
+      "active": 3
+    },
     "finalPlatformArtifact": true,
     "liveness": {
-      "checkedAt": "2026-10-20T17:06:24.491933+00:00",
+      "checkedAt": "2026-10-20T17:33:25.518161+00:00",
       "processExists": true,
       "identityMatches": true,
       "fresh": true,
       "active": true,
       "maximumReportAgeSeconds": 120,
-      "reportAgeSeconds": 26.748,
+      "reportAgeSeconds": 31.242,
       "scriptMatchesReference": true
     },
     "statusBasis": "PROCESS_IDENTITY_AND_REPORT_FRESHNESS"
@@ -880,6 +930,62 @@
     "qualityGateFailed": false,
     "active": false,
     "observerScriptSha256": "4e625d110e43bfb77a955b3e4ea1b84297b7380a82f3f88e669b5aff741629d7",
+    "finalPlatformArtifact": true
+  },
+  "observerKeepaliveSmoke": {
+    "status": "SHORT_RUN_PASSED",
+    "rawReportStatus": "SHORT_RUN_PASSED",
+    "observationId": "soak-279adb59735745078b33d7833895eb58",
+    "startedAt": "2026-10-20T17:29:53.762346+00:00",
+    "updatedAt": "2026-10-20T17:30:53.804907+00:00",
+    "finishedAt": "2026-10-20T17:30:53.803936+00:00",
+    "requestedSeconds": 60,
+    "elapsedMonotonicSeconds": 60.047,
+    "completedWindows": 1,
+    "completedMinuteWindows": 1,
+    "authRefreshes": 0,
+    "rps": 10,
+    "unreconciledCommands": 0,
+    "continuous": true,
+    "qualityPassed": true,
+    "requests": {
+      "requests": 600,
+      "getRequests": 540,
+      "postRequests": 60,
+      "errors": 0
+    },
+    "thresholds": {
+      "apiP95Millis": 500,
+      "maxSchedulerGapSeconds": 5,
+      "requiredDurationSeconds": 86400
+    },
+    "latestWindow": {
+      "window": 1,
+      "requests": 600,
+      "getRequests": 540,
+      "postRequests": 60,
+      "errors": 0,
+      "errorRate": 0.0,
+      "p95Millis": 81.6,
+      "getP95Millis": 81.6,
+      "postP95Millis": 78.145,
+      "elapsedMonotonicSeconds": 60.0
+    },
+    "completed24Hours": false,
+    "reportedCompleted24Hours": false,
+    "qualityGateFailed": false,
+    "active": false,
+    "observerScriptSha256": "b095d143241cf865940ce592596ddd15a89615889f5b8203a230d7535d0590b9",
+    "transport": {
+      "policy": "THREAD_LOCAL_ORIGIN_KEEP_ALIVE",
+      "threadLocal": true,
+      "noRetry": true,
+      "maxIdleSeconds": 5,
+      "opened": 9,
+      "reused": 592,
+      "discarded": 9,
+      "active": 0
+    },
     "finalPlatformArtifact": true
   }
 }
