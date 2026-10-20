@@ -8,6 +8,14 @@
 
 输入中的新镜像必须是已经验收的制品所构建的 `repository@sha256:…` 或精确本地 `sha256:…` 镜像 ID。Ops 的七个 Java 服务与 Web 全部使用本轮完整验证源码快照的对应制品；不能仅因业务服务源码相同就沿用旧镜像，其打包的公共安全模块可能不同。保留其他基础设施镜像，不在 VPS 运行 Maven。输入的网络列表来自目标实际网络清单；示例地址不是已确认的空闲网段。生成器要求新网段不重叠，并将公网入口的单个固定地址设置为 API 唯一可信代理。
 
+输入格式为 `harness-ai-minimal-inputs-v2`。`configurationReview` 必须绑定同一 `baseComposeSha256`，记录私有复核证据的 `evidenceSha256` 与实际生效的布尔值 `effectiveVectorEnabled`；七个 Java 服务分别填写 `sourcesReviewed=true`、`launchOptionsReviewed=true`、`dynamicConfiguration="disabled"` 及下面定义的 `launchProfile`。这些是有证据支持的复核声明，生成器不会自动读取目标挂载文件、核对证据内容或检查运行中的属性。证据应涵盖现行 managed/secret 文件、profile 与 import 来源、镜像内配置及 Entrypoint/Cmd/Env；必须核对将要替换的新镜像启动约定，不能只核对旧镜像。示例默认未复核，不能直接执行。
+
+该候选只接受已证明关闭动态配置的现状，并以精确 JVM 属性固定 `spring.cloud.nacos.config.enabled=false`；Nacos discovery 不变。仍依赖动态配置、无法确认来源的目标需先单独梳理，不能将 `disabled` 当作跳过复核的选项。`launchProfile="direct"` 禁止非空 Java `command`/`entrypoint` 覆盖、未展开的既有 `env_file`、`SPRING_APPLICATION_JSON` 及 `JAVA_OPTS/JAVA_OPTIONS/JAVA_ARGS/JDK_JAVA_OPTIONS/_JAVA_OPTIONS` 等额外启动入口。镜像内相同入口须在启动选项证据中明确排除。
+
+唯一例外是已审阅的 RAG、Agent、Platform、Gateway 四服务：`launchProfile="reviewed-otel-wrapper"` 还必须提供 `wrapperSha256="386d1d7e2335e35dfe3b80a09b716e669f108008e53635d5adf71ced1da389ed"` 和绑定当前配置证据的 `launchEvidenceSha256`。要求入口严格为 `["/bin/sh","/opt/otel/java-entrypoint.sh"]`，command 为空，原 `JDK_JAVA_OPTIONS` 恰为 `-javaagent:/opt/otel/opentelemetry-javaagent.jar`；wrapper 与 agent 两个目标必须分别具有唯一、绝对路径、只读 bind。其他启动变量及 `JAVA_TOOL_OPTIONS` 的额外 agent 入口仍拒绝。该 wrapper 全文已审：生成运行实例 UUID、设置 OTel 资源属性，最后 `exec java -jar /app/app.jar`，不注入 Spring 属性。
+
+按本次优先保留 AI 功能与内存余量的部署决策，例外分支保留 wrapper 的 `OPS_RUNTIME_INSTANCE_ID` 行为和原文件/挂载，但将 `JDK_JAVA_OPTIONS` 显式设为空，停用已识别的可选 OTel Java agent，并保留 `OTEL_SDK_DISABLED=true`。报告记录 `optionalOtelAgentDisabled` 和具体服务列表。此动作会停止相应监控 instrumentation；它不是对任意 wrapper 或任意 agent 的放行。
+
 ```text
 python deploy/platform/phase6/ai-minimal.prepare.py \
   --base-compose /private/current-compose.json \
@@ -25,9 +33,20 @@ Compose 使用 `env_file.format: raw`，其 schema 要求 Docker Compose ≥2.30
 
 固定保留 12 个 Ops 服务：MySQL、Redis、RabbitMQ、Nacos、Auth、Ticket、Knowledge、RAG、Agent、Platform、Gateway、Web。Agent 和 Platform 仍承担实际工作流执行，不能作为监控组件停用。
 
-`vectorMode=preserve` 读取目标已解析的 `OPS_VECTOR_ENABLED`。原值为 true 时同时保留 Elasticsearch 和 Qdrant；为 false 时保留既有 SQL 检索模式。缺少或未解析的值直接拒绝。只有明确选 `disable-approved` 才将启用的向量检索降级为 SQL，并在审阅报告记录；数据卷保留，不能将降级后的行为描述为完整混合检索。
+`vectorMode=preserve` 使用已复核的 `configurationReview.effectiveVectorEnabled`，不从 `OPS_VECTOR_ENABLED` 推断。后者仅是应用配置中的占位别名，挂载文件直接定义 `ops.knowledge.vector.enabled` 时，别名不保证控制最终值。实际有效值为 true 时同时保留 Elasticsearch 和 Qdrant；为 false 时保留既有 SQL 检索模式。缺少、字符串形式或未复核的值直接拒绝。只有明确选 `disable-approved` 才将启用的向量检索降级为 SQL，并在审阅报告记录；数据卷保留，不能将降级后的行为描述为完整混合检索。
 
-reranker、监控/Trace、Sentinel 面板、观察采集器与演示目标不纳入启动集合。RAG 显式关闭 rerank；Java OTel SDK、Sentinel eager/dashboard、自动运维巡检和 Ticket Alertmanager 入口按此候选关闭，保留应用内限流配置。对应实时监控和演示工作流可能不可用，不伪造其结果。
+reranker、监控/Trace、Sentinel、观察采集器与演示目标不纳入启动集合。固定的非秘密意图通过追加到 `JAVA_TOOL_OPTIONS` 的精确 `-D` 属性控制，优先于普通文件配置和环境来源；原 JVM 内存与编码参数原样保留。生成器拒绝与受控属性、私有 env 所属字段冲突的既有 `-D`、重复属性及参数文件，不接受任意调用方属性注入。旧显式 truststore 仍须单独复核。对应实时监控和演示工作流可能不可用，不伪造其结果。
+
+| 服务 | 固定精确属性 |
+| --- | --- |
+| 全部七个 Java 服务 | `spring.cloud.sentinel.enabled=false`、`spring.cloud.sentinel.eager=false`、`spring.cloud.sentinel.transport.dashboard=`、`spring.cloud.nacos.config.enabled=false`、`otel.sdk.disabled=true` |
+| Knowledge | `ops.knowledge.vector.enabled=<复核后选择>`、`ops.knowledge.ticket-url=http://ops-ticket-app:8102` |
+| RAG | `ops.rag.rerank-enabled=false`、`ops.harness.answer.enabled=true`、`ops.harness.answer.new-owner=LEGACY`、`ops.rag.schema-auto-initialize=false`、`ops.harness.auth-origin=https://harness-identity.internal:8443`、`ops.harness.platform-origin=https://harness-platform.internal:8443`、`ops.agent.auth-url=http://ops-auth-app:8101` |
+| Auth | `ops.harness.identity.enabled=true` |
+| Ticket | `ops.alertmanager.enabled=false` |
+| Platform | `ops.operations.inspection-enabled=false` |
+
+既有完整 `OPS_HARNESS_APPLICATION_CREDENTIAL` 等私有环境变量命名保持不变，凭据和发布引用不写入 `-D` 或公开审阅报告。RAG 中直接读取大写变量的路径继续使用 `OPS_AUTH_INTERNAL_URL` 与 `OPS_KNOWLEDGE_INTERNAL_URL`。`review.json` 列出固定属性和复核声明，正式启动前仍须核对精确目标镜像的有效属性与秘密绑定；生成成功不等于配置已在目标生效。
 
 这是完整选定 Compose，而不是普通叠加文件：继承的 Elasticsearch/Qdrant/Sentinel `depends_on` 被明确重建。已有数据卷和网络使用原名称并设为 external，不新建空卷替代旧卷。服务均为 `restart: "no"`，保持目标原手动启动政策。禁止 `down -v`、`--remove-orphans`、清空数据库或停用 Docker daemon；未选择的旧服务和其他项目不由生成器处理。
 
@@ -77,3 +96,12 @@ python -m unittest discover -s deploy/platform/phase6/tests -p test_ai_minimal.p
 ```
 
 Docker CLI 可用时另做不依赖 daemon 的 Compose 解析。测试及候选生成成功不代表证书安装、生产身份、端到端联调、容量或连续观察通过。
+
+设置 `HARNESS_SPRING_BINDING_CLASSPATH` 为已存在、已复核的 Spring Boot、Spring Framework 和 SnakeYAML JAR 列表，并按需设置 `JAVA_HOME` 后，同一测试命令还会运行真正的 Spring 属性绑定实验：临时 YAML 直接写入相反值、短别名和两种冲突环境变量拼写，再传入生成器产出的精确 `-D`，逐项检查 Environment、Binder 和占位符解析。实验使用 Java source-file 模式，不运行 Maven、不启动应用或网络服务；未提供 classpath 时该项显式跳过，不能算已验收。
+
+CI 的 Linux 与 Windows 构建均在已有 `clean verify` 成功后强制运行下面的检查，直接选择当次 Boot JAR 中的七个 Spring/Boot/YAML 依赖，验证路径、重复项和大小上限后逐文件写入临时目录；不展开整个应用、不执行应用入口。runner 要求恰好一个绑定测试通过且零跳过，依赖缺失或无效时失败。独立 `api-contract` job 没有构建 JAR，可以显式跳过这项绑定实验，其部署生成器和 runner 错误分支测试仍正常执行；两个实际构建 job 提供必需的绑定覆盖。
+
+```text
+python deploy/platform/phase6/tests/run_spring_binding.py \
+  --jar harness-platform-service/target/harness-platform-service-0.1.0-SNAPSHOT.jar
+```

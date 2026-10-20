@@ -10,6 +10,7 @@ import json
 import os
 from pathlib import Path, PurePosixPath
 import re
+import shlex
 import sys
 
 CORE = (
@@ -25,10 +26,57 @@ NEW = ("harness-api", "harness-worker-1", "support", "harness-internal-tls")
 IMAGE_KEYS = set(REPLACED) | {"platform", "support", "internalTls"}
 REQUIRED_INPUTS = {
     "format", "baseComposeSha256", "runtimeDirectory", "network",
-    "vectorMode", "images", "trustStoreType",
+    "vectorMode", "images", "trustStoreType", "configurationReview",
 }
 PINNED_IMAGE = re.compile(r"(?:sha256:[a-f0-9]{64}|[A-Za-z0-9./:_-]+@sha256:[a-f0-9]{64})")
 TRUST_MOUNT = "/run/harness-trust"
+SHA256 = re.compile(r"[a-f0-9]{64}")
+OTEL_WRAPPER_SERVICES = frozenset({
+    "ops-rag-app", "ops-agent-app", "ops-platform-app", "ops-gateway-app",
+})
+OTEL_WRAPPER_SHA256 = "386d1d7e2335e35dfe3b80a09b716e669f108008e53635d5adf71ced1da389ed"
+OTEL_WRAPPER = "/opt/otel/java-entrypoint.sh"
+OTEL_AGENT = "/opt/otel/opentelemetry-javaagent.jar"
+COMMON_PROPERTIES = {
+    "spring.cloud.sentinel.enabled": "false",
+    "spring.cloud.sentinel.eager": "false",
+    "spring.cloud.sentinel.transport.dashboard": "",
+    "spring.cloud.nacos.config.enabled": "false",
+    "otel.sdk.disabled": "true",
+}
+SERVICE_PROPERTIES = {
+    "ops-knowledge-app": {"ops.knowledge.ticket-url": "http://ops-ticket-app:8102"},
+    "ops-rag-app": {
+        "ops.rag.rerank-enabled": "false",
+        "ops.harness.answer.enabled": "true",
+        "ops.harness.answer.new-owner": "LEGACY",
+        "ops.rag.schema-auto-initialize": "false",
+        "ops.harness.auth-origin": "https://harness-identity.internal:8443",
+        "ops.harness.platform-origin": "https://harness-platform.internal:8443",
+        "ops.agent.auth-url": "http://ops-auth-app:8101",
+    },
+    "ops-auth-app": {"ops.harness.identity.enabled": "true"},
+    "ops-ticket-app": {"ops.alertmanager.enabled": "false"},
+    "ops-platform-app": {"ops.operations.inspection-enabled": "false"},
+}
+
+
+def property_identity(key: str) -> str:
+    return re.sub(r"[-_.]", "", key).lower()
+
+
+MANAGED_PROPERTIES = {
+    property_identity(key) for key in (
+        *COMMON_PROPERTIES, "ops.knowledge.vector.enabled",
+        *(key for values in SERVICE_PROPERTIES.values() for key in values),
+        "spring.application.json",
+        # Private env files own credentials and release selection; no JVM overrides.
+        "ops.harness.application-id", "ops.harness.application-credential",
+        "ops.harness.project", "ops.harness.answer.release-id",
+        "ops.harness.answer.release-digest", "ops.harness.answer.provider",
+        "ops.harness.answer.model",
+    )
+}
 
 
 class InvalidPlan(ValueError):
@@ -84,6 +132,112 @@ def append_trust(options: str, store_type: str) -> str:
     ).strip()
 
 
+def configuration_review(spec: dict, base_digest: str) -> dict:
+    review = mapping(spec["configurationReview"], "configurationReview")
+    require(set(review) == {"baseComposeSha256", "evidenceSha256", "effectiveVectorEnabled", "services"},
+            "Exact target configuration review declarations are required")
+    require(review["baseComposeSha256"] == base_digest,
+            "Configuration review must bind the current base Compose digest")
+    require(isinstance(review["evidenceSha256"], str) and SHA256.fullmatch(review["evidenceSha256"]),
+            "Configuration review evidence SHA-256 is required")
+    require(type(review["effectiveVectorEnabled"]) is bool,
+            "Reviewed effective vector mode must be a boolean, not an environment alias")
+    services = mapping(review["services"], "configurationReview.services")
+    require(set(services) == set(JAVA), "Every Java service needs its own configuration review")
+    for name, value in services.items():
+        value = mapping(value, "Java configuration review")
+        keys = {"sourcesReviewed", "launchOptionsReviewed", "dynamicConfiguration", "launchProfile"}
+        require(value.get("launchProfile") in ("direct", "reviewed-otel-wrapper"),
+                "Explicit reviewed Java launch profile is required")
+        if value["launchProfile"] == "reviewed-otel-wrapper":
+            keys |= {"wrapperSha256", "launchEvidenceSha256"}
+            require(name in OTEL_WRAPPER_SERVICES, "OTel wrapper profile is not approved for this service")
+            require(value.get("wrapperSha256") == OTEL_WRAPPER_SHA256,
+                    "Only the exact reviewed OTel wrapper is supported")
+            require(isinstance(value.get("launchEvidenceSha256"), str)
+                    and SHA256.fullmatch(value["launchEvidenceSha256"]),
+                    "Reviewed wrapper launch evidence SHA-256 is required")
+        require(set(value) == keys,
+                "Exact Java configuration review declarations are required")
+        require(value["sourcesReviewed"] is True and value["launchOptionsReviewed"] is True,
+                "Mounted/imported sources and image launch options must be reviewed")
+        require(value["dynamicConfiguration"] == "disabled",
+                "Unreviewed or enabled dynamic configuration is outside this candidate")
+    return review
+
+
+def lock_java_properties(service: dict, name: str, vector: bool, launch: dict) -> dict:
+    env = environment(service, name)
+    require(not service.get("command"), "Java command overrides require separate launch review")
+    if launch["launchProfile"] == "direct":
+        require(not service.get("entrypoint"), "Java entrypoint overrides require separate launch review")
+    else:
+        require(service.get("entrypoint") == ["/bin/sh", OTEL_WRAPPER],
+                "Reviewed OTel wrapper entrypoint must match exactly")
+        require(env.get("JDK_JAVA_OPTIONS") == "-javaagent:" + OTEL_AGENT,
+                "Reviewed OTel profile requires exactly its single known agent token")
+        mounts = service.get("volumes", [])
+        require(isinstance(mounts, list) and all(isinstance(value, dict) for value in mounts),
+                "Reviewed OTel profile requires normalized bind mounts")
+        for target in (OTEL_WRAPPER, OTEL_AGENT):
+            selected = [value for value in mounts if value.get("target") == target]
+            require(len(selected) == 1, "Reviewed OTel wrapper and agent mounts must both exist exactly once")
+            mount = selected[0]
+            source = mount.get("source")
+            require(mount.get("type") == "bind" and mount.get("read_only") is True
+                    and isinstance(source, str) and source.startswith("/")
+                    and ".." not in PurePosixPath(source).parts,
+                    "Reviewed OTel mounts must remain read-only absolute binds")
+        # Explicitly disable only this optional, identified monitoring agent. Keep
+        # the wrapper's instance UUID behavior, original mounts and files intact.
+        # Empty environment overrides any inherited image-level JDK_JAVA_OPTIONS.
+        env["JDK_JAVA_OPTIONS"] = ""
+    require(not service.get("env_file"),
+            "Resolve existing Java env files into the reviewed base before rendering")
+    blocked_environment = {
+        property_identity(key) for key in (
+            "SPRING_APPLICATION_JSON", "JDK_JAVA_OPTIONS", "_JAVA_OPTIONS", "JAVA_OPTS",
+            "JAVA_OPTIONS", "JAVA_ARGS",
+        )
+    }
+    require(not any(property_identity(key) in blocked_environment and value not in (None, "")
+                    for key, value in env.items()),
+            "Alternate JVM launch options or Spring JSON require separate review")
+    options = env.get("JAVA_TOOL_OPTIONS", "")
+    require(isinstance(options, str), "JAVA_TOOL_OPTIONS must be a string")
+    try:
+        tokens = shlex.split(options, posix=True)
+    except ValueError:
+        raise InvalidPlan("Malformed JAVA_TOOL_OPTIONS") from None
+    seen = set()
+    for token in tokens:
+        require(not token.startswith(("@", "--", "-jar", "-cp", "-classpath")),
+                "Unsupported launcher or argument-file token in JAVA_TOOL_OPTIONS")
+        if launch["launchProfile"] == "reviewed-otel-wrapper":
+            require(not token.startswith(("-javaagent", "-agentlib", "-agentpath", "-Xrun")),
+                    "Reviewed OTel disablement cannot retain an alternate agent launch")
+        if not token.startswith("-D"):
+            continue
+        key = token[2:].partition("=")[0]
+        require(re.fullmatch(r"[A-Za-z][A-Za-z0-9_.-]*", key) is not None,
+                "Malformed JVM system property")
+        identity = property_identity(key)
+        require(identity not in seen, "Duplicate JVM system property requires review")
+        seen.add(identity)
+        require(identity not in MANAGED_PROPERTIES,
+                "Existing JVM property conflicts with fixed intent or private env ownership")
+    properties = dict(COMMON_PROPERTIES)
+    properties.update(SERVICE_PROPERTIES.get(name, {}))
+    if name == "ops-knowledge-app":
+        properties["ops.knowledge.vector.enabled"] = str(vector).lower()
+    # Only this fixed non-secret matrix becomes JVM properties. Keep original JVM
+    # memory/encoding options verbatim; never interpolate caller-supplied keys/values.
+    env["JAVA_TOOL_OPTIONS"] = (
+        options.strip() + " " + " ".join(f"-D{key}={value}" for key, value in properties.items())
+    ).strip()
+    return properties
+
+
 def dependency_map(names) -> dict:
     return {name: {"condition": "service_healthy"} for name in names}
 
@@ -98,7 +252,7 @@ def render(base: dict, spec: dict, base_digest: str) -> tuple[dict, dict]:
     mapping(base, "base Compose")
     mapping(spec, "inputs")
     require(set(spec) == REQUIRED_INPUTS, "Unexpected or missing input keys")
-    require(spec["format"] == "harness-ai-minimal-inputs-v1", "Unsupported input format")
+    require(spec["format"] == "harness-ai-minimal-inputs-v2", "Unsupported input format")
     require(spec["baseComposeSha256"] == base_digest, "Base Compose digest mismatch")
     require(base.get("name") == "opsagent", "Target Compose project must remain opsagent")
     services = mapping(base.get("services"), "services")
@@ -138,15 +292,15 @@ def render(base: dict, spec: dict, base_digest: str) -> tuple[dict, dict]:
             raise
         raise InvalidPlan("Invalid network input") from None
 
-    old_vector = environment(copy.deepcopy(services["ops-knowledge-app"]), "knowledge").get("OPS_VECTOR_ENABLED")
-    require(str(old_vector).lower() in ("true", "false"), "Target vector mode must be explicitly resolved")
-    old_vector = str(old_vector).lower() == "true"
+    reviewed_configuration = configuration_review(spec, base_digest)
+    old_vector = reviewed_configuration["effectiveVectorEnabled"]
     require(spec["vectorMode"] in ("preserve", "disable-approved"), "Unknown vector mode")
     vector = old_vector and spec["vectorMode"] == "preserve"
     selected = list(CORE) + (["elasticsearch", "qdrant"] if vector else [])
     require(all(name in services for name in selected), "Enabled vector mode needs both ES and Qdrant")
 
     result = {"name": "opsagent", "services": {}}
+    locked_properties = {}
     for name in selected:
         service = copy.deepcopy(mapping(services[name], name))
         require(not service.get("privileged"), "Privileged selected service requires separate review")
@@ -178,6 +332,8 @@ def render(base: dict, spec: dict, base_digest: str) -> tuple[dict, dict]:
             require("harness-local" not in str(env.get("SPRING_PROFILES_ACTIVE", ""))
                     and "harness-local" not in str(env.get("SPRING_PROFILES_INCLUDE", "")),
                     "harness-local cannot be deployed")
+            locked_properties[name] = lock_java_properties(
+                service, name, vector, reviewed_configuration["services"][name])
             env.update(OTEL_SDK_DISABLED="true", SENTINEL_EAGER="false", SENTINEL_DASHBOARD="")
         elif name != "ops-web-app":
             service.pop("depends_on", None)
@@ -195,7 +351,7 @@ def render(base: dict, spec: dict, base_digest: str) -> tuple[dict, dict]:
     rag_env = environment(out["ops-rag-app"], "rag")
     # Private env_file must own these values rather than stale base environment.
     for key in tuple(rag_env):
-        if key.startswith("OPS_HARNESS_"):
+        if property_identity(key).startswith("opsharness"):
             del rag_env[key]
     out["ops-rag-app"].setdefault("env_file", []).append(private_env(directory + "/private/ops-rag.env"))
     rag_env.update({
@@ -329,16 +485,27 @@ def render(base: dict, spec: dict, base_digest: str) -> tuple[dict, dict]:
         if key in base:
             result[key] = copy.deepcopy(base[key])
     review = {
-        "format": "harness-ai-minimal-review-v1", "status": "RENDERED_NOT_DEPLOYED",
+        "format": "harness-ai-minimal-review-v2", "status": "RENDERED_NOT_DEPLOYED",
         "baseComposeSha256": base_digest, "services": sorted(out),
         "selectedOpsCount": len(selected), "newServiceCount": len(NEW),
         "oldVectorEnabled": old_vector, "vectorEnabled": vector,
         "vectorDegraded": old_vector and not vector, "rerankerEnabled": False,
+        "configurationReview": copy.deepcopy(reviewed_configuration),
+        "configurationReviewNature": "REVIEWED_DECLARATIONS_NOT_AUTOMATIC_TARGET_INSPECTION",
+        "fixedJvmProperties": locked_properties,
+        "optionalOtelAgentDisabled": any(
+            value["launchProfile"] == "reviewed-otel-wrapper"
+            for value in reviewed_configuration["services"].values()),
+        "optionalOtelAgentDisabledServices": sorted(
+            name for name, value in reviewed_configuration["services"].items()
+            if value["launchProfile"] == "reviewed-otel-wrapper"),
         "restartPolicy": "no", "newHostPorts": [],
         "privateOriginAliases": aliases, "trustedEdgeAddress": str(edge),
         "newServiceMemoryLimitMiB": 1152,
         "requiredBeforeStart": [
             "Verify immutable images correspond to final accepted artifacts and exact source commits.",
+            "Recheck reviewed mounted/imported sources, image launch options and disabled dynamic config on target.",
+            "Verify effective Spring properties and private env binding on the exact target image before traffic.",
             "Prepare target-only raw env files, api/worker manifests, governance and application grants.",
             "Keep public JDK CA roots in the mounted truststore and add the private CA.",
             "Install private internal and MySQL certificates with matching SANs and correct UID permissions.",

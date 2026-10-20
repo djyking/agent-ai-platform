@@ -2,8 +2,10 @@ import copy
 import hashlib
 import importlib.util
 import json
+import os
 from pathlib import Path
 import shutil
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -48,14 +50,37 @@ def fixture(vector=True):
     }
     digest = hashlib.sha256(json.dumps(base).encode()).hexdigest()
     spec = {
-        "format": "harness-ai-minimal-inputs-v1", "baseComposeSha256": digest,
+        "format": "harness-ai-minimal-inputs-v2", "baseComposeSha256": digest,
         "runtimeDirectory": "/opt/harness/phase6",
         "network": {"name": "harness-runtime", "subnet": "172.30.82.0/24",
                     "edgeAddress": "172.30.82.10", "observedSubnets": ["172.18.0.0/16"]},
         "vectorMode": "preserve", "trustStoreType": "JKS",
         "images": {key: "sha256:" + "1" * 64 for key in prepare.IMAGE_KEYS},
+        "configurationReview": {
+            "baseComposeSha256": digest, "evidenceSha256": "2" * 64,
+            "effectiveVectorEnabled": vector,
+            "services": {name: {
+                "sourcesReviewed": True, "launchOptionsReviewed": True,
+                "dynamicConfiguration": "disabled", "launchProfile": "direct",
+            } for name in prepare.JAVA},
+        },
     }
     return base, spec, digest
+
+
+def reviewed_wrapper(base, spec, name):
+    service = base["services"][name]
+    service["entrypoint"] = ["/bin/sh", prepare.OTEL_WRAPPER]
+    service["environment"]["JDK_JAVA_OPTIONS"] = "-javaagent:" + prepare.OTEL_AGENT
+    service.setdefault("volumes", []).extend([
+        {"type": "bind", "source": "/opt/opsagent/deploy/public/config/otel/java-entrypoint.sh",
+         "target": prepare.OTEL_WRAPPER, "read_only": True},
+        {"type": "bind", "source": "/opt/opsagent/deploy/public/config/otel/opentelemetry-javaagent.jar",
+         "target": prepare.OTEL_AGENT, "read_only": True},
+    ])
+    spec["configurationReview"]["services"][name].update(
+        launchProfile="reviewed-otel-wrapper", wrapperSha256=prepare.OTEL_WRAPPER_SHA256,
+        launchEvidenceSha256="3" * 64)
 
 
 class SelectionTests(unittest.TestCase):
@@ -99,12 +124,155 @@ class SelectionTests(unittest.TestCase):
         self.assertEqual("false", result["services"]["ops-knowledge-app"]["environment"]["OPS_VECTOR_ENABLED"])
 
     def test_ambiguous_vector_setting_is_not_guessed(self):
-        for bad in (None, "${OPS_VECTOR_ENABLED}", ""):
+        for bad in (None, "${OPS_VECTOR_ENABLED}", "", "true", 1):
             with self.subTest(bad=bad):
                 base, spec, digest = fixture()
-                base["services"]["ops-knowledge-app"]["environment"]["OPS_VECTOR_ENABLED"] = bad
+                spec["configurationReview"]["effectiveVectorEnabled"] = bad
                 with self.assertRaises(prepare.InvalidPlan):
                     prepare.render(base, spec, digest)
+
+    def test_vector_selection_uses_reviewed_effective_value_not_alias(self):
+        for vector in (True, False):
+            with self.subTest(vector=vector):
+                base, spec, digest = fixture(vector)
+                base["services"]["ops-knowledge-app"]["environment"]["OPS_VECTOR_ENABLED"] = str(not vector).lower()
+                result, review = prepare.render(base, spec, digest)
+                self.assertEqual(vector, "elasticsearch" in result["services"])
+                self.assertEqual(vector, review["oldVectorEnabled"])
+                self.assertIn("-Dops.knowledge.vector.enabled=" + str(vector).lower(),
+                              result["services"]["ops-knowledge-app"]["environment"]["JAVA_TOOL_OPTIONS"])
+
+    def test_configuration_evidence_and_each_service_review_are_required(self):
+        mutations = (
+            lambda value: value.update(baseComposeSha256="0" * 64),
+            lambda value: value.update(evidenceSha256="unverified"),
+            lambda value: value["services"].pop("ops-rag-app"),
+            lambda value: value["services"]["ops-rag-app"].update(sourcesReviewed=False),
+            lambda value: value["services"]["ops-rag-app"].update(launchOptionsReviewed=False),
+            lambda value: value["services"]["ops-rag-app"].update(dynamicConfiguration="enabled"),
+            lambda value: value["services"]["ops-rag-app"].update(dynamicConfiguration="unreviewed"),
+        )
+        for index, mutate in enumerate(mutations):
+            with self.subTest(index=index):
+                base, spec, digest = fixture()
+                mutate(spec["configurationReview"])
+                with self.assertRaises(prepare.InvalidPlan):
+                    prepare.render(base, spec, digest)
+        base, spec, digest = fixture()
+        del spec["configurationReview"]
+        with self.assertRaises(prepare.InvalidPlan):
+            prepare.render(base, spec, digest)
+
+    def test_exact_fixed_properties_keep_memory_options_and_secret_env_ownership(self):
+        base, spec, digest = fixture()
+        original = "-XX:ActiveProcessorCount=2 -Xms64m -Xmx320m -Dfile.encoding=UTF-8"
+        for name in prepare.JAVA:
+            base["services"][name]["environment"]["JAVA_TOOL_OPTIONS"] = original
+        result, review = prepare.render(base, spec, digest)
+        self.assertEqual("REVIEWED_DECLARATIONS_NOT_AUTOMATIC_TARGET_INSPECTION",
+                         review["configurationReviewNature"])
+        self.assertEqual(spec["configurationReview"], review["configurationReview"])
+        for name in prepare.JAVA:
+            options = result["services"][name]["environment"]["JAVA_TOOL_OPTIONS"]
+            self.assertTrue(options.startswith(original + " "))
+            for key, value in review["fixedJvmProperties"][name].items():
+                self.assertIn(f"-D{key}={value}", shlex.split(options))
+            self.assertNotIn("application-credential", options)
+            self.assertNotIn("stale-fixture", options)
+        self.assertEqual("LEGACY", review["fixedJvmProperties"]["ops-rag-app"]["ops.harness.answer.new-owner"])
+        self.assertEqual("false", review["fixedJvmProperties"]["ops-rag-app"]["ops.rag.rerank-enabled"])
+        self.assertEqual("false", review["fixedJvmProperties"]["ops-auth-app"]["spring.cloud.sentinel.enabled"])
+
+    def test_high_priority_launch_channels_and_unresolved_env_files_are_rejected(self):
+        for key in ("SPRING_APPLICATION_JSON", "spring.application.json", "JDK_JAVA_OPTIONS",
+                    "_JAVA_OPTIONS", "JAVA_OPTS", "JAVA_OPTIONS", "JAVA_ARGS"):
+            with self.subTest(key=key):
+                base, spec, digest = fixture()
+                base["services"]["ops-rag-app"]["environment"][key] = "SYNTHETIC_PRIVATE"
+                with self.assertRaises(prepare.InvalidPlan) as failure:
+                    prepare.render(base, spec, digest)
+                self.assertNotIn("SYNTHETIC_PRIVATE", str(failure.exception))
+        for key, value in (
+            ("command", ["--ops.rag.rerank-enabled=true"]),
+            ("command", "sh -c 'java -jar /app.jar'"),
+            ("entrypoint", ["java", "-Dops.harness.answer.new-owner=HARNESS"]),
+            ("env_file", [{"path": "/private/unresolved.env"}]),
+        ):
+            with self.subTest(key=key, value=value):
+                base, spec, digest = fixture()
+                base["services"]["ops-rag-app"][key] = value
+                with self.assertRaises(prepare.InvalidPlan):
+                    prepare.render(base, spec, digest)
+
+    def test_conflicting_or_duplicate_jvm_properties_and_argfiles_are_rejected(self):
+        for options in (
+            "-Xmx320m -Dops.rag.rerank-enabled=true",
+            "-DOPS_HARNESS_ANSWER_NEWOWNER=HARNESS",
+            "-Dspring.application.json={}",
+            "-Dops.harness.application-credential=SYNTHETIC_PRIVATE",
+            "-Duser.timezone=UTC -Duser.timezone=UTC",
+            "-Dcustom.key=1 -Dcustom-key=2",
+            "@unreviewed-options.txt", "--ops.rag.rerank-enabled=true",
+            '-Xmx320m "-Dunterminated',
+        ):
+            with self.subTest(options=options):
+                base, spec, digest = fixture()
+                base["services"]["ops-rag-app"]["environment"]["JAVA_TOOL_OPTIONS"] = options
+                with self.assertRaises(prepare.InvalidPlan) as failure:
+                    prepare.render(base, spec, digest)
+                self.assertNotIn("SYNTHETIC_PRIVATE", str(failure.exception))
+
+    def test_reviewed_wrapper_keeps_identity_and_mounts_but_disables_only_known_otel_agent(self):
+        base, spec, digest = fixture()
+        for name in prepare.OTEL_WRAPPER_SERVICES:
+            reviewed_wrapper(base, spec, name)
+        snapshot = copy.deepcopy(base)
+        result, review = prepare.render(base, spec, digest)
+        self.assertEqual(snapshot, base)
+        self.assertTrue(review["optionalOtelAgentDisabled"])
+        self.assertEqual(sorted(prepare.OTEL_WRAPPER_SERVICES), review["optionalOtelAgentDisabledServices"])
+        for name in prepare.OTEL_WRAPPER_SERVICES:
+            self.assertEqual(base["services"][name]["entrypoint"], result["services"][name]["entrypoint"])
+            self.assertEqual("", result["services"][name]["environment"]["JDK_JAVA_OPTIONS"])
+            self.assertEqual("true", result["services"][name]["environment"]["OTEL_SDK_DISABLED"])
+            for original in base["services"][name]["volumes"]:
+                self.assertIn(original, result["services"][name]["volumes"])
+
+    def test_wrapper_exception_rejects_unknown_sources_options_and_unapproved_services(self):
+        changes = (
+            lambda service, review: review.update(wrapperSha256="0" * 64),
+            lambda service, review: review.update(launchEvidenceSha256="UNREVIEWED"),
+            lambda service, review: service.update(entrypoint=["/bin/sh", "/unknown.sh"]),
+            lambda service, review: service.update(command=["--spring.application.json={}"]),
+            lambda service, review: service["environment"].update(
+                JDK_JAVA_OPTIONS="-javaagent:" + prepare.OTEL_AGENT + " -Dops.rag.rerank-enabled=true"),
+            lambda service, review: service["environment"].update(
+                JDK_JAVA_OPTIONS="-javaagent:" + prepare.OTEL_AGENT + " -javaagent:/another.jar"),
+            lambda service, review: service["environment"].update(
+                JDK_JAVA_OPTIONS="-javaagent:/unknown.jar"),
+            lambda service, review: service["environment"].update(JAVA_OPTS="-Xmx128m"),
+            lambda service, review: service["environment"].update(
+                JAVA_TOOL_OPTIONS="-Xmx320m -javaagent:" + prepare.OTEL_AGENT),
+            lambda service, review: service["environment"].update(
+                JAVA_TOOL_OPTIONS="-Xmx320m -agentpath:/unknown.so"),
+            lambda service, review: service["environment"].update(
+                JAVA_TOOL_OPTIONS="-Xmx320m -agentlib:unknown"),
+            lambda service, review: service["volumes"].pop(),
+            lambda service, review: service["volumes"][-1].update(read_only=False),
+            lambda service, review: service["volumes"][-2].update(source="relative-wrapper.sh"),
+            lambda service, review: service["volumes"][-1].update(source="/opt/../unreviewed.jar"),
+        )
+        for index, change in enumerate(changes):
+            with self.subTest(index=index):
+                base, spec, digest = fixture()
+                reviewed_wrapper(base, spec, "ops-rag-app")
+                change(base["services"]["ops-rag-app"], spec["configurationReview"]["services"]["ops-rag-app"])
+                with self.assertRaises(prepare.InvalidPlan):
+                    prepare.render(base, spec, digest)
+        base, spec, digest = fixture()
+        reviewed_wrapper(base, spec, "ops-auth-app")
+        with self.assertRaises(prepare.InvalidPlan):
+            prepare.render(base, spec, digest)
 
     def test_hybrid_requires_both_index_services(self):
         base, spec, digest = fixture()
@@ -182,9 +350,15 @@ class SelectionTests(unittest.TestCase):
 
     def test_rag_stays_legacy_and_private_env_owns_new_credentials(self):
         base, spec, digest = fixture()
+        base["services"]["ops-rag-app"]["environment"].update({
+            "OPS_HARNESS_APPLICATIONCREDENTIAL": "stale-alternate",
+            "ops.harness.application-credential": "stale-direct",
+        })
         result, _ = prepare.render(base, spec, digest)
         rag = result["services"]["ops-rag-app"]
         self.assertNotIn("OPS_HARNESS_APPLICATION_CREDENTIAL", rag["environment"])
+        self.assertNotIn("OPS_HARNESS_APPLICATIONCREDENTIAL", rag["environment"])
+        self.assertNotIn("ops.harness.application-credential", rag["environment"])
         self.assertEqual("LEGACY", rag["environment"]["OPS_HARNESS_ANSWER_NEW_OWNER"])
         self.assertEqual("raw", rag["env_file"][-1]["format"])
         self.assertEqual("false", rag["environment"]["OPS_RERANK_ENABLED"])
@@ -209,6 +383,7 @@ class SelectionTests(unittest.TestCase):
             base, spec, _ = fixture()
             raw = json.dumps(base).encode()
             spec["baseComposeSha256"] = hashlib.sha256(raw).hexdigest()
+            spec["configurationReview"]["baseComposeSha256"] = spec["baseComposeSha256"]
             (temporary / "base.json").write_bytes(raw)
             (temporary / "inputs.json").write_text(json.dumps(spec), encoding="utf-8")
             command = [sys.executable, str(ROOT / "ai-minimal.prepare.py"),
@@ -273,6 +448,101 @@ class ProxyContractTests(unittest.TestCase):
         parsed = json.loads(run.stdout)
         self.assertEqual(set(result["services"]), set(parsed["services"]))
         self.assertEqual("no", parsed["services"]["mysql"]["restart"])
+
+
+@unittest.skipUnless(os.environ.get("HARNESS_SPRING_BINDING_CLASSPATH"),
+                     "Set HARNESS_SPRING_BINDING_CLASSPATH to reviewed existing Spring/Boot/YAML jars")
+class SpringBindingTests(unittest.TestCase):
+    def test_generated_jvm_properties_override_mounted_yaml_and_conflicting_env_spellings(self):
+        java = str(Path(os.environ["JAVA_HOME"]) / "bin" / ("java.exe" if os.name == "nt" else "java")) \
+            if os.environ.get("JAVA_HOME") else shutil.which("java")
+        self.assertTrue(java, "Java 17+ is required for the explicit offline Spring binding check")
+        source = """
+import java.nio.file.*;
+import java.util.*;
+import org.springframework.core.env.*;
+import org.springframework.core.io.*;
+import org.springframework.boot.env.YamlPropertySourceLoader;
+import org.springframework.boot.context.properties.source.ConfigurationPropertySources;
+import org.springframework.boot.context.properties.bind.Binder;
+class FixedConfigurationCheck {
+    public static void main(String[] args) throws Exception {
+        var expected = new Properties();
+        try (var reader = Files.newBufferedReader(Path.of(args[0]))) { expected.load(reader); }
+        var variables = new Properties();
+        try (var reader = Files.newBufferedReader(Path.of(args[1]))) { variables.load(reader); }
+        var syntheticEnv = new HashMap<String,Object>();
+        for (String key : variables.stringPropertyNames()) syntheticEnv.put(key, variables.getProperty(key));
+        for (boolean originAware : new boolean[]{false, true}) {
+            var environment = new StandardEnvironment();
+            PropertySource<?> envSource = new SystemEnvironmentPropertySource("systemEnvironment", syntheticEnv);
+            if (originAware) {
+                var type = Class.forName("org.springframework.boot.env.SystemEnvironmentPropertySourceEnvironmentPostProcessor$OriginAwareSystemEnvironmentPropertySource");
+                var ctor = type.getDeclaredConstructor(String.class, Map.class, String.class);
+                ctor.setAccessible(true);
+                envSource = (PropertySource<?>) ctor.newInstance("systemEnvironment", syntheticEnv, null);
+            }
+            environment.getPropertySources().replace("systemEnvironment", envSource);
+            for (var value : new YamlPropertySourceLoader().load("mounted-managed", new FileSystemResource(args[2])))
+                environment.getPropertySources().addLast(value);
+            ConfigurationPropertySources.attach(environment);
+            for (String key : expected.stringPropertyNames()) {
+                String wanted = expected.getProperty(key);
+                if (!wanted.equals(environment.getProperty(key))
+                    || !wanted.equals(Binder.get(environment).bind(key, String.class).orElse("MISSING"))
+                    || !wanted.equals(environment.resolveRequiredPlaceholders("${" + key + "}")))
+                    throw new AssertionError("FIXED_PROPERTY_BINDING_FAILED:" + key);
+            }
+        }
+        System.out.println("FIXED_PROPERTY_BINDING_PASSED");
+    }
+}
+"""
+        base, spec, digest = fixture(False)
+        result, review = prepare.render(base, spec, digest)
+        with tempfile.TemporaryDirectory() as name:
+            temporary = Path(name)
+            java_file = temporary / "FixedConfigurationCheck.java"
+            java_file.write_text(source, encoding="utf-8")
+            for service in prepare.JAVA:
+                with self.subTest(service=service):
+                    expected = dict(review["fixedJvmProperties"][service])
+                    variables = {key: value for key, value in result["services"][service]["environment"].items()
+                                 if key not in ("JAVA_TOOL_OPTIONS", "FIXTURE_PRIVATE_VALUE")}
+                    if service == "ops-rag-app":
+                        variables.update(OPS_HARNESS_ANSWER_NEWOWNER="HARNESS",
+                                         OPS_RAG_SCHEMAAUTOINITIALIZE="true",
+                                         OPS_HARNESS_APPLICATION_CREDENTIAL="synthetic-private-credential",
+                                         OPS_HARNESS_APPLICATION_ID="synthetic-application",
+                                         OPS_HARNESS_ANSWER_RELEASE_ID="synthetic-release",
+                                         OPS_HARNESS_ANSWER_RELEASE_DIGEST="synthetic-digest")
+                        expected.update({
+                            "ops.harness.application-credential": "synthetic-private-credential",
+                            "ops.harness.application-id": "synthetic-application",
+                            "ops.harness.answer.release-id": "synthetic-release",
+                            "ops.harness.answer.release-digest": "synthetic-digest",
+                        })
+                    managed = {key: ("false" if value == "true" else "true" if value == "false"
+                                     else "HARNESS" if value == "LEGACY" else "SYNTHETIC_STALE")
+                               for key, value in expected.items()}
+                    expected_file, env_file, managed_file = [temporary / suffix for suffix in
+                                                            ("expected.properties", "env.properties", "managed.yml")]
+                    expected_file.write_text("".join(f"{key}={value}\n" for key, value in expected.items()),
+                                             encoding="utf-8")
+                    env_file.write_text("".join(f"{key}={value}\n" for key, value in variables.items()), encoding="utf-8")
+                    managed_file.write_text("".join(f"{key}: {json.dumps(value)}\n"
+                                                    for key, value in managed.items()), encoding="utf-8")
+                    options = shlex.split(result["services"][service]["environment"]["JAVA_TOOL_OPTIONS"])
+                    # Retain the exact generated -D tokens, including the blank dashboard.
+                    process = subprocess.run(
+                        [java, "--class-path", os.environ["HARNESS_SPRING_BINDING_CLASSPATH"],
+                         *options, str(java_file), str(expected_file), str(env_file), str(managed_file)],
+                        capture_output=True, text=True, timeout=30,
+                        env={key: value for key, value in os.environ.items()
+                             if key not in ("JAVA_TOOL_OPTIONS", "JDK_JAVA_OPTIONS", "_JAVA_OPTIONS")},
+                    )
+                    self.assertEqual(0, process.returncode, process.stderr)
+                    self.assertEqual("FIXED_PROPERTY_BINDING_PASSED", process.stdout.strip())
 
 
 if __name__ == "__main__":

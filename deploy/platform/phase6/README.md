@@ -18,3 +18,5 @@ ACP 提供固定版本 ACP 0.2.0 的认证文本/JSON 兼容接口，见 `docs/p
 本轮公网部署须在目标 Linux 机器完成备份与回滚准备、TLS/代理、真实身份、AI/RAG/中台联调及容量验收。Linux 七天观察、真实异机恢复和生产 RPO/RTO 是独立验收项，未实际执行时保留待完成状态，不能从公网可用推断通过。本机报告的时间和范围必须按实记录，不把短时负载折算成连续观察。
 
 `backup-tools.Dockerfile` 记录本轮 Linux sidecar 使用的 MySQL、mysqlbinlog、age 和 Python 版本。构建上下文需自行从 MySQL 官方仓库及 `https://github.com/FiloSottile/age/releases/tag/v1.3.2` 下载指定文件；文件本身不进入源码或交付包。Dockerfile 核对固定 SHA-256 并验证 MySQL RPM 签名。本机 Windows bind mount 不保证 Unix 文件权限，恢复验收脚本在 sidecar 私有 tmpfs 中以 0600 复制 MySQL option file；不放宽 mysql 对可写凭据文件的拒绝规则。
+
+`ops-runtime.Dockerfile` 用于将七个已核验的 Ops JAR 分别封装为运行镜像。每个独立构建上下文只包含该 Dockerfile 和对应的 `app.jar`；必须提供 `APP_JAR_SHA256` 与经核验、包含不可变 digest 的官方 Temurin 17 JRE Jammy `JAVA_RUNTIME_IMAGE`。构建期间校验 JAR 摘要，不重新编译源码，也不加入私有配置。镜像安装 curl 以兼容既有健康检查，并以 UID 10001 运行；构建后仍须核对目标架构、Java 版本、curl、镜像内 JAR 摘要，以及现有 uploads 挂载目录对该 UID 的可写性。镜像目录的 chown 不会修改挂载卷权限。apt 包版本未锁定，每次构建须记录最终镜像 digest，不能只依赖标签证明可复现。

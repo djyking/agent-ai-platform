@@ -17,10 +17,12 @@ MANIFEST_ENTRY = "bundle-manifest.json"
 PHASE6_PREFIX = "deploy/platform/phase6/"
 PHASE6_DEPLOY = frozenset({
     "README.md", "support.service", "support.env.example", "support.nginx.example.conf",
-    "backup-tools.Dockerfile",
+    "backup-tools.Dockerfile", "ops-runtime.Dockerfile",
     "ai-minimal.prepare.py", "ai-minimal.inputs.example.json", "ai-minimal.md",
     "ai-minimal.nginx.locations.conf", "internal-tls.nginx.conf", "support.Dockerfile",
     "prepare-internal-tls.py", "internal-tls.md", "tests/test_ai_minimal.py",
+    "tests/run_spring_binding.py", "tests/test_spring_binding_runner.py",
+    "tests/test_nginx_integration.py",
 })
 PHASE6_DOCS = frozenset({
     "docs/phase6-onboarding.md", "docs/phase6-acp.md", "docs/phase6-human-review.md",
