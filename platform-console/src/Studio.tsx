@@ -40,7 +40,7 @@ import {
   Notice,
   PageHeading,
 } from "./ui";
-import { studioPath, useStudioCommand } from "./studio-api";
+import { studioPath, useStudioCommand, useStudioTasks } from "./studio-api";
 import {
   editable,
   experimentId,
@@ -772,7 +772,7 @@ export function ApplicationStudio({
                     setDraft({ ...draft, requireReview: e.target.checked })
                   }
                 />
-                执行前需要指定审核人确认
+                生成答复后需要指定审核人确认
               </label>
               {draft.requireReview && (
                 <>
@@ -959,6 +959,7 @@ export function ApplicationStudio({
       {tab === "feedback" && (
         <AppFeedback
           project={project}
+          principal={principal}
           app={app}
           canAddSample={write && !locked}
           onSample={(input) => {
@@ -1089,12 +1090,12 @@ function PreviewResult({
           {task.data?.payloadArchived || run?.payloadArchived
             ? "正文已到保留期限，在线输入与结果已清理。"
             : ["WAITING_APPROVAL", "WAITING_INPUT"].includes(run?.status ?? "")
-            ? "需要人工处理，请进入原任务查看精确请求。"
-            : run?.status === "NEEDS_ATTENTION"
-              ? "执行结果需要核对，请在任务中查看原因与证据；不要重复提交原任务。"
-              : run?.status === "COMPLETED"
-                ? "当前身份无法读取此任务输出。"
-                : "执行结果尚未就绪。"}
+              ? "需要人工处理，请进入原任务查看精确请求。"
+              : run?.status === "NEEDS_ATTENTION"
+                ? "执行结果需要核对，请在任务中查看原因与证据；不要重复提交原任务。"
+                : run?.status === "COMPLETED"
+                  ? "当前身份无法读取此任务输出。"
+                  : "执行结果尚未就绪。"}
         </p>
       )}
       <div className="studio-row">
@@ -1497,17 +1498,21 @@ var accepted = client.createRun(body, UUID.randomUUID().toString());
 }
 function AppFeedback({
   project,
+  principal,
   app,
   canAddSample,
   onSample,
 }: {
   project: string;
+  principal: Principal;
   app: StudioApplication;
   canAddSample: boolean;
   onSample: (input: StudioInput) => void;
 }) {
-  const tasks = useRemote<Page<StudioTask>>(
-    `${studioPath(project)}/tasks?applicationId=${encodeURIComponent(app.id)}`,
+  const tasks = useStudioTasks(
+    project,
+    `${principal.application}/${principal.subject}`,
+    app.id,
   );
   const [error, setError] = useState<unknown>();
   const [busy, setBusy] = useState(false);
@@ -1566,7 +1571,40 @@ function AppFeedback({
           description="先在构建页试用当前草稿，或运行已发布的助手。"
         />
       )}
+      <TaskPagination tasks={tasks} />
     </>
+  );
+}
+function TaskPagination({
+  tasks,
+}: {
+  tasks: ReturnType<typeof useStudioTasks>;
+}) {
+  return (
+    <div className="pagination">
+      <span>
+        第 {tasks.page} 页 · 每页最多 20 条
+        {tasks.data &&
+          (tasks.data.hasMore ? " · 还有更多任务" : " · 已到最后一页")}
+        {" · 刷新可查看最新任务"}
+      </span>
+      <div>
+        <button
+          className="button small"
+          disabled={!tasks.hasPrevious || tasks.loading}
+          onClick={tasks.previous}
+        >
+          上一页
+        </button>
+        <button
+          className="button small"
+          disabled={!tasks.data?.nextCursor || tasks.loading}
+          onClick={tasks.next}
+        >
+          下一页
+        </button>
+      </div>
+    </div>
   );
 }
 function TaskCard({
@@ -1619,8 +1657,15 @@ export function TaskWorkspace({
   principal: Principal;
   id?: string;
 }) {
-  const tasks = useRemote<Page<StudioTask>>(
-    id ? null : `${studioPath(project)}/tasks`,
+  const [filterApp, setFilterApp] = useState(
+    () =>
+      new URLSearchParams(location.hash.split("?")[1] ?? "").get("app") ?? "",
+  );
+  const tasks = useStudioTasks(
+    project,
+    `${principal.application}/${principal.subject}`,
+    filterApp || undefined,
+    !id,
   );
   const task = useRemote<StudioTask>(
     id ? `${studioPath(project)}/tasks/${encodeURIComponent(id)}` : null,
@@ -1692,10 +1737,10 @@ export function TaskWorkspace({
               {data.payloadArchived || data.run?.payloadArchived
                 ? "正文已到保留期限，在线输入、结果与导出已清理。任务状态和必要防重记录仍保留。"
                 : data.run?.status === "COMPLETED"
-                ? "当前身份无法读取此任务输出。"
-                : attention
-                  ? "完成下方人工处理后，结果会回到当前任务。"
-                  : "结果尚未就绪。刷新任务可查看最新状态。"}
+                  ? "当前身份无法读取此任务输出。"
+                  : attention
+                    ? "完成下方人工处理后，结果会回到当前任务。"
+                    : "结果尚未就绪。刷新任务可查看最新状态。"}
             </p>
           )}
           {data.artifacts?.map((artifact) => (
@@ -1835,6 +1880,19 @@ export function TaskWorkspace({
           待处理审批与对账 <ArrowRight size={15} />
         </a>
       </div>
+      <Field label="按应用筛选任务">
+        <select
+          value={filterApp}
+          onChange={(event) => setFilterApp(event.target.value)}
+        >
+          <option value="">全部应用</option>
+          {apps.data?.items.map((application) => (
+            <option key={application.id} value={application.id}>
+              {application.name}
+            </option>
+          ))}
+        </select>
+      </Field>
       {tasks.loading ? (
         <Loading />
       ) : tasks.error ? (
@@ -1847,6 +1905,7 @@ export function TaskWorkspace({
           description="提交上方的新任务后，真实执行状态和产物会在这里显示。"
         />
       )}
+      <TaskPagination tasks={tasks} />
     </>
   );
 }

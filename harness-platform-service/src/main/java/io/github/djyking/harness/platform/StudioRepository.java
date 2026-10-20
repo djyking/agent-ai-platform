@@ -23,17 +23,24 @@ public final class StudioRepository {
             SchemaValidation.require(
                 c,
                 "studio",
-                1,
+                2,
                 Map.of(
                     "studio_documents", "project_id,document_kind,document_id,document_json",
                     "studio_commands",
                         "command_hash,request_digest,project_id,actor_scope,resource_id,operation,response_json,accepted_at"));
+            StudioTaskIndex.validate(c);
             return null;
           });
       return;
     }
     platform.transaction(
         c -> {
+          try (var s =
+                  prepare(c, "SELECT schema_version FROM harness_schema WHERE component='studio'");
+              var r = s.executeQuery()) {
+            if (r.next() && r.getInt(1) != 1 && r.getInt(1) != 2)
+              throw new IllegalStateException("Unsupported Studio schema");
+          }
           boolean mysql = c.getMetaData().getDatabaseProductName().equalsIgnoreCase("MySQL");
           String[] ddl = {
             "CREATE TABLE IF NOT EXISTS studio_documents(project_id VARCHAR(128) NOT"
@@ -56,16 +63,12 @@ public final class StudioRepository {
                       + " ENGINE=InnoDB";
             execute(c, sql);
           }
-          try (var s =
-                  prepare(c, "SELECT schema_version FROM harness_schema WHERE component='studio'");
-              var r = s.executeQuery()) {
-            if (r.next() && r.getInt(1) != 1)
-              throw new IllegalStateException("Unsupported Studio schema");
-          }
+          StudioTaskIndex.initialize(c);
           try {
-            execute(c, "INSERT INTO harness_schema(component,schema_version) VALUES('studio',1)");
+            execute(c, "INSERT INTO harness_schema(component,schema_version) VALUES('studio',2)");
           } catch (SQLException e) {
             if (e.getSQLState() == null || !e.getSQLState().startsWith("23")) throw e;
+            execute(c, "UPDATE harness_schema SET schema_version=2 WHERE component='studio'");
           }
           return null;
         });
@@ -108,6 +111,14 @@ public final class StudioRepository {
 
   public void put(Connection c, String project, String kind, String id, JsonNode body)
       throws SQLException {
+    if ("TASK".equals(kind)) {
+      ObjectNode current = get(c, project, kind, id, false);
+      if (current != null)
+        for (String field :
+            List.of("id", "owner", "applicationId", "snapshotId", "runId", "createdAt"))
+          if (!current.path(field).equals(body.path(field)))
+            throw new IllegalStateException("Studio task ownership and ordering are immutable");
+    }
     int updated;
     try (var s =
         prepare(
@@ -120,9 +131,25 @@ public final class StudioRepository {
             id)) {
       updated = s.executeUpdate();
     }
-    if (updated == 0)
+    if (updated == 0) {
       execute(
           c, "INSERT INTO studio_documents VALUES(?,?,?,?)", project, kind, id, Json.write(body));
+      if ("TASK".equals(kind)) StudioTaskIndex.insert(c, project, id, body);
+    }
+  }
+
+  long taskWatermark(IdentityProvider.Principal p) {
+    return platform.transaction(
+        c -> {
+          // All Studio creates take the same project lock. Release before output ACL work so
+          // in-flight creates cannot later appear below this snapshot's sequence watermark.
+          platform.lockProject(c, p.project());
+          try (var s = prepare(c, "SELECT COALESCE(MAX(task_sequence),0) FROM studio_task_index");
+              var rows = s.executeQuery()) {
+            rows.next();
+            return rows.getLong(1);
+          }
+        });
   }
 
   public ObjectNode receipt(Connection c, String hash, String digest) throws SQLException {

@@ -319,6 +319,8 @@ class StudioLifecycleSecurityTest {
               StudioService.etag(first),
               Json.object().set("input", Json.object().put("question", "fixture knowledge")));
       int calls = f.modelCalls.get();
+      String listCursor =
+          f.runtime.studio.tasks(f.alice(), "research", null, 10).path("pageCursor").asText();
       f.runtime.knowledge.saveDocument(
           f.alice(),
           "private-notes",
@@ -333,6 +335,13 @@ class StudioLifecycleSecurityTest {
       assertEquals("OMITTED", hidden.path("run").path("output").path("visibility").asText());
       assertEquals(0, hidden.path("artifacts").size());
       assertFalse(hidden.has("input"));
+      JsonNode reread = f.runtime.studio.tasks(f.alice(), "research", listCursor, 10);
+      for (JsonNode listed : reread.path("items")) {
+        assertFalse(listed.has("input"), "Existing cursors must recheck current source ACL");
+        assertEquals(0, listed.path("artifacts").size());
+        if (listed.path("id").asText().equals(firstTask))
+          assertEquals("OMITTED", listed.path("run").path("output").path("visibility").asText());
+      }
       assertEquals(
           404,
           assertThrows(
@@ -361,12 +370,15 @@ class StudioLifecycleSecurityTest {
       String experiment = evaluated.path("lastExperiment").path("id").asText();
       JsonNode result = f.runtime.studio.experiment(f.alice(), experiment);
       assertFalse(result.path("passed").asBoolean());
-      assertEquals(0, f.modelCalls.get());
+      assertEquals(1, f.modelCalls.get(), "The candidate is generated before its human review");
       String run = result.path("rows").get(0).path("candidate").path("runId").asText();
       assertEquals(RunStatus.WAITING_INPUT, f.runtime.store.get(run).status);
       var reviewer =
           f.runtime.service.authenticate("project-a", "app-a-credential", "reviewer-token");
       var approval = f.runtime.service.approval(reviewer, run);
+      assertEquals("answer", approval.body().path("fields").get(0).path("name").asText());
+      assertEquals(
+          "trusted fixture answer", approval.body().path("fields").get(0).path("value").asText());
       f.runtime.service.decide(
           reviewer,
           run,

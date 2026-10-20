@@ -1,39 +1,65 @@
-# 独立客服助手试点
+# 独立客服应用
 
-`support-pilot` 是独立 Java 17 应用，通过 `harness-platform-client` 访问运行平台。它有独立应用凭据、项目和由平台按应用/用户隔离的持久运行记录；平台控制台不计作这个业务应用。前端提供已发布助手选择、输入表单、订单/售后合成咨询、运行记录与事件、暂停/继续/取消，以及独立审核员的人工确认。
+`support-pilot` 是独立 Java 17 客服应用，通过 `harness-platform-client` 调用中台，并使用现有 OpsAgent 账号、验证码和项目授权。浏览器只持有本应用的 HttpOnly 会话 cookie 与 CSRF token；应用凭据、Ops JWT、密码和刷新令牌均不返回浏览器。
 
-## 启动
+当前业务范围为**已发布客服 Agent 的授权知识问答及人工审核**。知识来源由中台发布版本和工具配置决定，可接 OpsAgent 已有知识服务。应用没有内置 FAQ 答案，也不会将合成订单当作真实业务接口。Ops 的 `demo-order` 属于运维故障注入应用，不是客户订单系统；当前未接订单查询、退款、订单修改或客户消息发送。联调用的业务文档和问题必须明确标记为合成数据。
+
+## 启动与配置
 
 ```powershell
 .\mvnw.cmd -pl support-pilot -am package
 java -jar support-pilot/target/support-pilot-0.1.0-SNAPSHOT.jar
 ```
 
-通过受保护的进程环境设置下列配置；不要把实际凭据写入命令参数、Git、网页或普通日志。
+实际凭据通过受保护的进程环境注入，不放在命令参数、Git 或日志中。
 
 | 环境变量 | 含义 |
 | --- | --- |
-| `SUPPORT_PLATFORM_ORIGIN` | 平台 origin，例如 `http://127.0.0.1:8099` |
-| `SUPPORT_PROJECT` | 专用项目，默认 `support-pilot` |
-| `SUPPORT_PORT` | 客服服务端口，默认 `8098`；本机阶段三验收使用 `8100` |
-| `SUPPORT_APPLICATION_SECRET` | 已在现有身份桥登记的独立客服应用凭据 |
-| `SUPPORT_OPERATOR_USER_TOKEN` | 当前客服用户的现有 OpsAgent JWT |
-| `SUPPORT_OPERATOR_ACCESS_CODE` | 随机客服访问码，至少 24 字符 |
-| `SUPPORT_REVIEWER_USER_TOKEN` | 可选：现有审核员的 OpsAgent JWT |
-| `SUPPORT_REVIEWER_ACCESS_CODE` | 启用审核员时必须设置，至少 24 字符且不同于客服访问码 |
+| `SUPPORT_PLATFORM_ORIGIN` | 中台 origin，HTTPS 或本机 HTTP |
+| `SUPPORT_IDENTITY_ORIGIN` | 现有 Ops Auth origin，HTTPS 或本机 HTTP |
+| `SUPPORT_PROJECT` | 已授权客服项目，默认 `support-pilot` |
+| `SUPPORT_APPLICATION_SECRET` | 已在 Ops 身份桥登记的独立应用凭据 |
+| `SUPPORT_PORT` | 本机监听端口，默认 `8098` |
+| `SUPPORT_AUTH_MODE` | 默认 `opsagent`；正式模式不接收共享用户 token 或访问码 |
+| `SUPPORT_RUNTIME_MODE` | `development`（默认）、`staging`、`production` |
+| `SUPPORT_PUBLIC_ORIGIN` | 固定公开 origin；staging/production 必须为 HTTPS |
 
-打开 `http://127.0.0.1:<SUPPORT_PORT>/`。应用只绑定回环地址，校验精确 Host 与变更请求的 Origin。访问码只用于建立本机业务会话，不替代平台的 OpsAgent 身份/权限校验；它不能自行注册用户或创建上游权限。浏览器使用一小时的 HttpOnly、SameSite=Strict cookie 和独立 CSRF token，不接收应用凭据或上游 JWT。会话在应用重启后失效，Run 仍由平台保存。生产使用还需要正式登录/会话集成、HTTPS、访问码生命周期等部署工作。
+服务始终绑定 `127.0.0.1`。公网部署由同机 nginx 终止 TLS 并反代；Host 和写请求 Origin 必须精确匹配 `SUPPORT_PUBLIC_ORIGIN`。应用不从任意转发头推断可信 origin。HTTPS origin 下 cookie 自动设置 Secure；同时保留 HttpOnly、SameSite=Strict 和一小时有效期。只有显式 `development + local-test` 才能使用旧访问码，生产和预发布配置会拒绝它。
 
-## 发布与试用
+本机正式联调可省略 `SUPPORT_PUBLIC_ORIGIN`，访问 `http://127.0.0.1:<SUPPORT_PORT>/`。登录界面复用 Ops 的 `/api/auth/captcha` 和 `/api/auth/login`；客服 BFF 接收密码后只向固定身份源转发一次，不保存密码、不创建用户，不向浏览器返回上游 token，也不自动续期。
 
-先在平台给应用 `support-pilot` 配置独立授权，并在对应项目发布 FAQ 助手。页面通过 `/catalog/releases` 发现当前可调用发布，优先选择标记 `isDefault` 的版本，创建时由后端核对发布并提交其完整 `releaseRef`。网页不能设置模型端点、工具注册、权限或应用身份。输入表单支持字符串、数值和布尔字段；复杂输入 schema 暂不适用于客服页面。
+本机测试模式还需显式配置 `SUPPORT_OPERATOR_USER_TOKEN` / `SUPPORT_OPERATOR_ACCESS_CODE`，可选 `SUPPORT_REVIEWER_USER_TOKEN` / `SUPPORT_REVIEWER_ACCESS_CODE`。访问码至少 24 字符且必须不同；这些环境仅用于合成隔离测试，正式模式不得设置共享 token。
 
-推荐合成问题是“订单什么时候发货？”和“可以申请退货吗？”。本机词法 FAQ 语料应包含这些问句；该基线用于证明业务接入和发布流程，不是生产中文语义检索或模型质量结论。只配置只读 FAQ 与人工确认，不配置真实退款、订单修改或对外消息能力。
+## 身份、发布与权限
 
-客服提交咨询后可刷新记录和进度。若发布含人工输入节点，客服把运行编号交给审核员；审核员用自己的访问码进入工作台，直接查询该 Run 的审批投影，核验完整内容后填写答复并确认或拒绝。审核员不需要跨用户读取整个 Run，也不能借审核页面创建咨询。
+先由现有身份管理流程登记客服应用、项目及用户授权，再在中台发布可调用助手。运行时使用登录者自己的 Ops 用户 token 和独立客服应用凭据。登录和每个已登录业务请求都会重新 introspect 当前授权；撤权或身份源故障时不使用历史权限放行。平台 API 仍独立验证每次操作。
 
-审核页面显示运行编号、审批编号、运行修订及审批摘要。修改运行编号或重新查询立即清除旧答复和说明；后到达的旧查询响应不会替换当前审批。每次提交前再次核对当前输入和已加载审批是否属于同一运行，会话失效后清除待重试请求，重新登录不会自动补交旧决定。
+- 客服模式要求 `runs:create`、`runs:read`、`runs:list`，具体模型、工具、知识权限由发布契约和现有授权补齐。
+- 审核模式要求 `approvals:read`、`approvals:decide`；完整人工审阅还须按审批策略授予 `approvals:review`。选择审核模式不授予新权限；审核员不能通过客服 BFF 创建咨询。
+- 每次登录使用独立会话，按 application/project/subject 隔离平台运行记录。审核员只能通过审批接口核对分配给自己的 Run，不获得其他用户完整任务输出的通用访问权。
+- 退出删除本应用的服务器会话；身份源故障时也可退出。它不代表注销用户其他应用中的 Ops 会话。
 
-所有控制与决定携带当前 ETag 和明确的幂等键。断连后页面保留原请求，只有用户点击“使用同一请求重试”才再次提交；不会自动重复执行命令。ETag 冲突须刷新并重新审阅。渲染助手名称、schema 标签、用户输入、输出与事件时仅使用 DOM `textContent`/表单属性，配合禁止 inline script 的 CSP，不把内容作为 HTML 执行。
+页面从 `/catalog/releases` 发现当前可调用发布，随原请求保存精确 `releaseRef`。客服 BFF 固定要求平台 `requirePublished:true`：平台先核对同键回执，仅对新键验证当前正式发布、启用状态和授权；作者自己的预览与评测快照也不能作为客服新咨询调用。这样发布停用后仍能核对旧请求，且不会重新创建任务。同键变更该约束或输入返回冲突。选择标记 `isDefault` 的正式版本，不从浏览器接受模型地址、工具定义、身份或权限。发布含人工确认节点时，客服把 Run 编号交给已授权审核员；审核员核验完整审批内容并携带当前 ETag、digest、审批 ID 与幂等键决定。
 
-定向测试：`mvnw.cmd -pl support-pilot -am test`。安装 `platform-console` 的锁定依赖后，在仓库根目录运行 `node --test support-pilot/src/test/js/approval.test.mjs`，通过实际 DOM 事件回归审批切换、乱序、失效与原请求重试。客户端与应用 HTTP 测试使用合成身份和本机服务，真实 MySQL/OpsAgent/发布流程由平台阶段三集成验收另行记录。
+## 请求结果与浏览器边界
+
+不确定的写操作先保存原请求再发送，按 application/project/subject/role 存放在当前标签页 sessionStorage；刷新后只恢复阻塞提示，不自动重放。只有用户明确点击原请求重试才再次发送同一个幂等键和内容。不同用户不会加载前一用户的待确认命令。登录切换和乱序响应也不会把旧用户结果渲染到新会话。
+
+所有内容使用 DOM `textContent`/表单属性渲染，不执行业务返回的 HTML。CSP 仅允许同源脚本和样式；验证码只接收有界的 PNG data URL。会话 cookie 不进入 JavaScript，浏览器保存的待确认请求不包含上游 JWT 或应用凭据。
+
+## 验证
+
+```powershell
+.\mvnw.cmd -pl support-pilot -am test
+node --test support-pilot/src/test/js/approval.test.mjs support-pilot/src/test/js/auth.test.mjs
+```
+
+Java 测试走实际 HTTP，覆盖验证码/登录/introspect、每用户 token 转发、审核权限、撤权、身份故障、登出、CSRF、访问码禁用与生产配置。DOM 测试覆盖审批绑定、乱序、正式登录、切换用户以及未确认请求的刷新恢复。
+
+实际本机联调脚本为 `validation/platform/phase6_support_acceptance.py`。私有配置放在 `.work/`，提供 `supportOrigin`、`syntheticData: true`、三个不同账号的 `operatorLogin` / `secondUserLogin` / `reviewerLogin`、目标 `agentId`、合成 `inputs` 和（需要人工输入时）`reviewInput`。每个 Login 对象仅包含 `username`、`password`、新签发的 `captchaId`、`captchaCode`。脚本不绕过验证码；在启动前通过现有登录验证码流程准备有效值。
+
+```powershell
+python validation/platform/phase6_support_acceptance.py --config .work/phase6/support.private.json --report .work/phase6/support-report.json
+```
+
+脚本验证三用户分离、精确发布、同键创建去重、跨用户 Run/事件拒绝、审核决定、完成结果和退出。写请求断连立即停止，不自动重复创建。报告只记录 Run ID 与检查状态，不记录密码、token、原始问题或回答；真实本机结果由阶段六交付记录统一汇总。该脚本不代替 24 小时负载、Linux 七天观察或真实客服质量验收。

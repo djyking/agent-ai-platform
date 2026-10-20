@@ -29,6 +29,7 @@ public final class PlatformRuntime implements AutoCloseable {
   public final PlatformWorker worker;
   public final ExecutionGovernance governance;
   public final OperationsService operations;
+  public final OnboardingService onboarding;
   private final java.util.concurrent.ScheduledExecutorService monitoring =
       java.util.concurrent.Executors.newSingleThreadScheduledExecutor(
           r -> {
@@ -74,6 +75,7 @@ public final class PlatformRuntime implements AutoCloseable {
     if (bootstrapSchema) store.initializeSchema();
     else store.validateSchema();
     repository = new PlatformRepository(store, bootstrapSchema);
+    onboarding = new OnboardingService(config, repository, identity, secrets);
     SignedTokens signing = new SignedTokens(secrets.resolve(config.signingSecret()));
     for (String reference : config.applicationSecrets().values()) secrets.resolve(reference);
     RuntimeAccess access = new RuntimeAccess(repository, identity);
@@ -233,6 +235,14 @@ public final class PlatformRuntime implements AutoCloseable {
             Clock.systemUTC(),
             ProtectedOutputPolicy.anyOf(
                 outputPolicy,
+                new OpsAgentAnswerOutputPolicy(
+                    store,
+                    identity,
+                    config.tools().stream()
+                        .filter(t -> t.path("kind").asText().equals("opsagent-rag"))
+                        .map(t -> URI.create(t.path("origin").asText()))
+                        .findFirst()
+                        .orElse(null)),
                 (reader, owned, output) ->
                     studioRef.get() != null
                         && studioRef.get().canReadOutput(reader, owned, output)));
@@ -244,10 +254,18 @@ public final class PlatformRuntime implements AutoCloseable {
             new StudioCompiler(config, tools, catalog, repository, catalogSecrets),
             knowledge,
             capabilities,
-            identity);
+            identity,
+            signing);
     studioRef.set(studio);
     service.studio(studio);
-    access.principalCheck(studio::requireRunExecution);
+    catalog.studio(studio);
+    onboarding.initialize();
+    service.admissionCheck(onboarding::requireAccess);
+    access.principalCheck(
+        (owned, principal) -> {
+          onboarding.requireAccess(principal);
+          studio.requireRunExecution(owned, principal);
+        });
     worker = new PlatformWorker(config, store, repository, harness, governance);
     operations = new OperationsService(config, repository);
     if (bootstrapSchema) operations.initialize();

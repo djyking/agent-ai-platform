@@ -27,6 +27,11 @@ public final class PlatformService {
   private final Clock clock;
   private CatalogService catalog;
   private StudioService studio;
+  private java.util.function.Consumer<IdentityProvider.Principal> admissionCheck = p -> {};
+
+  public void admissionCheck(java.util.function.Consumer<IdentityProvider.Principal> check) {
+    admissionCheck = Objects.requireNonNull(check);
+  }
 
   public void studio(StudioService studio) {
     this.studio = Objects.requireNonNull(studio);
@@ -91,6 +96,7 @@ public final class PlatformService {
     if (!p.project().equals(project)
         || !config.project(project).applications().contains(p.application()))
       throw ApiFailure.hidden();
+    admissionCheck.accept(p);
     return p;
   }
 
@@ -139,6 +145,19 @@ public final class PlatformService {
       String userToken,
       String key,
       JsonNode body) {
+    return create(p, appCredential, userToken, key, body, false);
+  }
+
+  /**
+   * Protocol adapters may retain an existing published-only contract without changing its digest.
+   */
+  JsonNode create(
+      IdentityProvider.Principal p,
+      String appCredential,
+      String userToken,
+      String key,
+      JsonNode body,
+      boolean requirePublished) {
     require(p, "runs:create");
     ApiJson.validate("CreateRunRequest", body);
     String hash = commandHash(p, "/runs", key), digest = digest(body);
@@ -176,6 +195,10 @@ public final class PlatformService {
           repository.lockProject(c, p.project());
           Command race = repository.command(c, hash);
           if (race != null) return replay(race, digest);
+          if (requirePublished || body.path("requirePublished").asBoolean()) {
+            if (catalog == null) throw new ApiFailure(404, "RELEASE_UNAVAILABLE");
+            catalog.requirePublished(c, p, ref);
+          }
           if (catalog != null) catalog.requireNewRun(c, p.project(), release.releaseId());
           if (studio != null) studio.requireNewRun(c, p, release.releaseId());
           repository.admit(c, config.project(p.project()), p.application(), limits.maxTokens());
@@ -442,7 +465,7 @@ public final class PlatformService {
     assigned(p, owned);
     require(p, "approvals:read");
     RunState run = store.get(id);
-    JsonNode body = approvalView(p, owned, run);
+    JsonNode body = approvalView(p, owned, run, false);
     return new View(body, etag(p, run, "approval", body));
   }
 
@@ -453,7 +476,8 @@ public final class PlatformService {
         .toString();
   }
 
-  private JsonNode approvalView(IdentityProvider.Principal p, Owned owned, RunState run) {
+  private JsonNode approvalView(
+      IdentityProvider.Principal p, Owned owned, RunState run, boolean localStudioOnly) {
     if (run.approval == null || run.pending == null) throw ApiFailure.hidden();
     boolean human = "HUMAN".equals(run.pending.kind);
     boolean complete = p.permits("approvals:review");
@@ -489,6 +513,18 @@ public final class PlatformService {
         summary = "Human input prompt is unavailable to this reviewer";
         complete = false;
       }
+      var context =
+          HumanReviewFields.project(
+              owned,
+              run,
+              complete,
+              value ->
+                  owned.release().publicOutput()
+                      || (localStudioOnly
+                          ? studio != null && studio.canReadOutput(p, owned, value)
+                          : outputPolicy.canRead(p, owned, value)));
+      fields.addAll(context.fields());
+      complete &= context.complete();
     }
     ObjectNode out =
         Json.object()
@@ -551,7 +587,8 @@ public final class PlatformService {
       RunState run,
       String supplied,
       String requiredView,
-      boolean protectedAllowed) {
+      boolean protectedAllowed,
+      JsonNode approvalProjection) {
     if (supplied == null) throw new ApiFailure(428, "PRECONDITION_REQUIRED");
     if (!supplied.matches("\"r1\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\"")) throw ApiFailure.invalid();
     JsonNode token =
@@ -573,7 +610,8 @@ public final class PlatformService {
       case "approval" -> {
         assigned(p, owned);
         require(p, "approvals:read");
-        projection = approvalView(p, owned, run);
+        if (approvalProjection == null) throw new ApiFailure(412, "PRECONDITION_FAILED");
+        projection = approvalProjection;
       }
       case "unknown" -> {
         require(p, "runs:reconcile:read");
@@ -638,18 +676,34 @@ public final class PlatformService {
         body);
     String route = "/runs/" + id + "/" + operation + (approval == null ? "" : "/" + approval);
     String hash = commandHash(p, route, key), digest = digest(body);
+    Command acknowledged = repository.transaction(c -> repository.command(c, hash));
+    if (acknowledged != null) return replay(acknowledged, digest);
     // Domain authorization is I/O and must precede the atomic SQL command. A changed revision
     // is rejected below before the captured projection decision can be used.
     RunState projectionRun =
-        (!decision && !reconcile && !owned.release().publicOutput()) ? store.get(id) : null;
+        (decision || !reconcile && !owned.release().publicOutput()) ? store.get(id) : null;
+    if (decision && (projectionRun.approval == null || projectionRun.pending == null)) {
+      // A same-key decision may have committed and completed between the first receipt read
+      // and the snapshot read; receipt lookup must precede requiring a live approval.
+      Command completed = repository.transaction(c -> repository.command(c, hash));
+      if (completed != null) return replay(completed, digest);
+    }
     boolean protectedAllowed =
-        projectionRun != null && protectedOutputAllowed(p, owned, projectionRun);
+        !decision && projectionRun != null && protectedOutputAllowed(p, owned, projectionRun);
+    JsonNode decisionProjection = decision ? approvalView(p, owned, projectionRun, false) : null;
+    boolean localStudioApproval = decision && studio != null && studio.ownsSnapshot(owned);
     return repository.transaction(
         c -> {
           repository.lockProject(c, p.project());
           Command previous = repository.command(c, hash);
           if (previous != null) return replay(previous, digest);
           RunState run = store.get(id);
+          if (decision && run.revision != projectionRun.revision)
+            throw new ApiFailure(412, "PRECONDITION_FAILED");
+          // External ACL I/O was completed before acquiring this transaction. Studio knowledge
+          // is local SQL, so recheck under the project lock shared with source revocation.
+          JsonNode currentApproval =
+              localStudioApproval ? approvalView(p, owned, run, true) : decisionProjection;
           long revision =
               expected(
                   p,
@@ -657,7 +711,8 @@ public final class PlatformService {
                   run,
                   ifMatch,
                   decision ? "approval" : reconcile ? "unknown" : null,
-                  protectedAllowed && projectionRun.revision == run.revision);
+                  protectedAllowed && projectionRun.revision == run.revision,
+                  currentApproval);
           if (TERMINAL.contains(run.status)) throw new ApiFailure(409, "INVALID_STATE");
           String permission =
               decision ? "approval:decide" : reconcile ? "run:reconcile" : "run:control";
@@ -674,7 +729,7 @@ public final class PlatformService {
               throw new ApiFailure(409, "APPROVAL_STALE");
             boolean approved = body.path("decision").asText().equals("APPROVE"),
                 human = "HUMAN".equals(run.pending.kind);
-            if (approved && !approvalView(p, owned, run).path("reviewComplete").asBoolean())
+            if (approved && !currentApproval.path("reviewComplete").asBoolean())
               throw new ApiFailure(409, "APPROVAL_REVIEW_INCOMPLETE");
             if ((!approved || !human) && body.has("input"))
               throw new ApiFailure(422, "INPUT_INVALID");

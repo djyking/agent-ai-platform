@@ -28,8 +28,8 @@ jobs:
         run: pnpm --dir platform-console install --frozen-lockfile
       - name: Test console
         run: pnpm --dir platform-console test
-      - name: Test customer support approval UI
-        run: node --test support-pilot/src/test/js/approval.test.mjs
+      - name: Test customer support login and approval UI
+        run: node --test support-pilot/src/test/js/approval.test.mjs support-pilot/src/test/js/auth.test.mjs
       - name: Build console into platform artifact
         run: pnpm --dir platform-console build
       - name: Verify on Linux
@@ -59,3 +59,5 @@ jobs:
         run: python validation/platform/phase5_deployment_test.py
       - name: Validate delivery bundle safety
         run: python validation/platform/phase5_bundle_test.py
+      - name: Validate continuous observation accounting
+        run: python -m unittest discover -s validation/platform -p "test_phase6_*.py"

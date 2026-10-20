@@ -118,6 +118,12 @@ export type StudioTask = TaskLink & {
     digest?: string;
   }[];
 };
+export type StudioTaskPage = {
+  items: StudioTask[];
+  nextCursor: string | null;
+  pageCursor: string;
+  hasMore: boolean;
+};
 export function editable(application: StudioDraft): StudioDraft {
   return {
     name: application.name,

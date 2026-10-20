@@ -43,7 +43,7 @@ Read document adds `id`, `revision`, `draftDigest`, `updatedAt`, `publishedVersi
 | POST | /applications/{id}/default | `{version}`; changes only new runs |
 | POST | /applications/{id}/disable | `{disabled}`; blocks new runs, existing run snapshots remain |
 | GET | /experiments/{id} | live projected experiment: `{id,applicationId,draftDigest,status,passed,rows:[{sampleId,name,input?,expectedContains?,candidate:TaskResult,baseline?:TaskResult}],contract}`; current source authorization may omit sample input and expected text |
-| GET | /tasks?applicationId=... | owner-visible tasks `{items:[Task]}` |
+| GET | /tasks?applicationId=...&limit=50&cursor=... | owner-visible bounded page `{items:[Task],hasMore,nextCursor,pageCursor}`; [phase-six cursor contract](phase6-studio-pagination.md) |
 | GET | /tasks/{id} | Task + `run` (existing Run DTO), `artifacts` and `input` where currently authorized |
 | GET | /tasks/{id}/artifacts/{artifactId} | authorized text/markdown attachment; current output authorization rechecked |
 | GET | /commands/{key} | exact request receipt; no automatic replay |
@@ -53,3 +53,15 @@ Read document adds `id`, `revision`, `draftDigest`, `updatedAt`, `publishedVersi
 Task control/approval/events/trace use the existing Run routes, exact run ETags and approval digests. Tasks and sessions are durable product associations around those Runs. Artifacts are separately identified, content-addressed text/markdown exports of authorized completed output, with source Run and policy; they never claim to be arbitrary filesystem tools.
 
 Shared knowledge and connection lifecycle endpoints live under `/knowledge` and `/capabilities` respectively; their service contracts are maintained alongside the implementing classes. The Studio exposes available choices, and never accepts model endpoints or secrets in application drafts.
+
+## Published discovery for independent applications
+
+`GET /v1/projects/{project}/catalog/releases` and `GET /v1/projects/{project}/catalog/agents/{id}/default` also expose formally published Studio versions using the existing `{agentId,version,name,isDefault,releaseRef,inputSchema,outputSchema}` discovery DTO. The name and schemas come from the frozen publication; draft changes, preview snapshots, evaluation snapshots and private instructions are never returned through discovery. Consumers may submit the exact `releaseRef` to the regular Runs API.
+
+Studio discovery checks the current application state, trusted bindings, model/tool enablement, execution permissions and source ACL on every request, including requests with `catalog:read`. Unavailable publications are omitted from lists and return 404 from default lookup. Runs admission repeats its own authorization checks. Existing Catalog Agent discovery remains compatible; if a Catalog Agent and Studio application share an ID, the Catalog Agent retains precedence for default lookup. Choose distinct IDs when maintaining both authoring surfaces in a project.
+
+Independent applications can set `requirePublished:true` in `CreateRunRequest` to enforce formal publication on every new key, including when the caller owns a private preview or evaluation snapshot. Exact committed receipts are resolved before this admission constraint, so publication retirement cannot prevent reconciliation. The flag is part of the immutable command digest; changing it or removing it under the same key returns 409. Existing callers that omit it retain the regular author preview policy.
+
+## Phase-six answer review
+
+Newly compiled Studio drafts with `requireReview:true` generate the answer first, pause at an explicit `Human.reviewContext:true` node, and disclose only the release-declared `answer` field to currently authorized reviewers. Approval input is a review opinion; the End node retains the same generated answer. Source access revocation masks the field and invalidates the prior approval ETag. Previously frozen releases keep their exact workflow and hash. See [Human review contract](phase6-human-review.md).

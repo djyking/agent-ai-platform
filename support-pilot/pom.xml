@@ -5,6 +5,7 @@
   <name>Independent Customer Support Pilot</name>
   <dependencies>
     <dependency><groupId>io.github.djyking</groupId><artifactId>harness-platform-client</artifactId><version>${project.version}</version></dependency>
+    <dependency><groupId>io.github.djyking</groupId><artifactId>harness-integrations-opsagent</artifactId><version>${project.version}</version></dependency>
     <dependency><groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><scope>test</scope></dependency>
   </dependencies>
   <build><plugins><plugin>

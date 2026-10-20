@@ -15,6 +15,8 @@ Java/控制台构建通过后还可用 `phase5_deployment_validate.py --jar JAR_
 
 `phase5_execution_acceptance.py` 只接受 `127.0.0.1` 上独立数据库 `harness_phase5_execution`，项目 `phase5-execution`（及 `phase5-secondary`）、JVM 端口 8112/8113、fixture 端口 53967、显式 `local-test` 身份。它创建合成任务，包含批准一次仅写本机 fixture journal 的动作；强杀只针对自己创建的 Java 子进程。不会请求真实模型/业务工具。
 
+第六阶段复用同一验收器，私有配置显式设 `fixtureProfile: "phase6"`，只允许独立库 `harness_phase6_execution`、项目 `phase6-execution`/`phase6-secondary`、JVM 端口 8132/8133、fixture 53977。未指定 profile 保持第五阶段兼容；运行/迁移 JDBC URL 必须完全一致且准确指向所选隔离库，不能传主业务库或任意端口。`deployment_template(profile="phase6", application="phase6-probe")` 生成匹配的部署模板。两个 profile 的 UNKNOWN 证据各自保留，不能为了复跑清理旧库。
+
 私有配置由环境管理者准备，必要字段如下：
 
 | 字段 | 值/职责 |

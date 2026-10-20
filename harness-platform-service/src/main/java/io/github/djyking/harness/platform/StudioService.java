@@ -22,6 +22,7 @@ public final class StudioService {
   private final KnowledgeService knowledge;
   private final CapabilityService capabilities;
   private final IdentityProvider identities;
+  private final SignedTokens tokens;
 
   public StudioService(
       PlatformRepository platform,
@@ -29,13 +30,15 @@ public final class StudioService {
       StudioCompiler compiler,
       KnowledgeService knowledge,
       CapabilityService capabilities,
-      IdentityProvider identities) {
+      IdentityProvider identities,
+      SignedTokens tokens) {
     this.platform = platform;
     this.runs = runs;
     this.compiler = compiler;
     this.knowledge = knowledge;
     this.capabilities = capabilities;
     this.identities = identities;
+    this.tokens = tokens;
     documents = new StudioRepository(platform);
     documents.initialize();
   }
@@ -422,6 +425,92 @@ public final class StudioService {
     throw new ApiFailure(409, "PUBLISHED_VERSION_REQUIRED");
   }
 
+  /** Same published-release DTO used by independent clients; never discovers preview snapshots. */
+  ArrayNode discoverReleases(Connection c, IdentityProvider.Principal p, CatalogRepository releases)
+      throws SQLException {
+    var items = Json.MAPPER.createArrayNode();
+    for (ObjectNode app : documents.list(c, p.project(), "APPLICATION")) {
+      if (app.path("disabled").asBoolean()) continue;
+      for (JsonNode published : app.path("publishedVersions")) {
+        try {
+          items.add(discoverRelease(c, p, app, published.path("version").asInt(), releases));
+        } catch (ApiFailure unavailable) {
+          if (!Set.of(403, 404, 409).contains(unavailable.status)) throw unavailable;
+        }
+      }
+    }
+    return items;
+  }
+
+  ObjectNode discoverDefault(
+      Connection c, IdentityProvider.Principal p, String id, CatalogRepository releases)
+      throws SQLException {
+    ObjectNode app = documents.get(c, p.project(), "APPLICATION", id, false);
+    if (app == null || app.path("defaultVersion").asInt() < 1)
+      throw new ApiFailure(404, "RELEASE_UNAVAILABLE");
+    try {
+      return discoverRelease(c, p, app, app.path("defaultVersion").asInt(), releases);
+    } catch (ApiFailure unavailable) {
+      if (Set.of(403, 404, 409).contains(unavailable.status))
+        throw new ApiFailure(404, "RELEASE_UNAVAILABLE");
+      throw unavailable;
+    }
+  }
+
+  void requirePublished(
+      Connection c, IdentityProvider.Principal p, JsonNode reference, CatalogRepository releases)
+      throws SQLException {
+    ObjectNode application =
+        documents.get(c, p.project(), "APPLICATION", reference.path("agentId").asText(), false);
+    if (application != null)
+      for (JsonNode published : application.path("publishedVersions"))
+        if (published.path("releaseRef").equals(reference)) {
+          if (discoverRelease(c, p, application, published.path("version").asInt(), releases)
+              .path("releaseRef")
+              .equals(reference)) return;
+        }
+    throw new ApiFailure(404, "RELEASE_UNAVAILABLE");
+  }
+
+  private ObjectNode discoverRelease(
+      Connection c,
+      IdentityProvider.Principal p,
+      JsonNode app,
+      int version,
+      CatalogRepository releases)
+      throws SQLException {
+    if (app.path("disabled").asBoolean()) throw ApiFailure.hidden();
+    ObjectNode snapshot = publishedSnapshot(c, p, app, version);
+    if (!snapshot.path("mode").asText().equals("RELEASE")
+        || !snapshot.path("applicationId").equals(app.path("id"))) throw ApiFailure.hidden();
+    try {
+      checkBindings(p.project(), snapshot);
+    } catch (InvocationException unavailable) {
+      throw ApiFailure.hidden();
+    } catch (ApiFailure unavailable) {
+      if (unavailable.status == 422) throw ApiFailure.hidden();
+      throw unavailable;
+    }
+    if (!knowledge.canReadSources(p, snapshot.path("knowledgeRefs"))) throw ApiFailure.hidden();
+    Deployment.Release release =
+        releases.release(c, p.project(), snapshot.path("releaseRef").path("releaseId").asText());
+    if (!release.agentId().equals(app.path("id").asText())
+        || !release.reference().equals(snapshot.path("releaseRef"))
+        || release.executionPermissions().stream().anyMatch(permission -> !p.permits(permission)))
+      throw ApiFailure.hidden();
+    for (String key : release.toolKeys()) capabilities.assertToolEnabled(p.project(), key);
+    ObjectNode out =
+        Json.object()
+            .put("agentId", release.agentId())
+            .put("version", version)
+            .put("name", snapshot.path("draft").path("name").asText())
+            .put("isDefault", version == app.path("defaultVersion").asInt());
+    out.set("releaseRef", release.reference());
+    out.set("inputSchema", release.inputSchema());
+    out.set("outputSchema", release.outputSchema());
+    return out;
+  }
+
   public JsonNode evaluate(
       IdentityProvider.Principal p,
       String credential,
@@ -643,20 +732,69 @@ public final class StudioService {
   }
 
   public JsonNode tasks(IdentityProvider.Principal p, String appId) {
+    return tasks(p, appId, null, 50);
+  }
+
+  public JsonNode tasks(IdentityProvider.Principal p, String appId, String cursor, int limit) {
     require(p, "runs:read");
-    return platform.transaction(
-        c -> {
-          var items = Json.MAPPER.createArrayNode();
-          var tasks = documents.list(c, p.project(), "TASK");
-          tasks.sort(
-              Comparator.comparing((ObjectNode task) -> task.path("createdAt").asText())
-                  .reversed());
-          for (var task : tasks)
-            if (task.path("owner").asText().equals(p.assignment())
-                && (appId == null || task.path("applicationId").asText().equals(appId)))
-              items.add(task(p, task.path("id").asText()));
-          return Json.object().set("items", items);
-        });
+    if (limit < 1 || limit > 100) throw ApiFailure.invalid();
+    if (appId != null) ApiJson.identifier(appId);
+    long watermark, beforeTime = Long.MAX_VALUE;
+    String beforeId = "~";
+    long expires = System.currentTimeMillis() + 3600000;
+    if (cursor == null) {
+      watermark = documents.taskWatermark(p);
+    } else {
+      JsonNode token = tokens.verify(cursor, "CURSOR_INVALID");
+      if (!token.path("kind").asText().equals("studio-tasks-v1")
+          || !token.path("scope").asText().equals(p.scope())
+          || !token.path("applicationId").asText().equals(Objects.toString(appId, ""))
+          || !token.path("watermark").canConvertToLong()
+          || !token.path("time").canConvertToLong()
+          || !token.path("expires").canConvertToLong()) throw new ApiFailure(400, "CURSOR_INVALID");
+      watermark = token.path("watermark").asLong();
+      beforeTime = token.path("time").asLong();
+      beforeId = token.path("id").asText();
+      expires = token.path("expires").asLong();
+      if (watermark < 0
+          || beforeTime < 0
+          || !(beforeId.matches("[a-f0-9-]{36}")
+              || beforeTime == Long.MAX_VALUE && beforeId.equals("~")))
+        throw new ApiFailure(400, "CURSOR_INVALID");
+      if (expires <= System.currentTimeMillis()) throw new ApiFailure(410, "CURSOR_EXPIRED");
+    }
+    final long snapshot = watermark, time = beforeTime, deadline = expires;
+    final String id = beforeId;
+    List<StudioTaskIndex.Row> rows =
+        platform.transaction(c -> StudioTaskIndex.page(c, p, appId, snapshot, time, id, limit + 1));
+    var items = Json.MAPPER.createArrayNode();
+    // Candidate selection is one indexed, bounded query. Detail projection keeps the existing
+    // live Run/output/knowledge ACL instead of exposing cached payloads in the task index.
+    for (var row : rows.stream().limit(limit).toList())
+      items.add(taskView(p, row.task(), row.snapshot()));
+    ObjectNode result = Json.object().put("hasMore", rows.size() > limit).putNull("nextCursor");
+    result.set("items", items);
+    ObjectNode pageToken =
+        Json.object()
+            .put("kind", "studio-tasks-v1")
+            .put("scope", p.scope())
+            .put("applicationId", Objects.toString(appId, ""))
+            .put("watermark", snapshot)
+            .put("time", time)
+            .put("id", id)
+            .put("expires", deadline);
+    result.put("pageCursor", tokens.sign(pageToken));
+    if (rows.size() > limit) {
+      var end = rows.get(limit - 1);
+      result.put(
+          "nextCursor",
+          tokens.sign(
+              pageToken
+                  .deepCopy()
+                  .put("time", end.createdAt())
+                  .put("id", end.task().path("id").asText())));
+    }
+    return result;
   }
 
   public JsonNode task(IdentityProvider.Principal p, String id) {
@@ -666,13 +804,22 @@ public final class StudioService {
         c -> {
           ObjectNode task = documents.get(c, p.project(), "TASK", id, true);
           if (!task.path("owner").asText().equals(p.assignment())) throw ApiFailure.hidden();
+          return taskView(
+              p,
+              task,
+              documents.get(c, p.project(), "SNAPSHOT", task.path("snapshotId").asText(), true));
+        });
+  }
+
+  private JsonNode taskView(IdentityProvider.Principal p, ObjectNode task, ObjectNode snapshot) {
+    return platform.transaction(
+        c -> {
+          if (!task.path("owner").asText().equals(p.assignment())) throw ApiFailure.hidden();
           ObjectNode result = taskLink(task);
           JsonNode run = runs.get(p, task.path("runId").asText()).body();
           result.set("run", run);
           if (task.path("payloadArchived").asBoolean() || run.path("payloadArchived").asBoolean())
             result.put("payloadArchived", true);
-          var snapshot =
-              documents.get(c, p.project(), "SNAPSHOT", task.path("snapshotId").asText(), true);
           if (!result.path("payloadArchived").asBoolean()
               && task.has("input")
               && p.permits("runs:output:read")
@@ -699,7 +846,7 @@ public final class StudioService {
                         "/v1/projects/"
                             + p.project()
                             + "/studio/tasks/"
-                            + id
+                            + task.path("id").asText()
                             + "/artifacts/"
                             + artifactId);
             artifacts.add(artifact);
@@ -793,5 +940,13 @@ public final class StudioService {
               && !snap.path("draft").path("knowledgeId").asText().isBlank()
               && knowledge.canReadSources(p, snap.path("knowledgeRefs"));
         });
+  }
+
+  /** Local-only lookup; used to recheck source ACL atomically with a human decision. */
+  boolean ownsSnapshot(Owned owned) {
+    return platform.transaction(
+        c ->
+            documents.get(c, owned.project(), "SNAPSHOT", owned.release().releaseId(), false)
+                != null);
   }
 }

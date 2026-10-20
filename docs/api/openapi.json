@@ -1838,6 +1838,10 @@
           "releaseRef": {
             "$ref": "#/components/schemas/ReleaseRef"
           },
+          "requirePublished": {
+            "type": "boolean",
+            "description": "Optional additional admission constraint: true requires an available formally published Catalog or Studio version for every new command. Exact committed command receipts are checked first. The value participates in the request digest; changing or omitting it on the same idempotency key conflicts. Omitted/false retains normal author preview behavior."
+          },
           "inputs": {
             "type": "object",
             "maxProperties": 64,

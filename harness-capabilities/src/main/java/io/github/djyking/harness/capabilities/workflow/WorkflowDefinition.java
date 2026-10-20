@@ -1,5 +1,6 @@
 package io.github.djyking.harness.capabilities.workflow;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -144,7 +145,16 @@ public record WorkflowDefinition(
     }
   }
 
-  public record Human(String message, String output, String next) implements Node {
+  public record Human(
+      String message,
+      String output,
+      String next,
+      @JsonInclude(JsonInclude.Include.NON_DEFAULT) boolean reviewContext)
+      implements Node {
+    public Human(String message, String output, String next) {
+      this(message, output, next, false);
+    }
+
     public Human {
       Objects.requireNonNull(message, "message");
       requireName(output);

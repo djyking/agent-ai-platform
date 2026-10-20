@@ -12,6 +12,16 @@ import org.springframework.web.bind.annotation.*;
 @SpringBootApplication
 public class PlatformApplication {
   public static void main(String[] args) {
+    if (args.length == 2 && args[0].equals("onboarding-apply")) {
+      try {
+        OnboardingProvisioner.run(
+            Path.of(args[1]), new org.springframework.core.env.StandardEnvironment());
+      } catch (Exception ex) {
+        System.err.println("Onboarding apply failed; credentials and details are not logged");
+        System.exit(1);
+      }
+      return;
+    }
     if (args.length == 2 && args[0].equals("resolve-permit")) {
       try {
         PermitResolution.run(
@@ -92,6 +102,11 @@ public class PlatformApplication {
         settings.bootstrapSchema(),
         GovernanceSettings.load(env),
         env.getProperty("HARNESS_IDENTITY_PROVIDER", "opsagent"));
+  }
+
+  @Bean
+  public OnboardingService onboardingService(PlatformRuntime runtime) {
+    return runtime.onboarding;
   }
 
   @Bean

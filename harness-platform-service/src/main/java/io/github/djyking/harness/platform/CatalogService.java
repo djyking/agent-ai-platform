@@ -14,6 +14,11 @@ public final class CatalogService {
   private final PlatformRepository platform;
   private final CatalogRepository repository;
   private final CatalogValidator validator;
+  private StudioService studio;
+
+  public void studio(StudioService studio) {
+    this.studio = Objects.requireNonNull(studio);
+  }
 
   public CatalogService(
       Deployment config,
@@ -305,6 +310,16 @@ public final class CatalogService {
                 ApiJson.canonical(r.path("spec")), ApiJson.canonical(r.path("regressionCases"))));
   }
 
+  /**
+   * Only reconstructs the original ACP request for receipt lookup; never authorizes a new Run.
+   * PlatformService must still perform normal command replay and admission.
+   */
+  Deployment.Release immutableProtocolBinding(IdentityProvider.Principal p, String releaseId) {
+    require(p, "runs:create");
+    ApiJson.uuid(releaseId);
+    return platform.transaction(c -> repository.release(c, p.project(), releaseId));
+  }
+
   public Deployment.Release releaseForRun(String project, String releaseId) {
     return platform.transaction(
         c -> {
@@ -386,6 +401,7 @@ public final class CatalogService {
               } catch (ApiFailure ex) {
                 if (ex.status != 404 && ex.status != 409) throw ex;
               }
+          if (studio != null) items.addAll(studio.discoverReleases(c, p, repository));
           return out;
         });
   }
@@ -396,7 +412,11 @@ public final class CatalogService {
     ApiJson.identifier(id);
     return platform.transaction(
         c -> {
-          ObjectNode r = repository.resource(c, p.project(), "Agent", id, true);
+          ObjectNode r = repository.resource(c, p.project(), "Agent", id, false);
+          if (r == null) {
+            if (studio != null) return studio.discoverDefault(c, p, id, repository);
+            throw new ApiFailure(404, "RELEASE_UNAVAILABLE");
+          }
           if (r.path("defaultVersion").asInt() == 0)
             throw new ApiFailure(404, "RELEASE_UNAVAILABLE");
           return discovery(
@@ -405,6 +425,25 @@ public final class CatalogService {
               r,
               repository.version(c, p.project(), "Agent", id, r.path("defaultVersion").asInt()));
         });
+  }
+
+  /**
+   * New-command constraint for consumers; callers must look up exact receipts before this check.
+   */
+  void requirePublished(Connection c, IdentityProvider.Principal p, JsonNode reference)
+      throws SQLException {
+    String id = reference.path("agentId").asText();
+    ObjectNode resource = repository.resource(c, p.project(), "Agent", id, false);
+    if (resource != null)
+      for (ObjectNode version : repository.versions(c, p.project(), "Agent", id))
+        if (version.path("releaseRef").equals(reference)) {
+          if (discovery(c, p, resource, version).path("releaseRef").equals(reference)) return;
+        }
+    if (studio != null) {
+      studio.requirePublished(c, p, reference, repository);
+      return;
+    }
+    throw new ApiFailure(404, "RELEASE_UNAVAILABLE");
   }
 
   private ObjectNode discovery(

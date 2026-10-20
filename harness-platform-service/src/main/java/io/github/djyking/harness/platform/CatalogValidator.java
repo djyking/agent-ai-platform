@@ -193,11 +193,13 @@ public final class CatalogValidator {
                         "next");
                 case "condition" ->
                     Set.of("kind", "variable", "equalsJson", "whenTrue", "whenFalse");
-                case "human" -> Set.of("kind", "message", "output", "next");
+                case "human" -> Set.of("kind", "message", "output", "next", "reviewContext");
                 case "end" -> Set.of("kind", "output");
                 default -> throw new ApiFailure(422, "CATALOG_SPEC_INVALID");
               };
           fields(node, nodeFields, Set.of("kind"));
+          if (node.has("reviewContext") && !node.path("reviewContext").isBoolean())
+            throw new ApiFailure(422, "CATALOG_SPEC_INVALID");
           if (node.has("promptRef"))
             fields(node.get("promptRef"), Set.of("id", "version"), Set.of());
         }

@@ -14,6 +14,8 @@ public final class PlatformHttpMetrics {
     knowledge,
     capabilities,
     operations,
+    onboarding,
+    acp,
     auth,
     other_api
   }
@@ -41,6 +43,7 @@ public final class PlatformHttpMetrics {
 
   static Route route(String path) {
     if (path == null) return null;
+    if (path.startsWith("/acp/projects/")) return Route.acp;
     if (Set.of(
             "/console/login", "/console/session", "/console/auth/config", "/console/auth/captcha")
         .contains(path)) return Route.auth;
@@ -61,6 +64,7 @@ public final class PlatformHttpMetrics {
       case "knowledge" -> Route.knowledge;
       case "capabilities" -> Route.capabilities;
       case "operations" -> Route.operations;
+      case "onboarding" -> Route.onboarding;
       default -> Route.other_api;
     };
   }

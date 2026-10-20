@@ -3,6 +3,7 @@ package io.github.djyking.harness.platform;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.servlet.http.HttpServletRequest;
 import java.nio.charset.StandardCharsets;
+import java.util.Set;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
@@ -120,8 +121,15 @@ public final class StudioController {
   public JsonNode tasks(
       @PathVariable("project") String project,
       @RequestParam(value = "applicationId", required = false) String applicationId,
+      @RequestParam(value = "cursor", required = false) String cursor,
+      @RequestParam(value = "limit", defaultValue = "50") int limit,
       HttpServletRequest r) {
-    return studio.tasks(principal(project, r), applicationId);
+    var p = principal(project, r);
+    for (var entry : r.getParameterMap().entrySet())
+      if (!Set.of("applicationId", "cursor", "limit").contains(entry.getKey())
+          || entry.getValue().length != 1
+          || entry.getValue()[0].isEmpty()) throw ApiFailure.invalid();
+    return studio.tasks(p, applicationId, cursor, limit);
   }
 
   @GetMapping("/tasks/{id}")

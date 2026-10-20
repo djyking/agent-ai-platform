@@ -239,11 +239,6 @@ public final class StudioCompiler {
       variables.put("fields", PromptTemplate.VariableType.JSON);
       bindings.put("fields", "fields");
     }
-    if (review) {
-      user += "\n人工补充要求：{{review}}";
-      variables.put("review", PromptTemplate.VariableType.JSON);
-      bindings.put("review", "review");
-    }
     PromptTemplate prompt;
     try {
       prompt =
@@ -265,12 +260,14 @@ public final class StudioCompiler {
                     .collect(java.util.stream.Collectors.toSet()),
                 Math.min(8, draft.path("limits").path("maxModelCalls").asInt()),
                 "answer",
-                "end")
-            : new WorkflowDefinition.Model(prompt, bindings, "answer", "end"));
+                review ? "review" : "end")
+            : new WorkflowDefinition.Model(prompt, bindings, "answer", review ? "review" : "end"));
     String start = "answer";
     if (review) {
-      nodes.put("review", new WorkflowDefinition.Human("请核对本次任务并填写补充要求。", "review", start));
-      start = "review";
+      nodes.put(
+          "review",
+          new WorkflowDefinition.Human(
+              "请核对下方生成的答案，确认准确且可交付后填写审核意见；不通过请拒绝。", "review", "end", true));
     }
     if (knowledge) {
       nodes.put(
@@ -294,7 +291,7 @@ public final class StudioCompiler {
             keys,
             permissions,
             approvers,
-            List.of(),
+            review ? List.of("answer") : List.of(),
             Json.object().put("type", "string").put("minLength", 1).put("maxLength", 4000),
             !knowledge,
             CatalogValidator.convert(draft.path("limits"), Deployment.Limits.class));

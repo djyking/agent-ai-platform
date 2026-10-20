@@ -21,6 +21,7 @@ import { navigate, useHashRoute } from "./hooks";
 import { CatalogList, ResourceEditor } from "./Catalog";
 import { RunDetail, RunList } from "./Runs";
 import { Operations } from "./Operations";
+import { Onboarding } from "./Onboarding";
 import {
   ApplicationHome,
   ApplicationStudio,
@@ -131,6 +132,7 @@ export default function App() {
     ["/", "应用", Bot],
     ["/capabilities", "共享能力", Blocks],
     ["/tasks", "任务工作台", FolderKanban],
+    ["/onboarding", "应用接入", KeyRound],
     ["/manage", "平台管理", ShieldCheck],
   ] as const;
   const active = ["apps", "agents"].includes(parts[0] ?? "")
@@ -263,6 +265,8 @@ export default function App() {
               principal={principal}
               id={parts[1] ? decodeURIComponent(parts[1]) : undefined}
             />
+          ) : route === "/onboarding" ? (
+            <Onboarding project={project} principal={principal} />
           ) : route === "/manage" ? (
             <PlatformManagement project={project} principal={principal} />
           ) : route === "/operations" ? (

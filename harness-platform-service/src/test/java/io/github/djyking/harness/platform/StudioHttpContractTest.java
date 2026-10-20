@@ -50,6 +50,27 @@ final class StudioHttpContractTest {
   }
 
   @Test
+  void taskPaginationHasExplicitBoundariesAndRejectsAmbiguousQueryParameters() throws Exception {
+    try (var f = new StudioLifecycleSecurityTest.Fixture()) {
+      MockMvc mvc = mvc(f);
+      JsonNode page =
+          Json.read(
+              call(mvc, "alice", get(BASE + "/tasks"), 200).getResponse().getContentAsString());
+      assertEquals(0, page.path("items").size());
+      assertFalse(page.path("hasMore").asBoolean());
+      assertTrue(page.path("nextCursor").isNull());
+      assertTrue(page.path("pageCursor").isTextual());
+      for (String limit : List.of("0", "-1", "101", "abc", "1.5", "99999999999999999", ""))
+        call(mvc, "alice", get(BASE + "/tasks").param("limit", limit), 400);
+      call(mvc, "alice", get(BASE + "/tasks").param("limit", "1", "2"), 400);
+      call(mvc, "alice", get(BASE + "/tasks").param("applicationId", "one", "two"), 400);
+      call(mvc, "alice", get(BASE + "/tasks").param("cursor", ""), 400);
+      call(mvc, "alice", get(BASE + "/tasks").param("owner", "bob"), 400);
+      call(mvc, "bob", get(BASE + "/tasks").param("cursor", page.path("pageCursor").asText()), 400);
+    }
+  }
+
+  @Test
   void templatesApplicationsReceiptsAndCasHaveExactHttpScopes() throws Exception {
     try (var f = new StudioLifecycleSecurityTest.Fixture()) {
       MockMvc mvc = mvc(f);

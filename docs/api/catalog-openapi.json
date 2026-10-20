@@ -1564,6 +1564,11 @@
                         },
                         "next": {
                           "type": "string"
+                        },
+                        "reviewContext": {
+                          "type": "boolean",
+                          "default": false,
+                          "description": "Explicit opt-in to declared, current-ACL-checked workflow review fields. Omitted/false retains legacy input-only behavior."
                         }
                       },
                       "required": [

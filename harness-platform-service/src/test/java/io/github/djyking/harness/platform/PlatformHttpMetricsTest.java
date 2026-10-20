@@ -12,6 +12,30 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.annotation.*;
 
 final class PlatformHttpMetricsTest {
+  @org.junit.jupiter.api.Test
+  void newProtocolAndAdmissionRoutesUseBoundedLabels() {
+    var metrics = new PlatformHttpMetrics();
+    for (int i = 0; i < 100; i++) {
+      metrics.observe(
+          PlatformHttpMetrics.route("/acp/projects/private-" + i + "/runs/run-" + i),
+          "POST",
+          202,
+          1000000);
+      metrics.observe(
+          PlatformHttpMetrics.route(
+              "/console/api/projects/private-" + i + "/onboarding/requests/request-" + i),
+          "GET",
+          200,
+          1000000);
+    }
+    String scraped = metrics.scrape();
+    org.junit.jupiter.api.Assertions.assertTrue(scraped.contains("route=\"acp\""));
+    org.junit.jupiter.api.Assertions.assertTrue(scraped.contains("route=\"onboarding\""));
+    org.junit.jupiter.api.Assertions.assertFalse(scraped.contains("private-"));
+    org.junit.jupiter.api.Assertions.assertEquals(
+        2, scraped.lines().filter(line -> line.startsWith("harness_http_requests_total{")).count());
+  }
+
   @RestController
   static class Handler {
     @GetMapping("/v1/projects/{project}/runs/{run}")

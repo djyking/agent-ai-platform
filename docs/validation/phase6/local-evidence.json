@@ -1,0 +1,131 @@
+{
+  "format": "harness-phase6-public-evidence-v1",
+  "recordedAt": "2026-10-20T11:18:02.200232+00:00",
+  "scope": "Local synthetic engineering acceptance; not production readiness",
+  "platformBuild": {
+    "command": "mvn clean verify -B -ntp",
+    "status": "PASSED",
+    "modules": 12,
+    "suites": 75,
+    "tests": 369,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "sourceFilesVerified": 282
+  },
+  "artifactSha256": {
+    "platform": "672430d2087b867481cb4daebfb84f7d14ef9d9adeb24e6e8b78b8ae02b4cb99",
+    "support": "b181e28aa042c0ceff43513ea0ea787b14f168453eaad920d7a02ae3a76fbef3",
+    "ops-auth": "f71789cfed77dad4e75cbc5e3cb0141db3e762a42dc2012c0ffe0baf2e0ecd6a",
+    "ops-knowledge": "8dbe277572289cfd8a9cbd0d8dd157996a04ac9430da864eebb74d868097af8e",
+    "ops-ticket": "4e325575d592d18386a8bebbfe88433b05601ffccc71f59fdb96e90cba2104bf",
+    "ops-rag": "f5853da174cf830e43b9276be2b8179f00307877efc28063f601d372a3b5d1fc",
+    "ops-web": "8e41298ebfa1cad366fbb11d166f581dd69ca216a09325a7d9d17dcc93b6f2a6"
+  },
+  "opsBuild": {
+    "modules": 17,
+    "suites": 166,
+    "tests": 1054,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 2,
+    "skipReason": "Existing environment-gated tests",
+    "checkstyleViolations": 0
+  },
+  "frontendTests": {
+    "platformConsole": 44,
+    "support": 20,
+    "opsRagEvaluationPython": 12
+  },
+  "checks": {
+    "support": {
+      "status": "PASSED",
+      "checkCount": null,
+      "finalPlatformArtifact": true,
+      "startedAt": null,
+      "finishedAt": null,
+      "assertions": {
+        "humanApproval": true,
+        "separateUsers": 3,
+        "crossUserReadDenied": true,
+        "idempotentCreate": true,
+        "csrfRejected": true,
+        "reviewerCannotCreate": true,
+        "generatedAnswerReviewed": true,
+        "approvedAnswerUnchanged": true,
+        "logoutInvalidated": true
+      }
+    },
+    "acp": {
+      "status": "PASSED",
+      "checkCount": 6,
+      "finalPlatformArtifact": true,
+      "startedAt": "2026-10-20T11:13:44.547742+00:00",
+      "finishedAt": "2026-10-20T11:13:57.041065+00:00"
+    },
+    "upgrade": {
+      "status": "PASSED",
+      "checkCount": 5,
+      "finalPlatformArtifact": true,
+      "startedAt": "2026-10-20T11:07:47.510478+00:00",
+      "finishedAt": "2026-10-20T11:08:47.726515+00:00"
+    },
+    "opsFinalReadOnly": {
+      "status": "PASSED",
+      "checkCount": 6,
+      "finalPlatformArtifact": true,
+      "startedAt": null,
+      "finishedAt": null
+    },
+    "backupPitr": {
+      "status": "PASSED",
+      "checkCount": 5,
+      "finalPlatformArtifact": false,
+      "startedAt": "2026-10-20T10:39:51.935423+00:00",
+      "finishedAt": "2026-10-20T10:40:36.516771+00:00"
+    },
+    "executionFaults": {
+      "status": "PASSED",
+      "checkCount": 7,
+      "finalPlatformArtifact": false,
+      "startedAt": "2026-10-20T10:47:28.232979+00:00",
+      "finishedAt": "2026-10-20T10:54:04.519572+00:00"
+    }
+  },
+  "targetEnvironment": {
+    "vpsDeployment": "NOT_STARTED",
+    "linux7Days": "NOT_STARTED",
+    "crossHostRecovery": "NOT_STARTED",
+    "productionRpoRto": "NOT_MEASURED"
+  },
+  "browser": {
+    "status": "PASSED",
+    "platform": {
+      "origin": "http://127.0.0.1:8110",
+      "officialAccountCaptchaLogin": true,
+      "supportProjectSelected": true,
+      "studioPublishedVersionVisible": true,
+      "publishedVersion": 1
+    },
+    "support": {
+      "origin": "http://127.0.0.1:8098",
+      "officialAccountCaptchaLogin": true,
+      "publishedAssistantVisible": true,
+      "completedRunVisible": true,
+      "reviewedSyntheticAnswerVisible": true,
+      "modelCalls": 1,
+      "tokens": 382
+    },
+    "syntheticBusinessDataOnly": true,
+    "passwordChanged": false
+  },
+  "local24HourObservation": {
+    "status": "RUNNING",
+    "observationId": "soak-37cce5a194aa44da8b70f37279c651a2",
+    "startedAt": "2026-10-20T11:17:07.294844+00:00",
+    "requestedSeconds": 86400,
+    "elapsedMonotonicSeconds": 0.0,
+    "completed24Hours": false,
+    "continuous": true
+  }
+}

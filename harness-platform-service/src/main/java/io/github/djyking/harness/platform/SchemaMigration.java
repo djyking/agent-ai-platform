@@ -51,6 +51,7 @@ final class SchemaMigration {
       new CatalogRepository(platform).initialize();
       new StudioRepository(platform).initialize();
       new CapabilityRepository(platform).initialize();
+      new OnboardingRepository(platform).initialize();
       new PlatformTrace(dataSource, true);
       if (!previous.isBlank()) governance.migrateConfiguration(previous);
       governance.initialize();

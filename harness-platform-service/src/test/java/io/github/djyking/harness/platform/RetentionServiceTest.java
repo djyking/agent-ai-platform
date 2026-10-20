@@ -81,6 +81,9 @@ final class RetentionServiceTest {
                     .put("id", taskId)
                     .put("runId", id)
                     .put("owner", "app-a/alice")
+                    .put("applicationId", "fixture-app")
+                    .put("snapshotId", UUID.randomUUID().toString())
+                    .put("createdAt", java.time.Instant.ofEpochMilli(now(c)).toString())
                     .put("input", PRIVATE);
             documents.put(c, "project-a", "TASK", taskId, task);
             var experiment = Json.object().put("id", experimentId).put("owner", "app-a/alice");

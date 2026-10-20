@@ -1,7 +1,7 @@
 """Isolated phase-five execution acceptance. Requires an explicit private local fixture config.
 
 Creates/terminates only its own Java child processes. Seeds 100k SYNTHETIC completed rows
-only in the exact dedicated database harness_phase5_execution. No production identities,
+only in one of the exact dedicated profile databases below. No production identities,
 external models or network tools are used. Failed/UNKNOWN commands are never retried.
 """
 from __future__ import annotations
@@ -27,20 +27,32 @@ from process_acceptance import manifest, digest, require, CheckFailure, write_js
 from wire_fixture import WireFixture, utc
 
 
-def deployment_template(project="phase5-execution", application="phase5-probe", subject="operator", fixture_port=53967):
+PROFILES = {
+    "phase5": {"project": "phase5-execution", "secondary": "phase5-secondary",
+               "database": "harness_phase5_execution", "ports": {"A": 8112, "B": 8113}, "fixturePort": 53967},
+    "phase6": {"project": "phase6-execution", "secondary": "phase6-secondary",
+               "database": "harness_phase6_execution", "ports": {"A": 8132, "B": 8133}, "fixturePort": 53977},
+}
+
+
+def deployment_template(project=None, application="phase5-probe", subject="operator", fixture_port=None, profile="phase5"):
     """Root controller can generate a private deployment before invoking the normal migrate CLI."""
-    value=manifest({"project":project,"runTag":"platform-phase5-execution-v1","reviewerSubject":subject},
-                   {"applicationId":application,"authOrigin":"http://127.0.0.1:8112"})
+    require(profile in PROFILES, "FIXED_FIXTURE_PROFILE_REQUIRED")
+    selected=PROFILES[profile]
+    project=project or selected["project"]
+    fixture_port=fixture_port or selected["fixturePort"]
+    value=manifest({"project":project,"runTag":"platform-"+profile+"-execution-v1","reviewerSubject":subject},
+                   {"applicationId":application,"authOrigin":"http://127.0.0.1:"+str(selected["ports"]["A"])})
     value["tools"][0]["endpoint"]=f"http://127.0.0.1:{fixture_port}/mcp"
     value["models"][0]["endpoint"]=f"http://127.0.0.1:{fixture_port}/chat/completions"
     value["concurrency"]=10
     value["projects"][0].update(maxActiveRuns=30,maxReservedTokens=60000,
         maxActiveRunsPerApplication=30,maxReservedTokensPerApplication=60000,concurrency=10)
-    secondary=copy.deepcopy(value["projects"][0]);secondary["id"]="phase5-secondary"
+    secondary=copy.deepcopy(value["projects"][0]);secondary["id"]=selected["secondary"]
     value["projects"].append(secondary)
     for release in list(value["releases"]):
-        second=copy.deepcopy(release);second["projectId"]="phase5-secondary"
-        second["releaseId"]=str(uuid.uuid5(uuid.NAMESPACE_URL,"phase5-secondary/"+release["agentId"]))
+        second=copy.deepcopy(release);second["projectId"]=selected["secondary"]
+        second["releaseId"]=str(uuid.uuid5(uuid.NAMESPACE_URL,selected["secondary"]+"/"+release["agentId"]))
         value["releases"].append(second)
     return value
 
@@ -75,26 +87,35 @@ class Runner:
         self.soak_seconds=soak_seconds
         self.selected_checks=checks
         c=self.c
+        self.profile=c.get("fixtureProfile","phase5")
+        require(self.profile in PROFILES,"FIXED_FIXTURE_PROFILE_REQUIRED")
+        self.profile_config=PROFILES[self.profile]
+        self.secondary_project=self.profile_config["secondary"]
+        self.history_pattern="^platform-"+self.profile+"-[a-f0-9]{8}-history-[0-9]+$"
         self.work=under(c["workDir"],Path(c["workspace"])/".work")
         self.work.mkdir(parents=True,exist_ok=True)
-        require(c["project"]=="phase5-execution","DEDICATED_PROJECT_REQUIRED")
+        require(c["project"]==self.profile_config["project"],"DEDICATED_PROJECT_REQUIRED")
         db=c["mysql"]
-        require(db["database"]=="harness_phase5_execution" and db["host"]=="127.0.0.1","DEDICATED_LOOPBACK_DB_REQUIRED")
-        require(c["ports"]=={"A":8112,"B":8113} and c["fixturePort"]==53967,"DEDICATED_PORTS_REQUIRED")
+        require(db["database"]==self.profile_config["database"] and db["host"]=="127.0.0.1","DEDICATED_LOOPBACK_DB_REQUIRED")
+        require(c["ports"]==self.profile_config["ports"] and c["fixturePort"]==self.profile_config["fixturePort"],"DEDICATED_PORTS_REQUIRED")
         self.env={**os.environ,**json.loads(under(c["environmentFile"],Path(c["workspace"])/".work").read_text(encoding="utf-8-sig"))}
         self.env={key:str(value) for key,value in self.env.items()}
         require(self.env.get("HARNESS_IDENTITY_PROVIDER")=="local-test","LOCAL_TEST_IDENTITY_REQUIRED")
-        require("harness_phase5_execution" in self.env.get("HARNESS_JDBC_URL",""),"DATABASE_ENVIRONMENT_MISMATCH")
+        jdbc=self.env.get("HARNESS_JDBC_URL","")
+        require(jdbc.startswith("jdbc:mysql://127.0.0.1:") and
+                jdbc.split("?",1)[0].rsplit("/",1)[-1]==db["database"],"DATABASE_ENVIRONMENT_MISMATCH")
+        migration_jdbc=self.env.get("HARNESS_MIGRATION_JDBC_URL",jdbc)
+        require(migration_jdbc==jdbc,"MIGRATION_DATABASE_ENVIRONMENT_MISMATCH")
         self.path=Path(report)
         require(not self.path.exists(),"REPORT_ALREADY_EXISTS")
-        self.report={"status":"RUNNING","startedAt":utc(),"checks":[],"processes":[],"jarSha256":digest(Path(c["jar"]).read_bytes()),
+        self.report={"status":"RUNNING","fixtureProfile":self.profile,"startedAt":utc(),"checks":[],"processes":[],"jarSha256":digest(Path(c["jar"]).read_bytes()),
             "boundaries":{"syntheticFixture":True,"externalModelCalls":0,"externalWriteCalls":0,"historicalRowsAreSynthetic":True,"linuxObservation":False}}
         self.processes={};self.clients={};self.secondary_clients={};self.logs=[]
         self.fixture=WireFixture(c["fixturePort"],self.work,{"shared":self.env[c.get("fixtureTokenEnv","ACCEPTANCE_FIXTURE_TOKEN")]},secrets.token_urlsafe(32),model_delay=1.5)
         self.refs=c.get("releaseRefs",{})
         self.secondary_refs=c.get("secondaryReleaseRefs",{})
         self.route="/console/api/projects/"+c["project"]+"/runs"
-        self.tag="platform-phase5-"+uuid.uuid4().hex[:8]
+        self.tag="platform-"+self.profile+"-"+uuid.uuid4().hex[:8]
         self.save()
     def save(self):write_json(self.path,self.report)
     def check(self,name,action):
@@ -133,7 +154,7 @@ class Runner:
             time.sleep(.3)
         else:raise CheckFailure("HEALTH_TIMEOUT")
         self.clients[label]=Client(f"http://127.0.0.1:{port}",self.c["username"],self.c["password"],self.c["project"])
-        self.secondary_clients[label]=Client(f"http://127.0.0.1:{port}",self.c["username"],self.c["password"],"phase5-secondary")
+        self.secondary_clients[label]=Client(f"http://127.0.0.1:{port}",self.c["username"],self.c["password"],self.secondary_project)
     def stop(self,label):
         process=self.processes.get(label)
         if process and process.poll() is None:
@@ -143,7 +164,7 @@ class Runner:
             self.save()
     def create(self,kind,label,worker="A",secondary=False):
         key=self.tag+"-"+label
-        route=self.route.replace("phase5-execution","phase5-secondary") if secondary else self.route
+        route="/console/api/projects/"+self.secondary_project+"/runs" if secondary else self.route
         refs=self.secondary_refs if secondary else self.refs
         client=self.secondary_clients[worker] if secondary else self.clients[worker]
         status,result,_=client.request("POST",route,{"releaseRef":refs[kind],"inputs":{"caseKey":key},"clientReference":key})
@@ -192,7 +213,7 @@ class Runner:
             with concurrent.futures.ThreadPoolExecutor(max_workers=10) as pool:
                 primary=list(pool.map(lambda n:self.create("model-then-human","model-load-"+str(n),"A" if n%2 else "B"),range(10)))
             secondary,key=self.create("model-then-human","model-other-project","B",secondary=True)
-            secondary_route=self.route.replace("phase5-execution","phase5-secondary")+"/"+secondary
+            secondary_route="/console/api/projects/"+self.secondary_project+"/runs/"+secondary
             start=time.monotonic()
             while time.monotonic()-start<20:
                 status,body,_=self.secondary_clients["B"].request("GET",secondary_route)
@@ -252,10 +273,10 @@ class Runner:
         count=int(self.c.get("historicalRows",100000));require(count==100000,"EXPECTED_100K_HISTORY")
         reuse=self.c.get("reuseSyntheticHistory",False)
         require(isinstance(reuse,bool),"REUSE_HISTORY_FLAG_MUST_BE_BOOLEAN")
-        require(self.c["mysql"]["database"]=="harness_phase5_execution","DEDICATED_HISTORY_DATABASE_REQUIRED")
+        require(self.c["mysql"]["database"]==self.profile_config["database"],"DEDICATED_HISTORY_DATABASE_REQUIRED")
         seed_seconds=0
         if not reuse:
-            existing=int(self.sql("SELECT COUNT(*) FROM platform_runs WHERE client_reference REGEXP '^platform-phase5-[a-f0-9]{8}-history-[0-9]+$'"))
+            existing=int(self.sql("SELECT COUNT(*) FROM platform_runs WHERE client_reference REGEXP '"+self.history_pattern+"'"))
             require(existing==0,"EXISTING_SYNTHETIC_HISTORY_REQUIRES_EXPLICIT_REUSE")
             run,_=self.create("read","history-seed");self.wait(run,{"COMPLETED"})
             prefix=self.tag+"-history-"
@@ -271,14 +292,14 @@ INSERT INTO platform_runs(run_id,project_id,application_id,subject_id,delegation
 INSERT INTO harness_run_index(run_id,run_status,charged_tokens,model_calls,tool_calls,updated_at,terminal_at,deadline_at,expirable_at,platform_project_id,platform_application_id,platform_subject_id,platform_created_at,platform_reserved_tokens)
 {cte} SELECT s.id,i.run_status,i.charged_tokens,i.model_calls,i.tool_calls,i.updated_at,i.terminal_at,i.deadline_at,NULL,i.platform_project_id,i.platform_application_id,i.platform_subject_id,i.platform_created_at,i.platform_reserved_tokens FROM phase5_seed s CROSS JOIN harness_run_index i WHERE i.run_id='{run}';
 COMMIT;
-SELECT COUNT(*) FROM platform_runs WHERE project_id='phase5-execution' AND client_reference REGEXP '^{prefix}[0-9]+$' AND run_id<>'{run}';"""
+SELECT COUNT(*) FROM platform_runs WHERE project_id='{self.c["project"]}' AND client_reference REGEXP '^{prefix}[0-9]+$' AND run_id<>'{run}';"""
             seed_started=time.monotonic()
             require(int(self.sql(query,timeout=900))==count,"SYNTHETIC_HISTORY_COUNT_MISMATCH")
             seed_seconds=time.monotonic()-seed_started
         validation_started=time.monotonic()
         history_validation=self.validate_synthetic_history(count)
         validation_seconds=time.monotonic()-validation_started
-        plans=self.sql("EXPLAIN SELECT run_id FROM harness_run_index WHERE expirable_at<=UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3))*1000 ORDER BY expirable_at,run_id LIMIT 100; EXPLAIN SELECT p.application_id,p.reserved_tokens,i.run_status FROM harness_run_index i JOIN platform_runs p ON p.run_id=i.run_id WHERE p.project_id='phase5-execution' AND i.run_status IN ('QUEUED','RUNNING','PAUSED','WAITING_APPROVAL','WAITING_INPUT','NEEDS_ATTENTION');")
+        plans=self.sql("EXPLAIN SELECT run_id FROM harness_run_index WHERE expirable_at<=UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3))*1000 ORDER BY expirable_at,run_id LIMIT 100; EXPLAIN SELECT p.application_id,p.reserved_tokens,i.run_status FROM harness_run_index i JOIN platform_runs p ON p.run_id=i.run_id WHERE p.project_id='"+self.c["project"]+"' AND i.run_status IN ('QUEUED','RUNNING','PAUSED','WAITING_APPROVAL','WAITING_INPUT','NEEDS_ATTENTION');")
         require("harness_wait_due_idx" in plans,"WAIT_DEADLINE_INDEX_UNUSED")
         sustained=self.mixed_api_load("sustained",200,10)
         burst=self.mixed_api_load("burst",100,20)
@@ -288,8 +309,8 @@ SELECT COUNT(*) FROM platform_runs WHERE project_id='phase5-execution' AND clien
             "readWriteRatio":{"getPercent":90,"postPercent":10},"sustained":sustained,"burst":burst,
             "idleQueue":idle_queue,"queryPlan":plans.splitlines()}
     def validate_synthetic_history(self,expected):
-        require(self.c["mysql"]["database"]=="harness_phase5_execution" and self.c["mysql"]["host"]=="127.0.0.1","DEDICATED_HISTORY_DATABASE_REQUIRED")
-        pattern="^platform-phase5-[a-f0-9]{8}-history-[0-9]+$"
+        require(self.c["mysql"]["database"]==self.profile_config["database"] and self.c["mysql"]["host"]=="127.0.0.1","DEDICATED_HISTORY_DATABASE_REQUIRED")
+        pattern=self.history_pattern
         platform_count=int(self.sql("SELECT COUNT(*) FROM platform_runs WHERE client_reference REGEXP '"+pattern+"'"))
         require(platform_count==expected,"SYNTHETIC_PLATFORM_HISTORY_COUNT_MISMATCH")
         # Validate both directions by selecting fixture core rows independently of platform ownership.
@@ -299,7 +320,7 @@ SELECT run_id,run_status,lease_until,JSON_UNQUOTE(JSON_EXTRACT(snapshot_json,'$.
 FROM harness_runs WHERE JSON_UNQUOTE(JSON_EXTRACT(snapshot_json,'$.creationKey')) REGEXP '{pattern}')
 SELECT JSON_OBJECT('coreRows',COUNT(*),'coreTerminalRows',SUM(r.run_status='COMPLETED' AND r.lease_until IS NULL),
 'platformRows',COUNT(p.run_id),'indexRows',COUNT(i.run_id),
-'joinedTerminalRows',SUM(p.project_id='phase5-execution' AND BINARY p.client_reference=BINARY r.fixture_key AND i.run_status='COMPLETED' AND i.terminal_at IS NOT NULL),
+'joinedTerminalRows',SUM(p.project_id='{self.c["project"]}' AND BINARY p.client_reference=BINARY r.fixture_key AND i.run_status='COMPLETED' AND i.terminal_at IS NOT NULL),
 'ownershipProjectionMatches',SUM(BINARY i.platform_project_id=BINARY p.project_id AND BINARY i.platform_application_id=BINARY p.application_id AND BINARY i.platform_subject_id=BINARY p.subject_id AND i.platform_created_at=p.created_at AND i.platform_reserved_tokens=p.reserved_tokens),
 'distinctReferences',COUNT(DISTINCT r.fixture_key))
 FROM fixture_core r LEFT JOIN platform_runs p ON p.run_id=r.run_id LEFT JOIN harness_run_index i ON i.run_id=r.run_id;"""
@@ -359,7 +380,7 @@ FROM fixture_core r LEFT JOIN platform_runs p ON p.run_id=r.run_id LEFT JOIN har
         self.save()
         return evidence
     def idle_queue_latency(self):
-        require(int(self.sql("SELECT COUNT(*) FROM platform_runs p JOIN harness_runs r ON r.run_id=p.run_id WHERE p.project_id='phase5-execution' AND r.run_status IN ('QUEUED','RUNNING')"))==0,"QUEUE_NOT_IDLE_BEFORE_PROBE")
+        require(int(self.sql("SELECT COUNT(*) FROM platform_runs p JOIN harness_runs r ON r.run_id=p.run_id WHERE p.project_id='"+self.c["project"]+"' AND r.run_status IN ('QUEUED','RUNNING')"))==0,"QUEUE_NOT_IDLE_BEFORE_PROBE")
         samples=[]
         for n in range(20):
             run,key=self.create("read","idle-queue-"+str(n),"A" if n%2 else "B")
@@ -427,7 +448,7 @@ FROM fixture_core r LEFT JOIN platform_runs p ON p.run_id=r.run_id LEFT JOIN har
                 output=self.command("releases",self.env["HARNESS_CONFIG"])
                 rows=json.loads(output[output.index("["):])
                 self.refs={row["releaseRef"]["agentId"].removeprefix("acceptance-"):row["releaseRef"] for row in rows if row["projectId"]==self.c["project"]}
-                self.secondary_refs={row["releaseRef"]["agentId"].removeprefix("acceptance-"):row["releaseRef"] for row in rows if row["projectId"]=="phase5-secondary"}
+                self.secondary_refs={row["releaseRef"]["agentId"].removeprefix("acceptance-"):row["releaseRef"] for row in rows if row["projectId"]==self.secondary_project}
             already_migrated=self.c.get("schemaAlreadyMigrated",False)
             require(isinstance(already_migrated,bool),"INVALID_MIGRATION_PRECONDITION")
             if already_migrated:

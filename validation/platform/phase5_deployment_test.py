@@ -24,6 +24,32 @@ import restore
 
 
 class DeploymentTests(unittest.TestCase):
+    def test_execution_profiles_keep_faults_in_exact_separate_database_and_ports(self):
+        from phase5_execution_acceptance import PROFILES, Runner, deployment_template
+        from process_acceptance import CheckFailure
+
+        legacy = deployment_template()
+        current = deployment_template(profile="phase6", application="phase6-probe")
+        self.assertEqual({"phase5-execution", "phase5-secondary"}, {p["id"] for p in legacy["projects"]})
+        self.assertEqual({"phase6-execution", "phase6-secondary"}, {p["id"] for p in current["projects"]})
+        self.assertTrue(all("127.0.0.1:53977/" in item["endpoint"] for item in current["models"] + current["tools"]))
+        self.assertTrue(all(r["projectId"].startswith("phase6-") for r in current["releases"]))
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            config = {"fixtureProfile": "phase6", "workspace": str(root),
+                      "workDir": str(root / ".work/fault"), "project": "phase6-execution",
+                      "mysql": {"database": "harness_platform_phase6", "host": "127.0.0.1"},
+                      "ports": {"A": 8132, "B": 8133}, "fixturePort": 53977}
+            path = root / "config.json"
+            path.write_text(json.dumps(config), encoding="utf-8")
+            with self.assertRaisesRegex(CheckFailure, "DEDICATED_LOOPBACK_DB_REQUIRED"):
+                Runner(path, root / "report.json")
+            config["mysql"]["database"] = PROFILES["phase6"]["database"]
+            config["ports"]["A"] = 8110
+            path.write_text(json.dumps(config), encoding="utf-8")
+            with self.assertRaisesRegex(CheckFailure, "DEDICATED_PORTS_REQUIRED"):
+                Runner(path, root / "report.json")
+
     def test_proxy_has_fixed_trust_boundary_and_instance_roles(self):
         manifest = {"applicationSecrets": {"app": "env:APP_SECRET"}, "signingSecret": "env:SIGNING_KEY"}
         api, worker, nginx = prepare.render(manifest, "https://harness.example.test:8443")

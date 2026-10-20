@@ -15,13 +15,13 @@ from process_acceptance import require
 
 
 def run_checks(runner):
-    require(runner.c["project"] == "phase5-execution", "OPERATIONS_PROJECT_MISMATCH")
-    require(runner.c["mysql"]["database"] == "harness_phase5_execution", "OPERATIONS_DATABASE_MISMATCH")
+    require(runner.c["project"] == runner.profile_config["project"], "OPERATIONS_PROJECT_MISMATCH")
+    require(runner.c["mysql"]["database"] == runner.profile_config["database"], "OPERATIONS_DATABASE_MISMATCH")
     token = runner.env.get("HARNESS_METRICS_TOKEN", "")
     require(len(token) >= 32, "METRICS_TOKEN_REQUIRED_FOR_ACCEPTANCE")
     require(bool(runner.env.get("HARNESS_RETENTION_KEY")), "RETENTION_KEY_REQUIRED_FOR_ACCEPTANCE")
     client = runner.clients["A"]
-    route = "/console/api/projects/phase5-execution/operations"
+    route = "/console/api/projects/" + runner.c["project"] + "/operations"
 
     def metric_request(secret=None):
         headers = {} if secret is None else {"Authorization": "Bearer " + secret}
@@ -39,7 +39,7 @@ def run_checks(runner):
     require(status == 401, "WRONG_METRICS_TOKEN_ACCEPTED")
     status, metrics = metric_request(token)
     require(status == 200 and "harness_database_ready 1" in metrics, "AUTHORIZED_METRICS_FAILED")
-    require(token not in metrics and 'project="phase5-execution"' in metrics, "METRICS_SCOPE_OR_SECRET_LEAK")
+    require(token not in metrics and ('project="' + runner.c["project"] + '"') in metrics, "METRICS_SCOPE_OR_SECRET_LEAK")
 
     overview_samples = []
     for _ in range(20):
@@ -78,7 +78,7 @@ def run_checks(runner):
     require(status == 200 and any(event.get("transition") == "ACKNOWLEDGED" for event in inbox.get("items", [])), "LOCAL_INBOX_ACK_DELIVERY_MISSING")
 
     # Stop rather than silently include a previous or unrelated eligible payload.
-    other = int(runner.sql("SELECT COUNT(*) FROM harness_run_index i JOIN platform_runs p ON p.run_id=i.run_id LEFT JOIN operations_retained_runs a ON a.run_id=i.run_id WHERE p.project_id='phase5-execution' AND i.terminal_at<UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3))*1000-30*86400000 AND a.run_id IS NULL"))
+    other = int(runner.sql("SELECT COUNT(*) FROM harness_run_index i JOIN platform_runs p ON p.run_id=i.run_id LEFT JOIN operations_retained_runs a ON a.run_id=i.run_id WHERE p.project_id='" + runner.c["project"] + "' AND i.terminal_at<UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3))*1000-30*86400000 AND a.run_id IS NULL"))
     require(other == 0, "UNRELATED_RETENTION_CANDIDATES_EXIST")
     creation_key = "platform-phase5-retention-" + uuid.uuid4().hex
     sentinel = creation_key + "-synthetic-body"

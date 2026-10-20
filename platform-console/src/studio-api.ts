@@ -1,8 +1,84 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ApiError, commandKey, projectPath, request, type Reply } from "./api";
 import { readPending, persistPending, clearPending } from "./pending-commands";
-import type { StudioApplication } from "./studio-types";
+import type { StudioApplication, StudioTaskPage } from "./studio-types";
 export const studioPath = (project: string) => `${projectPath(project)}/studio`;
+
+/** Each page is independently fetched so ACL changes never reuse previously rendered outputs. */
+export function useStudioTasks(
+  project: string,
+  actor: string,
+  applicationId?: string,
+  enabled = true,
+) {
+  const scope = JSON.stringify([project, actor, applicationId ?? ""]);
+  const [paging, setPaging] = useState({
+    scope,
+    cursor: "",
+    previous: [] as string[],
+    tick: 0,
+  });
+  const current =
+    paging.scope === scope
+      ? paging
+      : { scope, cursor: "", previous: [] as string[], tick: 0 };
+  const key = JSON.stringify([scope, current.cursor, current.tick, enabled]);
+  const [state, setState] = useState<{
+    key: string;
+    loading: boolean;
+    data?: StudioTaskPage;
+    error?: unknown;
+  }>({ key, loading: true });
+  const query = new URLSearchParams({ limit: "20" });
+  if (applicationId) query.set("applicationId", applicationId);
+  if (current.cursor) query.set("cursor", current.cursor);
+  const path = `${studioPath(project)}/tasks?${query}`;
+  useEffect(() => {
+    if (!enabled) {
+      setState({ key, loading: false });
+      return;
+    }
+    const controller = new AbortController();
+    setState({ key, loading: true });
+    request<StudioTaskPage>(path, { signal: controller.signal })
+      .then((reply) => {
+        if (!controller.signal.aborted)
+          setState({ key, loading: false, data: reply.data });
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted)
+          setState({ key, loading: false, error });
+      });
+    return () => controller.abort();
+  }, [key, path, enabled]);
+  const active = state.key === key ? state : { key, loading: true };
+  return {
+    ...active,
+    page: current.previous.length + 1,
+    hasPrevious: current.previous.length > 0,
+    reload: () =>
+      setPaging({ scope, cursor: "", previous: [], tick: current.tick + 1 }),
+    previous: () => {
+      if (active.loading || !current.previous.length) return;
+      setPaging({
+        ...current,
+        cursor: current.previous.at(-1)!,
+        previous: current.previous.slice(0, -1),
+      });
+    },
+    next: () => {
+      if (active.loading || !active.data?.nextCursor) return;
+      setPaging({
+        ...current,
+        cursor: active.data.nextCursor,
+        previous: [
+          ...current.previous,
+          active.data.pageCursor ?? current.cursor,
+        ],
+      });
+    },
+  };
+}
 export function useStudioCommand(
   project: string,
   subject: string,
