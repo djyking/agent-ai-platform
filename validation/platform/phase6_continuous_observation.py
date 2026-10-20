@@ -9,16 +9,15 @@ from __future__ import annotations
 import argparse
 import concurrent.futures
 import hashlib
+from http.client import HTTPConnection, HTTPException, IncompleteRead
 import json
 import math
 import os
 from pathlib import Path
+import re
 import sqlite3
 import threading
 import time
-import urllib.error
-import urllib.parse
-import urllib.request
 import uuid
 from datetime import datetime, timezone
 
@@ -44,27 +43,46 @@ def continuity_failure(previous_wall: float, previous_mono: float,
     return None
 
 
-class NoRedirect(urllib.request.HTTPRedirectHandler):
-    def redirect_request(self, request, fp, code, msg, headers, newurl):
-        return None
+MAX_RESPONSE_BYTES = 2 * 1024 * 1024
+
+
+def loopback_address(origin: str) -> tuple[str, int]:
+    # Validate the original string, not a URL parser's normalized form: parsers may
+    # discard control characters or accept userinfo, paths and ambiguous authorities.
+    match = re.fullmatch(r"http://(127\.0\.0\.1|localhost)(?::([0-9]{1,5}))?", origin)
+    if not match:
+        raise ValueError("LOCAL_LOOPBACK_ORIGIN_REQUIRED")
+    port = int(match.group(2)) if match.group(2) else 80
+    if not 1 <= port <= 65535:
+        raise ValueError("LOCAL_LOOPBACK_ORIGIN_REQUIRED")
+    return match.group(1), port
 
 
 def http(origin: str, method: str, path: str, headers=None, body=None, timeout=15):
-    request = urllib.request.Request(
-        origin + path, method=method,
-        headers={"Content-Type": "application/json", "Accept": "application/json", **(headers or {})},
-        data=None if body is None else json.dumps(body).encode(),
-    )
+    host, port = loopback_address(origin)
+    if not path.startswith("/") or path.startswith("//") or any(c in path for c in "\r\n#"):
+        raise ValueError("RELATIVE_HTTP_REQUEST_TARGET_REQUIRED")
+    # Each sample has its own connection. HTTPConnection neither consults proxies nor
+    # constructs TLS contexts/loads Windows trust stores, and never follows redirects.
+    connection = HTTPConnection(host, port, timeout=timeout)
     try:
-        # All callers use explicitly validated loopback origins. Avoid Windows' expensive
-        # per-request system proxy discovery, and never forward private local tokens to a proxy.
-        response = urllib.request.build_opener(
-            urllib.request.ProxyHandler({}), NoRedirect()).open(request, timeout=timeout)
-    except urllib.error.HTTPError as failure:
-        response = failure
-    with response:
-        raw = response.read(2 * 1024 * 1024)
-        return response.status, json.loads(raw) if raw else {}
+        connection.request(
+            method, path,
+            body=None if body is None else json.dumps(body).encode(),
+            headers={"Content-Type": "application/json", "Accept": "application/json", **(headers or {})},
+        )
+        with connection.getresponse() as response:
+            if response.length is not None and response.length > MAX_RESPONSE_BYTES:
+                raise ValueError("RESPONSE_TOO_LARGE")
+            # One sentinel byte detects oversized bodies without unbounded reads.
+            raw = response.read(MAX_RESPONSE_BYTES + 1)
+            if len(raw) > MAX_RESPONSE_BYTES:
+                raise ValueError("RESPONSE_TOO_LARGE")
+            if response.length not in (None, 0):
+                raise IncompleteRead(raw, response.length)
+            return response.status, json.loads(raw) if raw else {}
+    finally:
+        connection.close()
 
 
 def atomic_json(path: Path, value):
@@ -117,9 +135,7 @@ class Observer:
         if self.config.get("project") != "phase6-soak":
             raise ValueError("DEDICATED_SYNTHETIC_PROJECT_REQUIRED")
         for origin in [self.config["origin"], self.config["authOrigin"]]:
-            parsed = urllib.parse.urlsplit(origin)
-            if parsed.hostname not in ("127.0.0.1", "localhost") or parsed.scheme != "http":
-                raise ValueError("LOCAL_LOOPBACK_ENVIRONMENT_REQUIRED")
+            loopback_address(origin)
         self.origin = self.config["origin"].rstrip("/")
         self.identity = Identity(self.config["authOrigin"].rstrip("/"), Path(self.config["tokenFile"]))
         self.credential = Path(self.config["applicationCredentialFile"]).read_text().strip()
@@ -206,7 +222,7 @@ class Observer:
     def measure(self, sequence: int):
         method = "POST" if sequence % 10 == 0 else "GET"
         key = self.tag + "-" + str(sequence)
-        before = time.monotonic()
+        before = time.perf_counter()
         try:
             body = None
             path = self.route + "?limit=20"
@@ -216,10 +232,10 @@ class Observer:
                         "clientReference": key}
             status, reply = http(self.origin, method, path, self.headers(key if method == "POST" else None), body)
             run_id = reply.get("run", {}).get("id") if method == "POST" else None
-        except (OSError, ValueError, TimeoutError):
+        except (OSError, ValueError, TimeoutError, HTTPException):
             status, run_id = 0, None
         return {"sequence": sequence, "method": method, "status": status,
-                "latencyMillis": round((time.monotonic() - before) * 1000, 3),
+                "latencyMillis": round((time.perf_counter() - before) * 1000, 3),
                 "key": key if method == "POST" else None, "runId": run_id}
 
     def collect(self, value):

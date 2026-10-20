@@ -1,6 +1,6 @@
 {
   "format": "harness-phase6-public-evidence-v1",
-  "recordedAt": "2026-10-20T11:27:18.886767+00:00",
+  "recordedAt": "2026-10-20T12:34:24.790904+00:00",
   "scope": "Local synthetic engineering acceptance; not production readiness",
   "platformBuild": {
     "command": "mvn clean verify -B -ntp",
@@ -122,11 +122,60 @@
   },
   "local24HourObservation": {
     "status": "RUNNING",
-    "observationId": "soak-37cce5a194aa44da8b70f37279c651a2",
-    "startedAt": "2026-10-20T11:17:07.294844+00:00",
+    "observationId": "soak-aca67a6d34bb42588ea6cb78558caa11",
+    "startedAt": "2026-10-20T12:33:21.437734+00:00",
     "requestedSeconds": 86400,
-    "elapsedMonotonicSeconds": 600.313,
+    "elapsedMonotonicSeconds": 60.047,
     "completed24Hours": false,
-    "continuous": true
+    "continuous": true,
+    "updatedAt": "2026-10-20T12:34:21.491930+00:00",
+    "completedWindows": 1,
+    "requests": {
+      "requests": 600,
+      "getRequests": 540,
+      "postRequests": 60,
+      "errors": 0
+    },
+    "authRefreshes": 0,
+    "qualityPassed": null,
+    "finishedAt": null,
+    "thresholds": {
+      "apiP95Millis": 500,
+      "maxSchedulerGapSeconds": 5,
+      "requiredDurationSeconds": 86400
+    }
+  },
+  "priorObservationAttempt": {
+    "status": "STOPPED_AFTER_MEASUREMENT_GATE_FAILURE",
+    "observationId": "soak-37cce5a194aa44da8b70f37279c651a2",
+    "rawReportStatus": "RUNNING",
+    "rawReportWasModified": false,
+    "completed24Hours": false,
+    "elapsedAtLastReport": 4440.219,
+    "breachedWindows": [
+      {
+        "window": 62,
+        "p95Millis": 516.0,
+        "getP95Millis": 516.0,
+        "postP95Millis": 453.0
+      },
+      {
+        "window": 66,
+        "p95Millis": 750.0,
+        "getP95Millis": 750.0,
+        "postP95Millis": 782.0
+      }
+    ],
+    "reportSha256": "af6c62734b8ac90c73dd3e2592dd5c0dc345308d1c41ae48a73b22bc9197dce0",
+    "windowsSha256": "6776d0289ad77cddb609f9cdda78693c692161d1a20d0b610ef40b9a9e9dbb9e",
+    "writesRecordedBeforeDispatch": 4459,
+    "databaseReceipts": 4459,
+    "databaseStatuses": {
+      "COMPLETED": 4459
+    },
+    "conflictingSequences": [],
+    "duplicateClientReferences": [],
+    "writesReplayed": 0,
+    "diagnosis": "Per-request urllib HTTPS-handler creation loaded Windows certificates for loopback HTTP; replaced with independent HTTPConnection. Original failed windows retained; no duration carried forward."
   }
 }
