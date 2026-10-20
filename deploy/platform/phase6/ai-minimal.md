@@ -17,7 +17,9 @@ python deploy/platform/phase6/ai-minimal.prepare.py \
 
 输出目录必须不存在。输出 `compose.ai-minimal.private.json`、`review.json` 及两个 nginx 配置；Linux 上目录为 0700、文件为 0600，Windows 上还需受保护的目录 ACL。生成器不覆盖已有候选，也不会删除失败后的部分输出。Compose 文件可能保留既有秘密，不入 Git、不作为公开日志或 CI artifact。
 
-Compose 使用 `env_file.format: raw`，要求 Docker Compose ≥2.30；目标 v5.5.1 已只读核实。`docker compose … config --no-env-resolution --quiet` 可检查结构而不读取目标私有 env 文件，但不验证实际凭据、证书、挂载权限或运行状态。不要将完整 `config` 输出写入公开日志。
+Compose 使用 `env_file.format: raw`，其 schema 要求 Docker Compose ≥2.30；这不表示所有 ≥2.30 版本都已通过离线解析验收。本项目的 `--no-env-resolution` 契约采用已验证的 5.5.x：本机 5.5.0、CI 和目标环境 5.5.1。CI 显式安装并核对 5.5.1，避免预装 Compose 对不存在的目标私密 env 文件仍做检查；生成配置中的 `env_file.required=true` 保持不变。
+
+在上述已验证版本中，`docker compose … config --no-env-resolution --quiet` 可检查结构而不读取目标私有 env 文件，但不验证实际凭据、证书、挂载权限或运行状态。不要将完整 `config` 输出写入公开日志。
 
 ## 服务选择与数据边界
 
