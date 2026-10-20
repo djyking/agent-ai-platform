@@ -197,3 +197,142 @@ for(const latePart of ['run','events']){
     assert.doesNotMatch(f.$('events').textContent,/2025/);
   });
 }
+
+const controlledRun='40000000-0000-4000-8000-000000000004';
+const runSnapshot=(status,extra={})=>({
+  body:{id:controlledRun,status,deadline:'2099-01-01T00:00:00Z',
+    controls:{pauseRequested:false,cancelRequested:false},...extra},etag:'"revision-7"',
+});
+const runListing=()=>response({body:{items:[{
+  id:controlledRun,releaseRef:{agentId:'support'},status:'RUNNING',createdAt:'2026-01-01T00:00:00Z',
+}]}});
+const controlButtons=f=>['pause','resume','cancel'].map(
+  operation=>f.dom.window.document.querySelector('[data-control="'+operation+'"]'));
+const disabledControls=f=>controlButtons(f).map(button=>button.disabled);
+async function openControlledRun(f){
+  f.$('runList').querySelector('.run-row').click();await flush();
+}
+
+test('terminal, attention and unknown Run states disable all controls and never send commands',async t=>{
+  for(const status of ['COMPLETED','CANCELLED','FAILED','EXPIRED','BUDGET_EXCEEDED','NEEDS_ATTENTION','UNRECOGNIZED']){
+    const f=await fixture(t,call=>{
+      if(call.path==='/api/session')return response(session('alice'));
+      if(call.path==='/api/runs')return runListing();
+      if(call.path==='/api/runs/'+controlledRun)return response(runSnapshot(status));
+      return empty();
+    });
+    assert.deepEqual(disabledControls(f),[true,true,true],'no Run is selected');
+    await openControlledRun(f);
+    assert.deepEqual(disabledControls(f),[true,true,true],status);
+    // dispatchEvent deliberately bypasses the browser's disabled-button click suppression.
+    for(const button of controlButtons(f))button.dispatchEvent(new f.dom.window.Event('click'));
+    await flush();
+    assert.equal(f.requests.filter(call=>call.options.method==='POST').length,0,status);
+  }
+});
+
+test('fresh Run snapshots expose only applicable pause, resume and cancel operations',async t=>{
+  let run=runSnapshot('QUEUED');
+  const f=await fixture(t,call=>{
+    if(call.path==='/api/session')return response(session('alice'));
+    if(call.path==='/api/runs')return runListing();
+    if(call.path==='/api/runs/'+controlledRun)return response(run);
+    return empty();
+  });
+  await openControlledRun(f);
+  for(const [next,expected] of [
+    [runSnapshot('QUEUED'),[false,true,false]],
+    [runSnapshot('RUNNING'),[false,true,false]],
+    [runSnapshot('WAITING_INPUT'),[false,true,false]],
+    [runSnapshot('WAITING_APPROVAL'),[false,true,false]],
+    [runSnapshot('PAUSED',{controls:{pauseRequested:true,cancelRequested:false}}),[true,false,false]],
+    [runSnapshot('RUNNING',{controls:{pauseRequested:true,cancelRequested:false}}),[true,true,false]],
+    [runSnapshot('RUNNING',{controls:{pauseRequested:false,cancelRequested:true}}),[true,true,true]],
+    [runSnapshot('PAUSED',{controls:{pauseRequested:true,cancelRequested:true}}),[true,true,true]],
+    [runSnapshot('PAUSED',{deadline:'2020-01-01T00:00:00Z'}),[true,true,false]],
+    [runSnapshot('PAUSED',{deadline:'invalid'}),[true,true,false]],
+    [runSnapshot('PAUSED',{attention:{code:'OUTCOME_UNKNOWN'}}),[true,true,true]],
+    [{...runSnapshot('RUNNING'),etag:null},[true,true,true]],
+  ]){
+    run=next;f.$('refreshRun').click();await flush();
+    assert.deepEqual(disabledControls(f),expected,JSON.stringify(next));
+  }
+  assert.equal(f.requests.filter(call=>call.options.method==='POST').length,0);
+});
+
+test('a normal paused Run resumes once with its loaded revision and refreshes to queued controls',async t=>{
+  let run=runSnapshot('PAUSED');
+  const f=await fixture(t,call=>{
+    if(call.path==='/api/session')return response(session('alice'));
+    if(call.path==='/api/runs')return runListing();
+    if(call.path==='/api/runs/'+controlledRun)return response(run);
+    if(call.path==='/api/runs/'+controlledRun+'/resume'){
+      run={...runSnapshot('QUEUED'),etag:'"revision-8"'};
+      return response({body:{run:{id:controlledRun,status:'QUEUED'}}});
+    }
+    return empty();
+  });
+  await openControlledRun(f);
+  controlButtons(f)[1].click();await flush();
+  const writes=f.requests.filter(call=>call.options.method==='POST');
+  assert.equal(writes.length,1);
+  assert.equal(writes[0].path,'/api/runs/'+controlledRun+'/resume');
+  assert.equal(writes[0].body.etag,'"revision-7"');
+  assert.match(writes[0].body.requestKey,/^[a-f0-9-]{36}$/);
+  assert.deepEqual(disabledControls(f),[false,true,false]);
+});
+
+test('in-flight and unknown controls remain locked across refresh until the exact pending request is retried',async t=>{
+  let run=runSnapshot('RUNNING'),writes=0;
+  const first=deferred();
+  const f=await fixture(t,call=>{
+    if(call.path==='/api/session')return response(session('alice'));
+    if(call.path==='/api/runs')return runListing();
+    if(call.path==='/api/runs/'+controlledRun)return response(run);
+    if(call.options.method==='POST'){
+      writes++;
+      if(writes===1)return first.promise;
+      return response({body:{run:{id:controlledRun,status:'PAUSED'}}});
+    }
+    return empty();
+  });
+  await openControlledRun(f);
+  controlButtons(f)[0].click();await flush();
+  assert.deepEqual(disabledControls(f),[true,true,true]);
+  run=runSnapshot('PAUSED',{controls:{pauseRequested:true,cancelRequested:false}});
+  f.$('refreshRun').click();await flush();
+  assert.deepEqual(disabledControls(f),[true,true,true]);
+  first.resolve(response({code:'TEMPORARILY_UNAVAILABLE',outcomeUnknown:true},503));await flush();
+  assert.deepEqual(disabledControls(f),[true,true,true]);
+  f.$('refreshRun').click();await flush();
+  for(const button of controlButtons(f))button.dispatchEvent(new f.dom.window.Event('click'));
+  await flush();
+  assert.equal(writes,1);
+  assert.equal(f.$('retryCommand').hidden,false);
+  f.$('retryCommand').click();await flush();
+  const commands=f.requests.filter(call=>call.options.method==='POST');
+  assert.equal(commands.length,2);
+  assert.equal(commands[1].path,commands[0].path);
+  assert.deepEqual(commands[1].body,commands[0].body);
+  assert.deepEqual(disabledControls(f),[true,false,false]);
+});
+
+test('a terminal snapshot disables controls immediately without waiting for its events',async t=>{
+  let run=runSnapshot('RUNNING'),holdEvents=false;
+  const events=deferred();
+  const f=await fixture(t,call=>{
+    if(call.path==='/api/session')return response(session('alice'));
+    if(call.path==='/api/runs')return runListing();
+    if(call.path==='/api/runs/'+controlledRun)return response(run);
+    if(call.path.endsWith('/events')&&holdEvents)return events.promise;
+    return empty();
+  });
+  await openControlledRun(f);
+  assert.deepEqual(disabledControls(f),[false,true,false]);
+  run=runSnapshot('COMPLETED');holdEvents=true;
+  f.$('refreshRun').click();await flush();
+  assert.equal(f.$('runStatus').textContent,'已完成');
+  assert.deepEqual(disabledControls(f),[true,true,true]);
+  events.resolve(empty());await flush();
+  assert.deepEqual(disabledControls(f),[true,true,true]);
+});

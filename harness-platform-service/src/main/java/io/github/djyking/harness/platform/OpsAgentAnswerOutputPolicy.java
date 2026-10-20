@@ -11,6 +11,8 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiPredicate;
 
 /** Generated Ops answers retain the current ACL of every source sent to the model. */
@@ -56,7 +58,8 @@ final class OpsAgentAnswerOutputPolicy implements ProtectedOutputPolicy {
         || !reader.project().equals(owned.project())
         || !reader.application().equals(owned.application())
         || !reader.subject().equals(owned.subject())
-        || !reader.permits("runs:output:read")) return false;
+        || !reader.permits("runs:output:read")
+        || !reader.permits("opsagent:rag:search")) return false;
     try {
       var run = store.get(owned.runId());
       if (run.payloadArchived) return false;
@@ -64,9 +67,7 @@ final class OpsAgentAnswerOutputPolicy implements ProtectedOutputPolicy {
       String context = inputs.path("contextId").asText();
       ApiJson.uuid(context);
       if (!inputs.path("prompt").isTextual()) return false;
-      String authorization =
-          identity.toolAuthorization(
-              owned.application(), owned.project(), owned.delegation(), owned.runId());
+      String authorization = identity.outputAuthorization(reader, owned);
       String digest =
           HexFormat.of()
               .formatHex(
@@ -79,7 +80,7 @@ final class OpsAgentAnswerOutputPolicy implements ProtectedOutputPolicy {
     }
   }
 
-  private static BiPredicate<String, JsonNode> client(URI origin) {
+  static BiPredicate<String, JsonNode> client(URI origin) {
     if (origin == null) return (token, input) -> false;
     if (origin.getHost() == null
         || origin.getUserInfo() != null
@@ -97,19 +98,22 @@ final class OpsAgentAnswerOutputPolicy implements ProtectedOutputPolicy {
             .build();
     return (token, input) -> {
       if (token == null || !token.matches("Bearer [A-Za-z0-9._~-]{1,9990}")) return false;
+      CompletableFuture<HttpResponse<byte[]>> pending = null;
       try {
-        var response =
-            http.send(
-                HttpRequest.newBuilder(origin.resolve("/internal/rag/harness/answer-access"))
+        pending =
+            http.sendAsync(
+                HttpRequest.newBuilder(origin.resolve("/internal/rag/harness/output-answer-access"))
                     .timeout(Duration.ofSeconds(5))
                     .header("Authorization", token)
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(Json.write(input)))
                     .build(),
                 new LimitedBodyHandler(4096));
+        var response = pending.get(5, TimeUnit.SECONDS);
         if (response.statusCode() != 200) return false;
         JsonNode result = Json.read(new String(response.body(), StandardCharsets.UTF_8));
         return result.path("code").isIntegralNumber()
+            && result.path("code").canConvertToInt()
             && result.path("code").asInt(-1) == 0
             && result.path("data").path("allowed").isBoolean()
             && result.path("data").path("allowed").asBoolean();
@@ -118,6 +122,8 @@ final class OpsAgentAnswerOutputPolicy implements ProtectedOutputPolicy {
         return false;
       } catch (Exception unavailable) {
         return false;
+      } finally {
+        if (pending != null && !pending.isDone()) pending.cancel(true);
       }
     };
   }

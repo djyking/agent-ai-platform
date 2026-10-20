@@ -89,7 +89,9 @@ final class SupportIdentity {
         throw failure(401, "UNAUTHENTICATED");
       if (response.statusCode() != 200) throw failure(503, "AUTH_PROVIDER_UNAVAILABLE");
       JsonNode envelope = Json.MAPPER.readTree(response.body());
-      if (envelope == null || !envelope.path("code").isIntegralNumber())
+      if (envelope == null
+          || !envelope.path("code").isIntegralNumber()
+          || !envelope.path("code").canConvertToInt())
         throw failure(503, "AUTH_PROVIDER_UNAVAILABLE");
       if (envelope.path("code").asInt(-1) != 0) throw failure(401, "UNAUTHENTICATED");
       if (!envelope.path("data").isObject()) throw failure(503, "AUTH_PROVIDER_UNAVAILABLE");

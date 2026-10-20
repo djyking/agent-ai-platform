@@ -12,6 +12,13 @@ import java.util.concurrent.Flow;
 public final class LimitedBodyHandler implements HttpResponse.BodyHandler<byte[]> {
   private final int limit;
 
+  /** Fixed marker; callers must not inspect provider-controlled exception messages. */
+  public static final class ResponseTooLargeException extends IllegalStateException {
+    public ResponseTooLargeException() {
+      super("HTTP response size limit exceeded");
+    }
+  }
+
   public LimitedBodyHandler(int limit) {
     if (limit < 1) throw new IllegalArgumentException("Response limit must be positive");
     this.limit = limit;
@@ -33,9 +40,8 @@ public final class LimitedBodyHandler implements HttpResponse.BodyHandler<byte[]
       public void onSubscribe(Flow.Subscription subscription) {
         this.subscription = subscription;
         if (responseInfo.headers().firstValueAsLong("Content-Length").orElse(0) > limit) {
+          result.completeExceptionally(new ResponseTooLargeException());
           subscription.cancel();
-          result.completeExceptionally(
-              new IllegalStateException("HTTP response size limit exceeded"));
         } else {
           subscription.request(1);
         }
@@ -45,9 +51,8 @@ public final class LimitedBodyHandler implements HttpResponse.BodyHandler<byte[]
       public void onNext(List<ByteBuffer> buffers) {
         for (var buffer : buffers) {
           if (buffer.remaining() > limit - bytes.size()) {
+            result.completeExceptionally(new ResponseTooLargeException());
             subscription.cancel();
-            result.completeExceptionally(
-                new IllegalStateException("HTTP response size limit exceeded"));
             return;
           }
           byte[] chunk = new byte[buffer.remaining()];

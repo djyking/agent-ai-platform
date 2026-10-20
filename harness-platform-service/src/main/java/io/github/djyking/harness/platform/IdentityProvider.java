@@ -37,6 +37,11 @@ public interface IdentityProvider {
 
   String toolAuthorization(String application, String project, String delegationId, String runId);
 
+  /** Read-only domain authorization; never falls back to an execution delegation. */
+  default String outputAuthorization(Principal reader, PlatformRepository.Owned owned) {
+    throw ApiFailure.denied();
+  }
+
   /** Legacy extension point. New deployments inject an independent ProtectedOutputPolicy. */
   default boolean canReadProtectedOutput(
       Principal reader,

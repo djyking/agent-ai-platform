@@ -13,6 +13,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Existing OpsAgent user identities; application credentials and login JWTs remain request-local.
@@ -89,11 +91,28 @@ public final class OpsAgentIdentityClient {
 
   public Token token(
       String applicationAuthorization, String delegationId, String runId, String audience) {
-    JsonNode result =
+    return token(
         call(
             applicationAuthorization,
             delegationPath(delegationId) + "/token",
-            Json.object().put("runId", runId).put("audience", audience));
+            Json.object().put("runId", runId).put("audience", audience)));
+  }
+
+  /** The authority separately checks current access against the original delegation ceiling. */
+  public Token outputToken(
+      String applicationAuthorization,
+      String delegationId,
+      String projectId,
+      String subject,
+      String runId) {
+    return token(
+        call(
+            applicationAuthorization,
+            delegationPath(delegationId) + "/output-token",
+            Json.object().put("projectId", projectId).put("subject", subject).put("runId", runId)));
+  }
+
+  private Token token(JsonNode result) {
     String authorization = text(result, "authorization");
     if (!authorization.matches("Bearer [A-Za-z0-9._~-]{1,9990}"))
       throw new IdentityFailure(502, "OPSAGENT_AUTH_RESPONSE_INVALID");
@@ -120,8 +139,10 @@ public final class OpsAgentIdentityClient {
       request
           .header("Content-Type", "application/json")
           .POST(HttpRequest.BodyPublishers.ofString(Json.write(body)));
+    CompletableFuture<HttpResponse<byte[]>> pending = null;
     try {
-      HttpResponse<byte[]> response = client.send(request.build(), new LimitedBodyHandler(65536));
+      pending = client.sendAsync(request.build(), new LimitedBodyHandler(65536));
+      HttpResponse<byte[]> response = pending.get(timeout.toNanos(), TimeUnit.NANOSECONDS);
       if (response.statusCode() != 200)
         throw new IdentityFailure(response.statusCode(), "OPSAGENT_IDENTITY_REJECTED");
       JsonNode envelope = Json.read(new String(response.body(), StandardCharsets.UTF_8));
@@ -142,6 +163,8 @@ public final class OpsAgentIdentityClient {
       throw new IdentityFailure(503, "OPSAGENT_IDENTITY_UNAVAILABLE");
     } catch (Exception failure) {
       throw new IdentityFailure(503, "OPSAGENT_IDENTITY_UNAVAILABLE");
+    } finally {
+      if (pending != null && !pending.isDone()) pending.cancel(true);
     }
   }
 

@@ -16,6 +16,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Flow;
+import java.util.concurrent.TimeUnit;
 
 /** Thin synchronous HTTP client. No worker, state machine, polling, or automatic command retries. */
 public final class PlatformClient {
@@ -134,14 +135,19 @@ public final class PlatformClient {
       if (etag != null) builder.header("If-Match", etag);
     } else builder.GET();
     HttpResponse<byte[]> response;
+    CompletableFuture<HttpResponse<byte[]>> pending = null;
     try {
       // Exactly one send. On an ambiguous transport failure the caller retains the original key/body.
-      response = http.send(builder.build(), info -> new LimitedBody(config.maxResponseBytes()));
+      pending = http.sendAsync(builder.build(), info -> new LimitedBody(config.maxResponseBytes()));
+      // HttpRequest.timeout alone does not bound a response body that stalls after its headers.
+      response = pending.get(config.timeout().toNanos(), TimeUnit.NANOSECONDS);
     } catch (InterruptedException interrupted) {
       Thread.currentThread().interrupt();
       throw new PlatformException(0, "REQUEST_INTERRUPTED", null, mutation);
     } catch (Exception failure) {
       throw new PlatformException(0, "TRANSPORT_FAILED", null, mutation);
+    } finally {
+      if (pending != null && !pending.isDone()) pending.cancel(true);
     }
     String requestId = header(response, "X-Request-Id");
     JsonNode value;

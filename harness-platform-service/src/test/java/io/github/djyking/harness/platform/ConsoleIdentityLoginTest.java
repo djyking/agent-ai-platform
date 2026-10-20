@@ -9,9 +9,62 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 
 class ConsoleIdentityLoginTest {
+  @Test
+  void optionalBusinessCodeMustBeAnExactIntSuccessValueWhenPresent() throws Exception {
+    HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+    var code = new AtomicReference<String>();
+    server.createContext(
+        "/api/auth/",
+        exchange -> {
+          exchange.getRequestBody().readAllBytes();
+          String response =
+              "{"
+                  + (code.get() == null ? "" : "\"code\":" + code.get() + ",")
+                  + "\"data\":{\"accessToken\":\"existing-user-token\","
+                  + "\"captchaId\":\"0123456789abcdef0123456789abcdef\","
+                  + "\"imageDataUrl\":\"data:image/png;base64,aA==\",\"expiresInSeconds\":120}}";
+          byte[] bytes = response.getBytes(StandardCharsets.UTF_8);
+          exchange.sendResponseHeaders(200, bytes.length);
+          try (var output = exchange.getResponseBody()) {
+            output.write(bytes);
+          }
+        });
+    server.start();
+    try {
+      var client =
+          new ConsoleIdentityLogin(URI.create("http://127.0.0.1:" + server.getAddress().getPort()));
+      for (String accepted : new String[] {null, "0", "200"}) {
+        code.set(accepted);
+        assertEquals("existing-user-token", client.login(Json.object()));
+        assertEquals(3, client.captcha().size());
+      }
+      for (String rejected :
+          new String[] {
+            "4294967296",
+            "4294967496",
+            "-4294967296",
+            "0.5",
+            "200.5",
+            "\"0\"",
+            "\"200\"",
+            "false",
+            "null",
+            "{}",
+            "[]"
+          }) {
+        code.set(rejected);
+        assertEquals(401, assertThrows(ApiFailure.class, () -> client.login(Json.object())).status);
+        assertEquals(401, assertThrows(ApiFailure.class, client::captcha).status);
+      }
+    } finally {
+      server.stop(0);
+    }
+  }
+
   @Test
   void existingAuthContractIsProjectedAndProviderMessagesAreHidden() throws Exception {
     HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);

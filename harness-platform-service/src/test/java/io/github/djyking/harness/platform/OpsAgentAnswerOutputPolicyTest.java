@@ -24,9 +24,9 @@ class OpsAgentAnswerOutputPolicyTest {
           "prompt",
           Json.read(
               """
-              {"id":"prompt","version":"1","system":"Use only supplied evidence","user":"{{prompt}}",
-               "variables":{"prompt":"STRING"}}
-              """));
+{"id":"prompt","version":"1","system":"Use only supplied evidence","user":"{{prompt}}",
+ "variables":{"prompt":"STRING"}}
+"""));
       x.publish("ModelProfile", "model", Json.object().put("trustedProfile", "test"));
       x.publish(
           "Workflow",
@@ -93,7 +93,7 @@ class OpsAgentAnswerOutputPolicyTest {
               x.f.identities,
               (auth, check) -> {
                 checks.incrementAndGet();
-                assertEquals("Bearer explicitly-test-only", auth);
+                assertEquals("Bearer explicitly-test-output-only", auth);
                 assertEquals(context, check.path("contextId").asText());
                 assertEquals(digest, check.path("promptSha256").asText());
                 assertEquals(2, check.size());
@@ -110,6 +110,12 @@ class OpsAgentAnswerOutputPolicyTest {
       assertFalse(
           outputPolicy.canRead(
               x.f.principal(), owned, Json.object().put("content", "replacement")));
+      assertFalse(
+          outputPolicy.canRead(
+              new IdentityProvider.Principal(
+                  "app-a", "project-a", "alice", Set.of("runs:output:read")),
+              owned,
+              output));
       x.f.identities.revoke("app-a", "project-a", "alice", "runs:output:read");
       assertFalse(outputPolicy.canRead(x.f.principal(), owned, output));
       assertEquals(2, checks.get());

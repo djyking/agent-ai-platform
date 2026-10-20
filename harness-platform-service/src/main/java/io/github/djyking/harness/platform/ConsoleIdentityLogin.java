@@ -89,8 +89,10 @@ public final class ConsoleIdentityLogin implements IdentityLogin {
       JsonNode envelope = Json.MAPPER.readTree(bytes);
       if (envelope == null || !envelope.isObject()) throw unavailable();
       if (envelope.has("code")
-          && envelope.path("code").asInt(-1) != 0
-          && envelope.path("code").asInt(-1) != 200) throw new ApiFailure(401, "UNAUTHENTICATED");
+          && (!envelope.path("code").isIntegralNumber()
+              || !envelope.path("code").canConvertToInt()
+              || (envelope.path("code").asInt() != 0 && envelope.path("code").asInt() != 200)))
+        throw new ApiFailure(401, "UNAUTHENTICATED");
       JsonNode data = envelope.path("data");
       if (!data.isObject()) throw unavailable();
       return data;

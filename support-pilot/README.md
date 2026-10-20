@@ -19,14 +19,17 @@ java -jar support-pilot/target/support-pilot-0.1.0-SNAPSHOT.jar
 | `SUPPORT_IDENTITY_ORIGIN` | 现有 Ops Auth origin，HTTPS 或本机 HTTP |
 | `SUPPORT_PROJECT` | 已授权客服项目，默认 `support-pilot` |
 | `SUPPORT_APPLICATION_SECRET` | 已在 Ops 身份桥登记的独立应用凭据 |
-| `SUPPORT_PORT` | 本机监听端口，默认 `8098` |
+| `SUPPORT_PORT` | 监听端口，默认 `8098` |
+| `SUPPORT_BIND_ADDRESS` | 监听 IP 字面量，默认 `127.0.0.1`；私网容器可显式设置 `0.0.0.0` |
 | `SUPPORT_AUTH_MODE` | 默认 `opsagent`；正式模式不接收共享用户 token 或访问码 |
 | `SUPPORT_RUNTIME_MODE` | `development`（默认）、`staging`、`production` |
 | `SUPPORT_PUBLIC_ORIGIN` | 固定公开 origin；staging/production 必须为 HTTPS |
 
-服务始终绑定 `127.0.0.1`。公网部署由同机 nginx 终止 TLS 并反代；Host 和写请求 Origin 必须精确匹配 `SUPPORT_PUBLIC_ORIGIN`。应用不从任意转发头推断可信 origin。HTTPS origin 下 cookie 自动设置 Secure；同时保留 HttpOnly、SameSite=Strict 和一小时有效期。只有显式 `development + local-test` 才能使用旧访问码，生产和预发布配置会拒绝它。
+服务默认绑定 `127.0.0.1`，由同机 nginx 终止 TLS 并反代。容器部署可显式设置 `SUPPORT_BIND_ADDRESS=0.0.0.0`，只连接私有 Docker 网络，不发布 BFF 宿主端口；非回环监听必须使用 `opsagent` 身份和明确的 HTTPS `SUPPORT_PUBLIC_ORIGIN`。监听地址仅接受 IPv4/IPv6 字面量，不接受主机名、URL、端口或 IPv6 zone。Host 和写请求 Origin 仍须精确匹配公开 origin，应用不从任意转发头推断可信 origin。HTTPS origin 下 cookie 自动设置 Secure；同时保留 HttpOnly、SameSite=Strict 和一小时有效期。只有显式 `development + local-test` 且监听回环地址才能使用旧访问码，生产和预发布配置会拒绝它。
 
 本机正式联调可省略 `SUPPORT_PUBLIC_ORIGIN`，访问 `http://127.0.0.1:<SUPPORT_PORT>/`。登录界面复用 Ops 的 `/api/auth/captcha` 和 `/api/auth/login`；客服 BFF 接收密码后只向固定身份源转发一次，不保存密码、不创建用户，不向浏览器返回上游 token，也不自动续期。
+
+与 Ops 共用域名时可发布到 `https://opsagent.cloud/support/`：保留 Ops 的 `/`、`/api/`，将 `/support` 重定向到带尾斜杠的 `/support/`，nginx 剥离此前缀再转发到 BFF，并将会话 cookie 的 Path 从 `/` 改写为 `/support/`（登录和退出都适用）。静态资源与首页链接使用相对路径，脚本从自身的同源资源地址确定 API 前缀，不接受跨源地址或任意转发头。`SUPPORT_PUBLIC_ORIGIN` 仍是 `https://opsagent.cloud`，Host、Origin、CSRF 与内部平台调用的 HTTPS 规则保持不变。示例见 `deploy/platform/phase6/support.nginx.example.conf` 的同域配置说明。本机根路径部署仍使用 `/api/`。
 
 本机测试模式还需显式配置 `SUPPORT_OPERATOR_USER_TOKEN` / `SUPPORT_OPERATOR_ACCESS_CODE`，可选 `SUPPORT_REVIEWER_USER_TOKEN` / `SUPPORT_REVIEWER_ACCESS_CODE`。访问码至少 24 字符且必须不同；这些环境仅用于合成隔离测试，正式模式不得设置共享 token。
 
@@ -51,7 +54,7 @@ java -jar support-pilot/target/support-pilot-0.1.0-SNAPSHOT.jar
 
 ```powershell
 .\mvnw.cmd -pl support-pilot -am test
-node --test support-pilot/src/test/js/approval.test.mjs support-pilot/src/test/js/auth.test.mjs
+node --test support-pilot/src/test/js/*.test.mjs
 ```
 
 Java 测试走实际 HTTP，覆盖验证码/登录/introspect、每用户 token 转发、审核权限、撤权、身份故障、登出、CSRF、访问码禁用与生产配置。DOM 测试覆盖审批绑定、乱序、正式登录、切换用户以及未确认请求的刷新恢复。

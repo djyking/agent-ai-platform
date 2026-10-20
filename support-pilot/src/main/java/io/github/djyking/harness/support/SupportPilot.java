@@ -8,9 +8,11 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import io.github.djyking.harness.client.*;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URLDecoder;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
@@ -44,7 +46,38 @@ public final class SupportPilot implements AutoCloseable {
       String runtimeMode,
       String authMode,
       URI identityOrigin,
-      URI publicOrigin) {
+      URI publicOrigin,
+      String bindAddress) {
+    /** Existing callers retain a loopback-only listener. */
+    public Configuration(
+        URI platformOrigin,
+        String project,
+        int port,
+        SecretProvider applicationSecret,
+        SecretProvider operatorToken,
+        String operatorAccessCode,
+        SecretProvider reviewerToken,
+        String reviewerAccessCode,
+        String runtimeMode,
+        String authMode,
+        URI identityOrigin,
+        URI publicOrigin) {
+      this(
+          platformOrigin,
+          project,
+          port,
+          applicationSecret,
+          operatorToken,
+          operatorAccessCode,
+          reviewerToken,
+          reviewerAccessCode,
+          runtimeMode,
+          authMode,
+          identityOrigin,
+          publicOrigin,
+          "127.0.0.1");
+    }
+
     /** Explicit compatibility constructor for loopback test fixtures only. */
     public Configuration(
         URI platformOrigin,
@@ -72,6 +105,8 @@ public final class SupportPilot implements AutoCloseable {
 
     public Configuration {
       Objects.requireNonNull(applicationSecret);
+      InetAddress listener = literalAddress(bindAddress);
+      bindAddress = listener.getHostAddress();
       if (port < 0
           || port > 65535
           || !Set.of("development", "staging", "production").contains(runtimeMode)
@@ -82,6 +117,7 @@ public final class SupportPilot implements AutoCloseable {
       if (authMode.equals("local-test")) {
         Objects.requireNonNull(operatorToken);
         if (!runtimeMode.equals("development")
+            || !listener.isLoopbackAddress()
             || publicOrigin != null
             || operatorAccessCode == null
             || operatorAccessCode.length() < 24)
@@ -113,6 +149,30 @@ public final class SupportPilot implements AutoCloseable {
           && (publicOrigin == null || !publicOrigin.getScheme().equals("https")))
         throw new IllegalArgumentException(
             "Staging and production require an explicit HTTPS public origin");
+      if (!listener.isLoopbackAddress()
+          && (!authMode.equals("opsagent")
+              || publicOrigin == null
+              || !publicOrigin.getScheme().equals("https")))
+        throw new IllegalArgumentException(
+            "Non-loopback listeners require Ops identity and an explicit HTTPS public origin");
+    }
+
+    private static InetAddress literalAddress(String value) {
+      if (value == null
+          || !(value.matches("(?:0|[1-9][0-9]{0,2})(?:\\.(?:0|[1-9][0-9]{0,2})){3}")
+              || value.contains(":") && value.matches("[0-9a-fA-F:]+")))
+        throw new IllegalArgumentException("Support bind address must be an IP literal");
+      if (!value.contains(":")) {
+        for (String octet : value.split("\\.")) {
+          if (Integer.parseInt(octet) > 255)
+            throw new IllegalArgumentException("Invalid support bind address");
+        }
+      }
+      try {
+        return InetAddress.getByName(value);
+      } catch (UnknownHostException invalid) {
+        throw new IllegalArgumentException("Invalid support bind address");
+      }
     }
 
     @Override
@@ -157,10 +217,15 @@ public final class SupportPilot implements AutoCloseable {
             ? new SupportIdentity(
                 config.identityOrigin(), config.project(), config.applicationSecret())
             : null;
-    server = HttpServer.create(new InetSocketAddress("127.0.0.1", config.port()), 32);
+    server = HttpServer.create(new InetSocketAddress(config.bindAddress(), config.port()), 32);
     origin =
         config.publicOrigin() == null
-            ? "http://127.0.0.1:" + server.getAddress().getPort()
+            ? "http://"
+                + (config.bindAddress().contains(":")
+                    ? "[" + config.bindAddress() + "]"
+                    : config.bindAddress())
+                + ":"
+                + server.getAddress().getPort()
             : config.publicOrigin().toString();
     executor = Executors.newFixedThreadPool(8);
     server.setExecutor(executor);
@@ -173,6 +238,10 @@ public final class SupportPilot implements AutoCloseable {
 
   public URI origin() {
     return URI.create(origin);
+  }
+
+  InetSocketAddress listenAddress() {
+    return server.getAddress();
   }
 
   @Override
@@ -623,7 +692,8 @@ public final class SupportPilot implements AutoCloseable {
             System.getenv().getOrDefault("SUPPORT_RUNTIME_MODE", "development"),
             authMode,
             localTest ? null : URI.create(required("SUPPORT_IDENTITY_ORIGIN")),
-            publicOrigin == null || publicOrigin.isBlank() ? null : URI.create(publicOrigin));
+            publicOrigin == null || publicOrigin.isBlank() ? null : URI.create(publicOrigin),
+            System.getenv().getOrDefault("SUPPORT_BIND_ADDRESS", "127.0.0.1"));
     required("SUPPORT_APPLICATION_SECRET");
     if (localTest) required("SUPPORT_OPERATOR_USER_TOKEN");
     SupportPilot app = new SupportPilot(config);

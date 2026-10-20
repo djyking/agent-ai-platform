@@ -11,7 +11,9 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -92,19 +94,38 @@ public final class ChatCompletionsModel implements ModelGateway {
 
   /** Fixed categories only: never publish a throwable message, URL or provider response body. */
   static String transportCode(Throwable failure) {
-    for (int depth = 0; failure != null && depth < 12; depth++, failure = failure.getCause()) {
-      if (failure instanceof java.net.http.HttpConnectTimeoutException)
-        return "MODEL_CONNECT_TIMEOUT_USAGE_UNKNOWN";
-      if (failure instanceof javax.net.ssl.SSLException) return "MODEL_TLS_FAILURE_USAGE_UNKNOWN";
-      if (failure instanceof java.net.UnknownHostException
-          || failure instanceof java.nio.channels.UnresolvedAddressException)
-        return "MODEL_DNS_FAILURE_USAGE_UNKNOWN";
-      if (failure instanceof java.net.ConnectException)
-        return "MODEL_CONNECT_FAILURE_USAGE_UNKNOWN";
-      if (failure instanceof java.net.http.HttpTimeoutException
-          || failure instanceof java.util.concurrent.TimeoutException)
-        return "MODEL_RESPONSE_TIMEOUT_USAGE_UNKNOWN";
+    var causes = new ArrayList<Throwable>();
+    Set<Throwable> seen = Collections.newSetFromMap(new IdentityHashMap<>());
+    for (; failure != null && seen.add(failure); failure = failure.getCause()) {
+      causes.add(failure);
     }
+    // Inspect the entire chain before a broad IOException can hide a specific nested cause.
+    if (causes.stream().anyMatch(java.net.http.HttpConnectTimeoutException.class::isInstance))
+      return "MODEL_CONNECT_TIMEOUT_USAGE_UNKNOWN";
+    if (causes.stream().anyMatch(javax.net.ssl.SSLException.class::isInstance))
+      return "MODEL_TLS_FAILURE_USAGE_UNKNOWN";
+    if (causes.stream().anyMatch(java.net.UnknownHostException.class::isInstance)
+        || causes.stream().anyMatch(java.nio.channels.UnresolvedAddressException.class::isInstance))
+      return "MODEL_DNS_FAILURE_USAGE_UNKNOWN";
+    if (causes.stream().anyMatch(java.net.ConnectException.class::isInstance))
+      return "MODEL_CONNECT_FAILURE_USAGE_UNKNOWN";
+    if (causes.stream().anyMatch(java.net.http.HttpTimeoutException.class::isInstance)
+        || causes.stream().anyMatch(java.util.concurrent.TimeoutException.class::isInstance))
+      return "MODEL_RESPONSE_TIMEOUT_USAGE_UNKNOWN";
+    if (causes.stream().anyMatch(LimitedBodyHandler.ResponseTooLargeException.class::isInstance))
+      return "MODEL_RESPONSE_TOO_LARGE_USAGE_UNKNOWN";
+    if (causes.stream().anyMatch(java.io.EOFException.class::isInstance))
+      return "MODEL_EOF_USAGE_UNKNOWN";
+    if (causes.stream().anyMatch(java.nio.channels.ClosedChannelException.class::isInstance))
+      return "MODEL_CHANNEL_CLOSED_USAGE_UNKNOWN";
+    if (causes.stream().anyMatch(java.net.ProtocolException.class::isInstance))
+      return "MODEL_PROTOCOL_FAILURE_USAGE_UNKNOWN";
+    if (causes.stream().anyMatch(java.net.SocketException.class::isInstance))
+      return "MODEL_SOCKET_FAILURE_USAGE_UNKNOWN";
+    if (causes.stream().anyMatch(java.io.IOException.class::isInstance))
+      return "MODEL_IO_FAILURE_USAGE_UNKNOWN";
+    if (causes.stream().anyMatch(java.util.concurrent.CancellationException.class::isInstance))
+      return "MODEL_CALL_CANCELLED_USAGE_UNKNOWN";
     return "MODEL_CALL_OUTCOME_UNKNOWN";
   }
 

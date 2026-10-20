@@ -18,7 +18,7 @@ class ProtectedOutputPolicyTest {
               fixture.identities,
               (auth, citations) -> {
                 calls.incrementAndGet();
-                assertEquals("Bearer explicitly-test-only", auth);
+                assertEquals("Bearer explicitly-test-output-only", auth);
                 return true;
               });
       assertTrue(policy.canRead(fixture.principal(), owned, PlatformTestSupport.protectedResult()));

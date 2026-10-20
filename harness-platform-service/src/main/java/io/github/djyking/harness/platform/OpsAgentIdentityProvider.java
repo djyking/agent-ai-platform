@@ -92,6 +92,29 @@ public final class OpsAgentIdentityProvider implements IdentityProvider {
   }
 
   @Override
+  public String outputAuthorization(Principal reader, PlatformRepository.Owned owned) {
+    if (reader == null
+        || owned == null
+        || !reader.application().equals(owned.application())
+        || !reader.project().equals(owned.project())
+        || !reader.subject().equals(owned.subject())
+        || !reader.permits("runs:output:read")
+        || !reader.permits("opsagent:rag:search")) throw ApiFailure.denied();
+    try {
+      return client
+          .outputToken(
+              credential(owned.application()),
+              owned.delegation(),
+              owned.project(),
+              owned.subject(),
+              owned.runId())
+          .authorization();
+    } catch (OpsAgentIdentityClient.IdentityFailure ex) {
+      throw failure(ex);
+    }
+  }
+
+  @Override
   public boolean canReadProtectedOutput(
       Principal reader,
       PlatformRepository.Owned owned,

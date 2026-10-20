@@ -53,9 +53,7 @@ public final class OpsAgentProtectedOutputPolicy implements ProtectedOutputPolic
         || !output.path("evidence").isTextual()
         || !output.path("citations").isArray()) return false;
     try {
-      String authorization =
-          identity.toolAuthorization(
-              owned.application(), owned.project(), owned.delegation(), owned.runId());
+      String authorization = identity.outputAuthorization(reader, owned);
       return projection.test(authorization, output.path("citations"));
     } catch (RuntimeException unavailable) {
       return false;

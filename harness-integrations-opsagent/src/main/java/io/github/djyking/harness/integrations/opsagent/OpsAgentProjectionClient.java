@@ -6,9 +6,12 @@ import io.github.djyking.harness.core.Json;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 /** Current domain authorization for stored, unmodified OpsAgent retrieval output. */
 public final class OpsAgentProjectionClient {
@@ -32,7 +35,7 @@ public final class OpsAgentProjectionClient {
         || timeout.isZero()
         || timeout.compareTo(Duration.ofSeconds(30)) > 0)
       throw new IllegalArgumentException("OPSAGENT_PROJECTION_TIMEOUT_INVALID");
-    this.endpoint = ragOrigin.resolve("/internal/rag/validate-citations");
+    this.endpoint = ragOrigin.resolve("/internal/rag/output/validate-citations");
     this.timeout = timeout;
     this.http =
         HttpClient.newBuilder()
@@ -64,9 +67,10 @@ public final class OpsAgentProjectionClient {
               .put("chunkId", citation.path("chunkId").asLong())
               .put("version", citation.path("version").asInt()));
     }
+    CompletableFuture<HttpResponse<byte[]>> pending = null;
     try {
-      var response =
-          http.send(
+      pending =
+          http.sendAsync(
               HttpRequest.newBuilder(endpoint)
                   .timeout(timeout)
                   .header("Authorization", ragAuthorization)
@@ -76,6 +80,7 @@ public final class OpsAgentProjectionClient {
                           Json.write(Json.object().set("citations", refs))))
                   .build(),
               new LimitedBodyHandler(4096));
+      var response = pending.get(timeout.toNanos(), TimeUnit.NANOSECONDS);
       if (response.statusCode() != 200) return false;
       JsonNode envelope = Json.read(new String(response.body(), StandardCharsets.UTF_8));
       return envelope.path("code").isIntegralNumber()
@@ -88,6 +93,8 @@ public final class OpsAgentProjectionClient {
       return false;
     } catch (Exception unavailable) {
       return false;
+    } finally {
+      if (pending != null && !pending.isDone()) pending.cancel(true);
     }
   }
 }

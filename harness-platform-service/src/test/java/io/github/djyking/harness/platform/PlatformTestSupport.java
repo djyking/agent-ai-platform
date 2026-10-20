@@ -194,12 +194,12 @@ final class PlatformTestSupport implements AutoCloseable {
   static JsonNode protectedResult() {
     return Json.read(
         """
-        {"evidence":"Synthetic restricted excerpts from two documents",
-         "citations":[
-           {"sourceId":"source-one","chunkId":101,"documentId":11,"version":1,"documentName":"Restricted one"},
-           {"sourceId":"source-two","chunkId":202,"documentId":22,"version":1,"documentName":"Restricted two"}
-         ]}
-        """);
+{"evidence":"Synthetic restricted excerpts from two documents",
+ "citations":[
+   {"sourceId":"source-one","chunkId":101,"documentId":11,"version":1,"documentName":"Restricted one"},
+   {"sourceId":"source-two","chunkId":202,"documentId":22,"version":1,"documentName":"Restricted two"}
+ ]}
+""");
   }
 
   private static Deployment.Release release(String project, String kind) {
@@ -458,6 +458,21 @@ final class PlatformTestSupport implements AutoCloseable {
     public String toolAuthorization(String app, String project, String delegation, String run) {
       current(app, project, delegation, run);
       return "Bearer explicitly-test-only";
+    }
+
+    @Override
+    public String outputAuthorization(Principal reader, PlatformRepository.Owned owned) {
+      Principal current =
+          current(owned.application(), owned.project(), owned.delegation(), owned.runId());
+      if (!reader.application().equals(owned.application())
+          || !reader.project().equals(owned.project())
+          || !reader.subject().equals(owned.subject())
+          || !current.subject().equals(reader.subject())
+          || !reader.permits("runs:output:read")
+          || !reader.permits("opsagent:rag:search")
+          || !current.permits("runs:output:read")
+          || !current.permits("opsagent:rag:search")) throw ApiFailure.denied();
+      return "Bearer explicitly-test-output-only";
     }
 
     @Override

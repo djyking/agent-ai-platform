@@ -126,14 +126,51 @@ class Phase6BundleTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = self.observation(Path(directory), status="PASSED")
             report = json.loads(path.read_text())
+            windows = [{
+                "window": index, "completeMinute": True, "elapsedMonotonicSeconds": index * 60,
+                "requests": 600, "getRequests": 540, "postRequests": 60, "errors": 0,
+                "p95Millis": 120, "getP95Millis": 120, "postP95Millis": 120,
+                "service": {"available": True, "workers": [{}, {}],
+                            "workerSetChanged": False, "unresolvedPermits": 0},
+            } for index in range(1, 1441)]
+            window_path = path.with_name("windows.jsonl")
+            window_path.write_text("".join(json.dumps(window) + "\n" for window in windows))
             report.update(elapsedMonotonicSeconds=86401, completed24Hours=True,
-                          completedWindows=1440, qualityPassed=True, requests={"errors": 0})
+                          completedWindows=1440, completedMinuteWindows=1440,
+                          qualityPassed=True, firstQualityFailure=None, unreconciledCommands=0,
+                          latestWindow=windows[-1],
+                          requests={"requests": 864000, "getRequests": 777600,
+                                    "postRequests": 86400, "errors": 0})
             path.write_text(json.dumps(report))
             self.assertEqual("PASSED", bundle.observation_summary(path)["status"])
-            report["continuous"] = False
+            for field, invalid in (
+                    ("continuous", False), ("completedMinuteWindows", 1439),
+                    ("unreconciledCommands", 1),
+                    ("firstQualityFailure", {"code": "WINDOW_P95_EXCEEDED"}),
+                    ("requests", {"errors": 0})):
+                with self.subTest(field=field):
+                    path.write_text(json.dumps({**report, field: invalid}))
+                    with self.assertRaises(ValueError):
+                        bundle.observation_summary(path)
             path.write_text(json.dumps(report))
-            with self.assertRaises(ValueError):
-                bundle.observation_summary(path)
+            for failure in ("missing", "duplicate", "latency", "nonfinite", "counts", "partial"):
+                with self.subTest(failure=failure):
+                    altered = json.loads(json.dumps(windows))
+                    if failure == "missing":
+                        altered.pop()
+                    elif failure == "duplicate":
+                        altered[62] = altered[61]
+                    elif failure == "latency":
+                        altered[62]["p95Millis"] = 501
+                    elif failure == "nonfinite":
+                        altered[62]["p95Millis"] = float("nan")
+                    elif failure == "counts":
+                        altered[62]["postRequests"] = 59
+                    else:
+                        altered[62]["completeMinute"] = False
+                    window_path.write_text("".join(json.dumps(window) + "\n" for window in altered))
+                    with self.assertRaises(ValueError):
+                        bundle.observation_summary(path)
 
     def test_readback_rejects_tampering_unlisted_files_and_traversal(self):
         with tempfile.TemporaryDirectory() as directory:

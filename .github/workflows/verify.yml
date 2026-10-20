@@ -29,7 +29,7 @@ jobs:
       - name: Test console
         run: pnpm --dir platform-console test
       - name: Test customer support login and approval UI
-        run: node --test support-pilot/src/test/js/approval.test.mjs support-pilot/src/test/js/auth.test.mjs
+        run: node --test support-pilot/src/test/js/approval.test.mjs support-pilot/src/test/js/auth.test.mjs support-pilot/src/test/js/base-path.test.mjs
       - name: Build console into platform artifact
         run: pnpm --dir platform-console build
       - name: Verify on Linux
@@ -44,6 +44,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -61,3 +65,5 @@ jobs:
         run: python validation/platform/phase5_bundle_test.py
       - name: Validate continuous observation accounting
         run: python -m unittest discover -s validation/platform -p "test_phase6_*.py"
+      - name: Validate selected Ops and platform deployment
+        run: python -m unittest discover -s deploy/platform/phase6/tests -p "test_*.py"

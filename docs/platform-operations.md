@@ -22,7 +22,9 @@
 
 manifest 是受信部署文件，不是公开 API 输入。每份 release 包含不可变 UUID、图、模型、工具集合、输入/输出 schema、上限和审批分配；摘要排序稳定，不因进程重启改变。同项目同 releaseId 内容改变会拒绝启动。新增发布使用新 UUID；`disabledReleases` 的 `project/releaseUUID` 只阻止新建，已有 Run 保存旧快照。紧急撤销由身份/能力授权控制。
 
-`publicOutput=true` 只用于发布者确认不含受保护资料的结果，例如本仓库合成开发文档；客户端不能设置它。输出还须满足 schema、大小和 `runs:output:read`。受保护 Ops 检索仅对原应用/原用户、未加工的纯检索工作流启用逐引用当前 ACL 核验；任一引用失权、核验失败或运行委托过期时，整段结果 `OMITTED`。跨主体管理员和模型加工的受保护答案也保持省略；不能借删除引用继续返回正文。这是首版受控输出边界，长期历史结果授权与通用答案血缘属于后续扩展。
+`publicOutput=true` 只用于发布者确认不含受保护资料的结果，例如本仓库合成开发文档；客户端不能设置它。输出还须满足 schema、大小和 `runs:output:read`。受保护 Ops 纯检索结果和识别出的 `ops-rag-answer` 答案均要求当前读取者与原 application/project/subject 相同，具有当前输出/检索权限，并核验完整引用或冻结提示与全部来源的当前 ACL；任一来源失权、版本变化、身份核验失败或正文已归档时整段结果 `OMITTED`，不通过删除引用继续返回正文。跨主体管理员和未知来源的输出不获额外读取权限。
+
+历史输出使用独立的 `POST /internal/harness/delegations/{id}/output-token`，请求固定携带原 `projectId`、`subject`、`runId`。Auth 校验原应用/项目/主体/Run 绑定、未明确撤销、当前账号/应用/grant，以及当前权限和角色与原委托上限的交集；仅此只读路径允许原执行期限已过，不修改或续期原委托。签发的 `rag-output` audience token 最长 120 秒，并受当前访客有效期限制，只用于 `/internal/rag/harness/output-answer-access` 和 `/internal/rag/output/validate-citations` 的当前来源校验。执行和检索路径仍要求 `rag` audience 及未过期的执行委托。身份适配器默认不提供输出令牌，不得回退借用执行授权；存储结果可读不代表 Run 可以恢复执行。
 
 所有 POST 用新请求唯一的 `Idempotency-Key`，丢响应或 503 后只用原键、原 body 重试。记录按 project/application/subject/method/route 隔离；首次接受结果与状态/归属/事件/额度共用真实 JDBC 事务。相同键不同 body 为 409。审批、控制、对账另要求读到的强 ETag，过期并发条件为 412；不能自动盲重试人工决定。
 

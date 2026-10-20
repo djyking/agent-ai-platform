@@ -11,12 +11,16 @@ from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 
 import phase5_bundle as previous
+from phase6_continuous_observation import window_failure
 
 MANIFEST_ENTRY = "bundle-manifest.json"
 PHASE6_PREFIX = "deploy/platform/phase6/"
 PHASE6_DEPLOY = frozenset({
     "README.md", "support.service", "support.env.example", "support.nginx.example.conf",
     "backup-tools.Dockerfile",
+    "ai-minimal.prepare.py", "ai-minimal.inputs.example.json", "ai-minimal.md",
+    "ai-minimal.nginx.locations.conf", "internal-tls.nginx.conf", "support.Dockerfile",
+    "prepare-internal-tls.py", "internal-tls.md", "tests/test_ai_minimal.py",
 })
 PHASE6_DOCS = frozenset({
     "docs/phase6-onboarding.md", "docs/phase6-acp.md", "docs/phase6-human-review.md",
@@ -40,6 +44,9 @@ ARTIFACTS = {
     "ops-knowledge": ("opsagent", "ops-knowledge-service", "opsagent/services/ops-knowledge.jar"),
     "ops-ticket": ("opsagent", "ops-ticket-service", "opsagent/services/ops-ticket.jar"),
     "ops-rag": ("opsagent", "ops-rag-service", "opsagent/services/ops-rag.jar"),
+    "ops-agent": ("opsagent", "ops-agent-service", "opsagent/services/ops-agent.jar"),
+    "ops-platform": ("opsagent", "ops-platform-service", "opsagent/services/ops-platform.jar"),
+    "ops-gateway": ("opsagent", "ops-gateway", "opsagent/services/ops-gateway.jar"),
 }
 PLATFORM_PACKAGE = "BOOT-INF/classes/io/github/djyking/harness/platform/"
 REQUIRED_CLASSES = {
@@ -70,6 +77,9 @@ REQUIRED_CLASSES = {
         "BOOT-INF/classes/com/opsagent/rag/HarnessAnswerRepository.class",
         "BOOT-INF/classes/com/opsagent/rag/HarnessCitationAccessController.class",
     },
+    "ops-agent": {"BOOT-INF/classes/com/opsagent/agent/AgentApplication.class"},
+    "ops-platform": {"BOOT-INF/classes/com/opsagent/platform/OpsPlatformApplication.class"},
+    "ops-gateway": {"BOOT-INF/classes/com/opsagent/gateway/OpsGatewayApplication.class"},
 }
 
 
@@ -206,12 +216,57 @@ def observation_summary(path):
             or not math.isfinite(elapsed) or elapsed < 0):
         raise ValueError("Invalid actual elapsed observation time")
     complete = report.get("completed24Hours") is True
+    evidence = {}
     if status == "PASSED":
-        if not (complete and elapsed >= 86400 and report.get("requestedSeconds", 0) >= 86400
+        duration = report.get("requestedSeconds")
+        requests = report.get("requests", {})
+        if not (type(duration) is int and 86400 <= duration <= 172800
+                and complete and elapsed >= duration
                 and report.get("continuous") is True and report.get("qualityPassed") is True
-                and report.get("completedWindows", 0) >= 1440
-                and report.get("requests", {}).get("errors") == 0):
+                and report.get("firstQualityFailure") is None
+                and report.get("completedWindows") == duration // 60
+                and report.get("completedMinuteWindows") == duration // 60
+                and report.get("unreconciledCommands") == 0
+                and requests == {"requests": duration * 10, "getRequests": duration * 9,
+                                 "postRequests": duration, "errors": 0}):
             raise ValueError("PASSED requires actual continuous 24-hour evidence and passing windows")
+        windows_path = path.with_name("windows.jsonl")
+        if (not windows_path.is_file() or windows_path.is_symlink()
+                or windows_path.stat().st_size > 16 * 1024 * 1024):
+            raise ValueError("PASSED requires bounded complete minute evidence")
+        raw_windows = windows_path.read_bytes()
+        try:
+            windows = [json.loads(line) for line in raw_windows.splitlines()]
+            if len(windows) != duration // 60:
+                raise ValueError("Incomplete minute evidence")
+            totals = dict.fromkeys(requests, 0)
+            last_elapsed = 0
+            for sequence, window in enumerate(windows, 1):
+                observed = window["elapsedMonotonicSeconds"]
+                latencies = [window[key] for key in ("p95Millis", "getP95Millis", "postP95Millis")]
+                if (window["window"] != sequence or window["completeMinute"] is not True
+                        or not isinstance(observed, (int, float)) or isinstance(observed, bool)
+                        or not math.isfinite(observed) or observed < sequence * 60
+                        or observed <= last_elapsed or observed > elapsed
+                        or any(type(value) not in (int, float) or not math.isfinite(value)
+                               or value < 0 for value in latencies)
+                        or window_failure(window) is not None):
+                    raise ValueError("Invalid or failing minute evidence")
+                for key in requests:
+                    count = window[key]
+                    if type(count) is not int or count < 0:
+                        raise ValueError("Invalid minute counts")
+                    totals[key] += count
+                if window["requests"] != window["getRequests"] + window["postRequests"]:
+                    raise ValueError("Inconsistent minute request totals")
+                last_elapsed = observed
+            if totals != requests or windows[-1] != report.get("latestWindow"):
+                raise ValueError("Minute evidence does not match final report")
+        except (KeyError, TypeError, json.JSONDecodeError) as error:
+            raise ValueError("Malformed complete minute evidence") from error
+        evidence = {"completeMinuteWindowsVerified": len(windows),
+                    "minuteEvidenceSha256": sha(raw_windows),
+                    "verifiedRequests": requests}
     elif complete:
         raise ValueError("Incomplete observation cannot claim completed24Hours")
     if status == "RUNNING":
@@ -226,6 +281,7 @@ def observation_summary(path):
         "status": status, "observationId": observation_id, "completed24Hours": complete,
         "elapsedMonotonicSeconds": elapsed, "reportSha256AtPackaging": sha(data),
         "evidenceScope": "Local loopback synthetic load against real identity and runtime",
+        **evidence,
     }
 
 
@@ -263,7 +319,7 @@ def build(repository, ops_repository, artifact_manifest, observation_report):
     provenance = {name: previous.clean_commit(repo) for name, repo in [("platform", root), ("opsagent", ops)]}
     specs = json.loads(artifact_manifest.read_text(encoding="utf-8-sig"))
     if set(specs) != set(ARTIFACTS) | {"ops-web"}:
-        raise ValueError("Exactly platform, support, four Ops service JARs, and ops-web are required")
+        raise ValueError("Exactly platform, support, seven Ops service JARs, and ops-web are required")
     payloads = {}
     for repo_name, repo, selector in [("platform", root, platform_files), ("opsagent", ops, ops_files)]:
         selected = selector(previous.tree_entries(repo, provenance[repo_name][0]))
@@ -296,7 +352,7 @@ def build(repository, ops_repository, artifact_manifest, observation_report):
         "linux7DayObservation": "PENDING_TARGET_ENVIRONMENT",
         "crossHostRecovery": "PENDING_TARGET_ENVIRONMENT",
         "productionAcceptance": False, "privateStateIncluded": False, "testReportsIncluded": False,
-        "acceptanceScope": "Local engineering; VPS installation and public access are a later task",
+        "acceptanceScope": "Local engineering; authorized VPS installation and public access require separate target acceptance",
         "artifactProvenance": "Caller-verified SHA-256; no embedded Git compilation attestation",
         "gitCommitScope": "Exact committed deployment files and docs, not independent proof of artifact compilation",
         "fileHashScope": "All payload files; external ZIP SHA-256 protects the manifest",
