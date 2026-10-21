@@ -102,7 +102,7 @@
       <div class="result"><p><strong>闭环结果</strong>从想法到有版本、有评测、有运行反馈的助手，解释中台为何不是“又一个聊天界面”。</p><p class="care"><strong>预条件与边界</strong>真实体验与评测会调用模型。含人审的样本也需要指定审核员处理；规则通过不等于全面模型质量证明。“应用接入”审批后仍需真实身份配置和生效核验。</p></div>
     </div></article>
     <article class="route" id="route-d"><header><span class="route-badge">D</span><div><h3>客服咨询 → 生成待审答案 → 审核 → 原答案交付</h3><div class="meta">面向中台复用 / 人在回路 · 分别获授权的客服专员和审核员 · 约 3–5 分钟</div></div></header><div class="route-body">
-      <p class="entry">入口：<a href="https://opsagent.cloud/support/" target="_blank" rel="noopener">独立客服工作台</a>；中台应用页可选 <a href="https://opsagent.cloud/console/#/apps/support-answer-review" target="_blank" rel="noopener">support-answer-review</a>，需先切到正确授权项目</p>
+      <p class="entry">入口：<a href="https://opsagent.cloud/support/" target="_blank" rel="noopener">独立客服工作台</a>；查看中台配置时，先打开 <a href="https://opsagent.cloud/console/#/" target="_blank" rel="noopener">中台应用列表</a>，在顶部切换到已获授权的 <code>support-prod</code> 项目，再打开“客服助手（尚未配置业务知识）”（应用标识 <code>support-empty-knowledge</code>）。</p>
       <ol class="steps"><li><strong>专员提交咨询</strong>选择已正式发布的客服助手，提一个符合当前知识范围的问题，保存本次运行编号。</li><li><strong>展示“待审核”</strong>解释答案已经生成，但还没有作为最终交付完成。把同一 Run 编号交给审核员，不重新提交一个问题。</li><li><strong>审核员核对</strong>退出后以审核员身份登录，输入 Run 编号，检查完整待审内容和依据，填写说明，再“确认并继续”或拒绝。</li><li><strong>专员读取交付</strong>重新以专员登录，打开原运行，核对 COMPLETED 与原答案。批准不会触发第二次生成，也不会把审核意见当成答案。</li></ol>
       <div class="result"><p><strong>闭环结果</strong>第二业务应用复用中台 Run、发布与审批。已有真实样例 <code>ac2262e3-bdaa-404b-bbf6-99285ed7f9a6</code> 为一次模型调用，审核前后答案摘要一致。</p><p class="care"><strong>预条件与边界</strong>当前公网客服没有真实业务知识，因此应明确转人工，不编造政策；未接真实订单、退款或客户消息发送。浏览器角色下拉不授予权限，须使用已获授权身份。</p></div>
     </div></article>

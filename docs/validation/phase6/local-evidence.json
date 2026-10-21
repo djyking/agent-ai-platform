@@ -256,7 +256,7 @@
     "console-ui-final-20261021/local-recovery-20261021T045021Z/local-recovery-report.json": "f2bafd6d654d89a593ee484e0cc0df1d04c7c2f22602c7d8d8e3edbc9e9feef4",
     "console-ui-final-20261021/browser-final-acceptance.json": "e411c449e02ed1292596aef22d28a48b36d7c667fa34bf8fef1d41eae889186c"
   },
-  "updatedAt": "2026-10-21T04:57:27.218693+00:00",
+  "updatedAt": "2026-10-21T05:08:09.283837+00:00",
   "consoleUiIncrement": {
     "status": "API_UI_DEPLOYED_AND_CONTROL_REBOUND",
     "deployedAt": "2026-10-21T04:40:16.470516+00:00",
@@ -343,7 +343,7 @@
   },
   "architectureAndDemoGuide": {
     "path": "docs/architecture-and-demo-guide.html",
-    "sha256": "785e6624a40cf759ec00751f07e6b0e5c53680ec44a43ecfa95687f24ab17db7",
+    "sha256": "afa1fd0518d49725af28d47b14dd040e2e7815c90a5b0b0bed5328da0a54e5e3",
     "format": "standalone HTML with inline SVG",
     "journeys": 4,
     "externalDependencies": 0,
