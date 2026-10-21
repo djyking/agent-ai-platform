@@ -1,139 +1,55 @@
-# 第五、六阶段本机验证清单
+# Harness 阶段六部署与验收状态
 
-用户于 **2026-10-21** 已授权完成当前阶段后暂停原定时任务“完成Harness阶段六连续观察与交付”，推送双仓库并核验对应提交的 GitHub CI，以及使用既有 VPS 和 `opsagent.cloud` 进行公网部署。当前**尚未部署**，授权与实际部署、CI、暂停定时任务的执行结果分别记录，不再将 VPS 部署列为未授权或仅下一轮事项。
+截至 **2026-10-21**，公网部署已完成，Ops、Harness 控制台与客服三个入口均已实际登录；客服生成后审核交付、最后 Agent 上的 Rabbit 独立演练与最终资源采样也已取得通过或有效观测证据。运维控制绑定最终 Compose，28 个当前服务运行。主 Rabbit 死信队列新增 6 条已关联到缺少有效值班收件人的 SLA 提醒；该配置缺口单独保留，不等于审计写库故障。当前功能验收不代表长期生产可靠性或全部历史任务成功。
 
-安全传输分类、客服监听与路径前缀修复已完成本机新制品验证：中台 **399 项全量测试**、客服 **29 项 JS 测试**，以及客服 HTTP、ACP、Ops 新 Run/来源 ACL、历史结果回读、Ticket ACL 和 **5 项浏览器检查**均通过。OpsAgent 当前制品对应 **1071 项全量测试**，2 项原有环境门控测试跳过。较早中台 389 项、客服专项 148/25 项仍保留为历史版本证据。客服第 3/5 次登录阶段失败、第 4 次模型 UNKNOWN、第 6 次独立成功及原 Ops UNKNOWN 均分开保留。
+用户已取消真实 24 小时观察作为部署前置条件，原定时任务“完成Harness阶段六连续观察与交付”已 **PAUSED**。第四次观察实际结论为 **`USER_STOPPED_EARLY` / `WAIVED_NOT_PASSED`**，不得写成 `PASSED`。七天目标观察、真实异机恢复及 RPO/RTO 未完成。
 
-连接复用修复后的独立 60 秒观察通过；第四次完整观察已于 **2026-10-21 01:31:54（UTC+8）**启动，最早 **2026-10-22 01:31:54（UTC+8）**才可能完成。完整观察**尚未通过**，仍须实际 86,400 秒、全部窗口/请求/写回执及质量门槛通过；前三次失败证据全部保留，时长不拼接。VPS 部署准备中，当前尚未部署本轮制品，不能声称整轮验收完成或生产就绪。公开制品摘要与验证范围见 [local-evidence.json](local-evidence.json)，SHA 与采样时间限定其适用版本。
+部署前完整记录保存在 [历史快照](pre-vps-history-20261021.md)。以下仅记录当前状态；每项结果限于对应时间、制品和检查范围。结构化公开摘要见 [local-evidence.json](local-evidence.json)，其中列明真实目标验收与历史版本的范围。
 
-## 当前 bugfix7 制品与本机验收
+## 当前部署与真实验收
 
-| 范围 | 已核实结果 |
+| 范围 | 已核实事实与边界 |
 | --- | --- |
-| 中台全量构建 | `platform-bugfix7-build-report.json`：12 模块、80 suites、399 tests，零失败/错误/跳过；431 个构建输入及测试与验证快照逐字节一致，Markdown 与 CI 工作流不纳入运行输入等价性 |
-| OpsAgent 当前构建 | `ops-bugfix2-build-report.json`：17 模块、168 suites、1071 tests，零失败/错误、2 项原有环境门控测试跳过，Checkstyle 零违规；1129 个构建输入及测试与快照一致。此次中台/客服重建没有替换这些 Ops 运行制品 |
-| 客服前端 | 实际执行 `node --check` 和 auth/approval/base-path 测试，29/29 通过，零失败/取消/跳过；四个源文件在执行前后 SHA 一致，覆盖根路径、`/support/`、嵌套路径、跨源/含混基址拒绝和原认证/审核行为 |
-| 客服 HTTP | `support-bugfix7-report.json`：三用户 Cookie 会话、生成后审核并交付同一答案、跨用户拒绝、创建幂等、CSRF、审核员不能创建和退出失效通过；当前平台/客服 JAR 绑定已核实，HTTP 报告本身不代替浏览器检查 |
-| ACP 与 Ops | `acp-bugfix7` 6 项；Ops 历史结果只读 8 项、新请求 10 项、来源 ACL 5 项、Ticket ACL 3 项均通过，原有输出授权、幂等和 UNKNOWN 不重放边界不变 |
-| 浏览器 | `browser-bugfix7-report.json`：两处官方验证码登录、指定应用 Studio 正式版本、最新完成客服答复可见、完成任务的暂停/继续/取消禁用，共 5 项通过；绑定当前平台/客服 JAR，`productionAcceptance=false` |
-| 部署与工程包 | `deployment-bugfix7-report.json`：15 项组件、阶段五工程包 5 项、阶段六工程包 8 项、Compose 解析、平台 JAR 模板契约、客服实际 JAR 离线配置及静态代理模板通过；4 项客服监听配置 Java 测试取自现有全量构建报告。此处工程包数字限定该次报告，后续变更需独立记录 |
-| VPS 离线准备 | 最小组合生成器 17 项契约测试通过；内部 TLS 生成器 14 项真实 OpenSSL/keytool 测试通过，保留实际 JRE 原有公共根；同域入口和内部 TLS 的实际 `nginx -t` 通过，使用临时合成证书、只读容器、无网络及宿主端口。第一次临时目录权限失败保留，修复为 `/tmp` 后复验通过，不等于目标 TLS 握手或公网验收 |
-| 工程包补强 | 七个 Ops 应用 JAR 纳入固定角色清单；完整观察增加逐分钟原始文件、精确请求数量与首失败/未对账状态核验。扩展后的 8 项打包测试通过，包含缺窗、重复窗、失败窗、部分窗和汇总不一致拒绝 |
-| 本机短观察 | 连接复用版 60.047 秒，600 请求（GET 540、POST 60）、零错误；总/GET/POST P95 81.600/81.600/78.145 ms；9 次连接尝试、592 次复用、结束 active=0；`SHORT_RUN_PASSED`，不折算为 24 小时 |
-| 本机完整观察 | 第四次 `soak-00d293fc7e434b29963ea84655b8787e` 独立启动，进程身份/制品绑定已核；仍在运行，尚未通过。前三次失败证据保留 |
-| 目标环境 | VPS 准备中，目标 Linux 部署、实际 TLS 握手与公网代理、七天观察、真实异机恢复、RPO/RTO 与通知投递未取得本轮完成证据 |
+| 公网入口与客服闭环 | [Ops](https://opsagent.cloud/)、[Harness 控制台](https://opsagent.cloud/console/)、[客服](https://opsagent.cloud/support/) 实际官方验证码登录通过。客服操作员创建、审核员审核、操作员重新登录读取交付完成；审核前后答案摘要一致，只有一次模型调用，完成任务的暂停/继续/取消禁用。本次空业务知识场景明确转人工，没有发送外部客户消息。HTTP/TLS 独立记录另验证 TLS 1.3、主机名和已测公网否定路径 |
+| 运行组合 | 28 个选定服务，保留 Nacos discovery、ES/Qdrant、OTel/Tempo 和所选 Ops JVM 观测；`reranker`、`operations-lab` 两个退休容器继续停止。当前服务使用 `unless-stopped`；退休容器保持 `restart=no`。不能将 30 个存在的容器全部描述为运行服务 |
+| Ops 知识 | 实际验收文档与工单附件链路已有记录；一致性检查为 29 篇已发布文档、62 个已发布分块，ES/Qdrant 缺失与孤儿项均为 0。维护手册实际查询命中 `HYBRID_RRF`。合法草稿预索引与已删除文档的历史失败保留，不将一致性检查当作向量质量评估 |
+| RAG/HARNESS | 文档请求和含真实附件的工单请求分别完成 Harness Run，绑定正式发布并记录实际模型调用/计费；旧 LEGACY 答案可原样回读。主会话 SSE 仍归属 `LEGACY_CONVERSATION`，不能称全部会话执行已迁移。无附件工单返回 `no_evidence` 且不调用模型 |
+| 权限隔离 | 跨工单文档被拒绝；真实访客访问私有文档、私有工单、他人 Harness 答案与 Agent Run 共四项被拒绝。部分拒绝以 HTTP 200 + 业务码 `40300` 表示。被拒绝请求保留原 `UNKNOWN` 路由且未重放，不将拒绝路径写成执行完成 |
+| Nacos 演练 | 配置漂移演练 Run `COMPLETED`、工单 `RESOLVED`、告警已解决，恢复归属 `AGENT_TOOL`；业务 HTTP 200，记录 13 次连续成功 |
+| Sentinel 演练 | 后续独立演练经审批由 Agent 工具恢复，HTTP 429 → 200，记录 25 次连续成功，工单及告警关闭；未使用人工或 TTL 恢复冒充 Agent 成功。更早一次诊断参数失败仍保留 |
+| Rabbit 演练 | 最后 Agent 镜像上的新演练 `ACCEPTED`：Run `COMPLETED`、工单 `RESOLVED`，经审批调用 `demo_queue_restore`，恢复来源 `AGENT_TOOL`；HTTP 503 → 200，记录 34 次连续成功，独立 Redis 读取到交付回执，DemoRabbit ready=0、consumer=1；未使用人工或 TTL 恢复。前次字段超限失败及人工恢复继续保留，不由本次成功覆盖 |
+| 最后 Agent 制品 | `diagnostic-feedback-build-report.json`：1076 tests，零失败/错误、2 项原有条件跳过，构建输入未变化；已部署 JAR 与不可变镜像核验一致。精确错误反馈按冻结 schema 给出字段/长度限制，纠正最多两次，不提高字段上限、不重放 UNKNOWN、不改变审批语义 |
+| 运维与观测 | 最终 Agent 更新后已精确重绑控制文件；仅 Agent 镜像/容器改变，其余 27 个当前服务与 2 个退休容器保持原绑定。新备份/续证定时器和只读主机 observer 已启用，旧定时器及配置执行器保持停用；当次 Prometheus 26/26 目标 up |
+| 备份与证书 | 03:11 UTC 实际备份覆盖七个数据库、知识附件、配置和证书，文件摘要及库名标记独立复核一致；实际续期检查及一次 ACME dry-run 成功，证书未变化、Nginx 未重载。没有执行恢复演练或保留期删除；跨存储不是原子快照，该次备份属于前一 Agent 镜像，最终控制重绑没有重复备份 |
+| Crypto 停用 | 3 个定时器停用并禁用，12 个专属服务 `Restart=no`，6 个当时运行服务停止；两个原失败服务未启动。独立复核无业务残余进程，SSH、代码、配置、数据保留，迁移清单已保存。尚未进行完整 Crypto 数据备份或迁移 |
+| 最终资源与队列 | 03:37 UTC 的两个样本相隔 20.114 秒：28 个实例的镜像、容器 ID 和启动时间均匹配最终重绑且可比，18 个 Docker healthcheck 为 healthy，10 个未配置该检查。28 个容器 memory.events 与容器/主机 PSI 增量为 0；MySQL 连接 13/50（含采样连接）。DemoRabbit ready=0、unacked=0、consumer=1；主 Rabbit `ops.platform.audit.dlq` 为 78，较此前 72 新增 6；新增项对应缺少有效排班的 SLA 提醒，未重放或删除 |
 
-当前本机平台/客服制品 SHA-256：
+最终 Compose SHA-256：`cda33cd6eb819a48b3203193e8ed63005baa3408027e578309c1781b325487c2`。最后 Agent JAR：`72bc0004811b04bb2754a9ffdeaafddc2194c04dde147308b27f95415dd51236`；镜像：`sha256:9d06f119a554520694b88786f027cdf56912b9155bd0ace7258a5ff5a34370b0`。后续变更必须重新核对这些绑定，不能沿用旧制品结论。
 
-| 制品 | SHA-256 |
-| --- | --- |
-| 中台 | `862c32eee60c6fa6a59a688ecafb6dd2d6a377fe76430f002cc2f7ad1c10bba6` |
-| 客服 | `0ead915c7d6b82186c6dd6f4877a44b0574305059ff9acc2235672a4f045866c` |
+Crypto 停止前后约 31 秒，可用物理内存增加 **688.25 MiB**。专属 cgroup 约 **1.98 GiB** 计费消失包含文件缓存，不能等同为同样大小的物理释放。最终部署资源样本的 `MemAvailable` 为 **4690.3 → 4724.3 MiB**，扣除 **2 GiB 规划预留**后为 **2676.3 MiB**，主机未配置 swap。API/worker/support 的 Java 堆已用量分别约 **28.5/35.4/10.9 MiB**，不代表进程 RSS。短窗口内没有新增 memory.events/PSI，不证明代表性峰值容量或长期稳定性；MySQL `pgmajfault` 另增 3，不能概括为所有内存计数均无变化。
 
-Ops 制品继续使用下文历史输出授权修复后的摘要，并在本轮运行绑定和接口检查中重新核验。当前构建和验收通过不覆盖旧 UNKNOWN 的远端执行结果或费用结算。
+## 连续观察、历史失败与未完成项
 
-目标旧镜像的只读比对发现，Agent/Platform 自身应用类未变，但公共权限组件与本轮构建不同。部署因此统一交付七个 Ops 应用，新增 Agent/Platform/Gateway 来自上述 1071 项测试快照，尚未进行本轮目标运行验收；Gateway 本身没有发现功能差异。本机 Knowledge/Ticket 虽外层 JAR 摘要不同，全部应用类、公共组件类、第三方依赖及应用资源与该快照一致，已有运行证据保留。
+第四次观察保留 438 个完整分钟窗口（约 7 小时 18 分钟）；26,328 条已发送写请求只读核对为唯一且 `COMPLETED`，无重放。原报告保留停止前 `RUNNING` 字段，实际停止事实由独立中断审计记录。取消部署前置要求不是达成 24 小时门槛，验收状态持续为 **`WAIVED_NOT_PASSED`**。
 
-## 历史验收记录
+前三次观察失败、较早 Ops 与客服模型 UNKNOWN、首次 Sentinel 和 Rabbit 诊断失败均保留。后续独立成功不覆盖旧失败、不释放未知结果，也不证明旧调用费用已核清。
 
-下表保留此前制品与各专项检查的实际执行记录；补充修复的证据另列于表后。
+独立后续事项：
 
-| 范围 | 已核实结果 |
-| --- | --- |
-| 此前中台源码全量验证 | 12 模块、75 suites、369 tests，零失败/错误/跳过；183 个生产编译/资源输入与已验证副本逐字节一致 |
-| 浏览器与前端 | 控制台 44 项、客服 JS 20 项通过；两处官方验证码登录成功，Studio 正式 v1 与客服已审核答复在浏览器中可见 |
-| 此前 OpsAgent 源码全量验证 | 17 模块、166 suites、1,054 tests，零失败/错误，2 项原有环境门控测试跳过；Checkstyle 零违规 |
-| Ops 真实知识问答 | 17 项接口检查，含真实 DeepSeek、请求归属、引用与撤权；3 项 Ticket 委托 ACL、9 项 MySQL 恢复守卫；当时中台制品的 6 项原 Run 只读回归通过 |
-| Ops 内置评测适配 | 12 项 Python 回归通过，支持 HARNESS 异步结果与稳定幂等键；未知写不自动重发 |
-| 客服真实业务闭环 | 当时制品通过操作员、第二用户、审核员三用户检查；DeepSeek 生成授权合成知识答复，经审核后交付同一答案；跨用户读取拒绝、CSRF、创建幂等与退出通过 |
-| 受控接入 | 8 项 Java 测试、真实 MySQL/现有身份服务 33 项生命周期检查 |
-| ACP | 当时制品通过官方 SDK 1.0.3 的 6 项真实检查；两家模型服务、SSE、幂等、人审恢复、取消、用户隔离；15 项 Java 回归覆盖发布停用后回执恢复、发布准入、审批副作用和观察线程释放 |
-| 备份/PITR | 真实 age 全量+ROW binlog；独立副本恢复，全表数据摘要一致、截止时间后变化被排除；未启动应用 worker |
-| 升级 | 当时制品在新隔离库完成旧版本真实 Run→显式离线迁移→旧二进制拒绝新 schema→新版本原结果/原键幂等→重启后仍可读，5 项通过 |
-| 隔离故障与执行 | 7 项通过，涵盖共享并发、公平性、结算、10 万历史任务、强杀后 UNKNOWN 不重放、写响应丢失不重复、指标/告警/保留；10/20 RPS 的 P95 分别为 78/79 ms，零错误 |
-| API 文档合同 | OpenAPI 3.1 执行协议 11 操作、33 正反例；资源目录 14 操作验证通过 |
-| 工程包与观察器 | 阶段五包 5 项、阶段六包 8 项、第一版连续观察器修复 9 项安全/记账/真实 HTTP 测试通过；本次观察器扩展后的 20 项回归另见下文 |
-| 前两次连续观察 | 首次长跑第 62 窗口 P95 516 ms，超过 500 ms，已保留证据并停止；修复逐请求 Windows TLS 初始化开销后，真实 60 秒试跑 600 请求、零错误，总/GET/POST P95 为 68.430/68.107/75.793 ms。第二次长跑第 128 窗口出现 1 次 GET 错误，已停止，根因未知；8,858 条写请求全部核对为唯一且已完成，无冲突、无重放。新独立观察另列于当前验收表 |
+1. SLA 通知需要为相关服务配置真实值班收件人和有效班次；现有失败记录保留，不擅自分派或重发。每个 SLA 生命周期最多六类唯一事件，单条最多三次消费尝试后进入死信，不自动回放；未处理工单和未来新周期仍可能产生新事件。页面提示无有效排班，但尚无逐条死信投递详情。
+2. 七天观察、真实异机恢复、备份恢复演练及 RPO ≤15 分钟 / RTO ≤60 分钟仍需独立验收。
+3. 每次交付在 `develop/harness-phase6` 核对两仓精确提交的 GitHub Actions；旧版本绿色不能替代当前提交结果。
 
-私有原始证据在 `.work/phase6/`；公共报告仅复制经过核对的不含账号凭据、模型正文和业务内容的字段。每个报告的二进制 SHA、时间、检查范围是证据边界，单次真实模型样本不证明供应商长期可用性。
+## 证据范围
 
-首次长跑原报告、74 个分钟窗口、SQLite 命令账本及中断对账均保留。4,459 个已发送写请求全部核对到唯一且已完成的 Run，含停止时未记录响应的最后一条；未重放请求。第 66 窗口也超标，当时存在附加只读诊断负载；第 62 窗口发生在诊断之前。旧报告仍保留停止前的 `RUNNING` 原值，实际停止事实由独立中断审计记录，不把它当作仍在运行或通过。
+私有原始证据保留在 `.work/phase6/`，不随 Git 公开；此页仅列报告名、计数、摘要和边界，不包含账号、凭据、会话令牌或模型正文。
 
-第二次观察 ID 为 `soak-aca67a6d34bb42588ea6cb78558caa11`，于 2026-10-20 20:33:21（UTC+8）独立启动，目前已停止。旧观察器没有记录第 128 窗口那次 GET 错误的 HTTP 状态或异常类型，原始数据无法还原其具体原因，不能归因于任何尚未得到证明的服务、网络或客户端问题。原报告、窗口、SQLite 账本及独立对账记录保留，私密引用为 `observation-second-attempt-reference.json`。保留报告的停止前状态不能用来证明进程仍在运行。
+- 入口与业务：`public-https-routes-20261021.private.json`、`target-acceptance-20261021/readonly-20261021T020855Z/report.strict-recheck.json`、`target-acceptance-20261021/ops-business/acceptance-summary.json`。
+- 浏览器与最后 Rabbit：`target-acceptance-20261021/browser-public-acceptance.private.json`、`target-acceptance-20261021/ops-business/drill5-outcome.json`。
+- 最后 Agent：`diagnostic-feedback-build-report.json`、`production-control-rebind-20261021/rebind-result.private.json`；后者 SHA-256 为 `3104b49e22198afdb3e0e56b053a25e0e2df82a668da6b64b174e7d49262e817`。
+- 运维：`production-ops-final-20261021.private.json`、`production-ops-backup-verified-20261021T031414Z.private.json`、`production-ops-cert-dry-run-verified.private.json`。早于最终重绑的记录不替代重绑结果。
+- Crypto：`crypto-migration-stop-20261021/migration-stop-summary.json`。
+- 最终资源：`resources-post-crypto-final-20261021T033727Z.private.json`，SHA-256 `e3b975f2196a7e4e85a3b920e26fda97e4326edeb66dbe1553388e7c71ce65ca`。
+- 观察：`observation-fourth-user-waiver-reference.json`、`observation-user-stop-20261021T005041Z/interruption-review.json`。
 
-第三次观察于 2026-10-21 00:50:57（UTC+8）独立启动，第 21 窗口发生 GET `OSError`（HTTP 状态 0、17.235 ms），已停止。1494 写请求全部只读对账为唯一且已完成，无重放；引用为 `observation-third-attempt-reference.json`。Windows `Tcpip 4227` 警告发生在失败前 16.6251 ms，同期 API、两 worker、Auth 仍存活；强烈关联出站端点复用限制，但缺少该调用 errno 和事件客户端 PID，不能表述为调用级确证。失败窗口和原始报告均保留。500 ms、86,400 秒、worker 与 UNKNOWN 门槛未放宽。
-
-## VPS 前补充修复的验证边界
-
-本次代码补强包括 Java HTTP 完整响应等待时限及取消、响应正文大小限制、业务码 32 位整数校验、HARNESS 历史输出独立授权，以及观察器的安全诊断、首失败粘性和完整覆盖判定：
-
-- 平台客户端、Ops 身份/来源/答案权限核验与 Ops RAG 中台适配，在等待完整正文期间仍有时限；权限不可核验时拒绝，写结果未知时不重发。此描述限定 Java HTTP 实现，不表示 Python 观察器已有总请求 deadline。
-- 业务码必须先满足整型及 32 位范围，再按各接口既有成功值判断；控制台仍兼容省略 `code` 或整数 `0/200`，不改变验证码或会话有效期。
-- HARNESS 历史输出使用独立 `output-token` 和 `rag-output` audience。当前读取者必须匹配原应用/项目/主体，Auth 核对原 Run 绑定、当前账号/应用/grant、明确撤销和原权限/角色上限，来源 ACL 仍逐次核验。只读令牌最长 120 秒并受访客有效期限制；执行委托不被修改或续期，旧执行与检索入口不接受输出令牌。执行期限自然到期不再自动遮蔽仍有权读取的历史结果。
-- 观察器诊断只记录 `at`、`sequence`、`method`、`status`、`exceptionClass`、`latencyMillis`、`code`、`phase`、`errno`、`winerror` 十个固定字段，已收到的 HTTP 状态不因正文解析失败丢失。首次失败立即固定 `qualityPassed=false` 与 `firstQualityFailure`，`RUNNING` 不表示质量通过。
-- 验收要求完整分钟窗口、精确总请求/GET/POST 数及唯一已接受写回执；截止时间前后检查连续性，遥测失败及中断保留窗口。86400 秒对应 1440 个完整分钟窗口、864000 个请求和 86400 条写回执。
-
-观察器扩展后的 **20/20 隔离测试和独立审查通过**，源码、测试及连续观察文档的差异检查通过。测试包含本地 HTTP 故障和模拟时钟/覆盖证据；模拟完整 24 小时数据不是实际 24 小时验收。修复内容也不证明已查明第二次 GET 错误。
-
-第三次失败后，观察器进一步改为按线程/origin 复用健康连接，5 秒空闲上限、失败不重试，并增加固定阶段、白名单整数 errno/winerror 与连接统计。此版本 **30 项观察器测试、52 项阶段六组合测试**均通过，独立审查无阻断发现；未重启冻结应用服务。原 20 项属于前一版证据，不能替代新版本真实观察。
-
-HTTP 修复后的第一轮构建结果保留如下，独立于更早的 369/1054 项记录，也不能替代后续加入历史输出修复及其他修改的制品验收：
-
-| 第一轮修复范围 | 已核实结果 |
-| --- | --- |
-| 中台 `clean verify` | 12 模块、78 suites、384 tests，零失败/错误/跳过 |
-| OpsAgent `clean verify` | 17 模块、167 suites、1061 tests，零失败/错误、2 项原有环境门控测试跳过；Checkstyle 零违规 |
-
-第一轮修复制品 SHA-256：
-
-- 中台：`f18d392a26a921ef5a79278523f0759f5f9bd84bbe1ce45d0e138287d0a60a04`
-- 客服：`02e0931801163e84ae3f4bd221eddf5711ccb73ed6f233cbb38a8567ea55012d`
-- Ops RAG：`06317f86ca6ff707d9d0b11a6672c42d5452685ed8e00742053176a241eea7cf`
-
-该版本首次 Ops 新模型调用出现 `MODEL_CALL_OUTCOME_UNKNOWN`，Run、调用账本和 `ops-bugfix-integration-report.json` 原失败报告保留；具体根因未定。修复执行委托到期后的历史输出读取不等于查明模型调用失败，后续成功也不能覆盖该次未知结果。
-
-## 历史输出修复后的阶段性制品
-
-以下记录对应 `platform-bugfix2-build-report.json`、`ops-bugfix2-build-report.json` 和各专项 `bugfix2` 报告，不沿用更早制品的通过结论，也不代替上文新增中台/客服制品的独立验证：
-
-| 该轮范围 | 已核实结果 |
-| --- | --- |
-| 中台 `clean verify` | 12 模块、79 suites、389 tests，零失败/错误/跳过；430 个构建输入（含测试）与验证副本一致 |
-| OpsAgent `clean verify` | 17 模块、168 suites、1071 tests，零失败/错误、2 项原有环境门控测试跳过；Checkstyle 零违规；1129 个构建输入（含测试）与验证副本一致 |
-| 客服 HTTP 闭环 | `support-bugfix2-report.json` 为 PASSED；真实 Cookie 会话、三用户、生成后审核且批准不改答案、跨用户拒绝、幂等创建、CSRF、审核员不可创建及退出失效通过；报告明确 `browserLoginVerified=false`，对应后续按钮修复前的客服制品 |
-| 官方 ACP SDK | `acp-bugfix2-report.json` 为 PASSED，6 项：发现、双 Agent 交接与幂等、SSE、跨用户隔离、人工审核恢复、持久取消 |
-| Ops 历史结果只读回归 | `ops-bugfix2-readonly-report.json` 为 PASSED，8 项；当前进程与制品绑定、旧完成 Run 输出、原引用答案与事件、viewer 拒绝、归属/状态/permit 不变及检查期间制品绑定不变；不创建新 Run 或模型调用 |
-| Ticket 当前 ACL | `ops-bugfix2-ticket-report.json` 为 PASSED，3 项；当前工单附件可读、同委托撤权后拒绝、恢复 ACL 后可读 |
-| 部署组件与模板 | 15 项测试通过，Compose 解析通过（无需 daemon），新平台 JAR 的部署加载、发布能力约束和治理模板检查通过；没有运行 Linux 环境、连接业务数据库/模型或发送真实通知 |
-| Ops 新 Run | `ops-bugfix2-integration-report.json` 为 PASSED，10 项；真实 DeepSeek 引用回答、唯一完成 Run、原请求键复用、不同正文冲突、跨主体隔离、viewer 拒绝、旧 ETag 拒绝及事件代理通过 |
-| Ops 来源 ACL | `ops-bugfix2-acl-report.json` 为 PASSED，5 项；原答案可读、来源归档后平台/Ops 均遮蔽、恢复后同答案可读、来源版本变化遮蔽旧答案、原合成 ACL/版本恢复 |
-| 客服页面修复专项 | 完成任务的暂停/继续/取消按钮已修复；`support-ui-build-report.json` 为 PASSED，7 模块、29 suites、148 tests，零失败/错误/跳过；`support-ui-js-report.json` 为 PASSED，25 项通过。只验证当时页面修复制品，不代替后续传输及部署适配的全量构建与浏览器验收 |
-| 客服第 3/5 次补充联调 | 两份原报告均保留 FAILED；分别停在操作员/第二用户登录阶段，没有创建业务 Run 的证据，不将它们归因为模型故障或以第 6/7 次成功覆盖 |
-| 客服第 4 次补充联调 | `support-bugfix4-report.json` 保留 FAILED，阶段 `CREATE_ACKNOWLEDGED`，Run 为 `NEEDS_ATTENTION`；对应模型调用的 `MODEL_CALL_OUTCOME_UNKNOWN` 保留并继续调查，不重放或用后续成功抹除 |
-| 客服第 6 次独立诊断样本 | `support-bugfix6-report.json` 为 PASSED；独立 HTTP/Cookie 三用户闭环通过，`browserLoginVerified=false`、`productionAcceptance=false`，仅使用合成业务数据；不覆盖第 4 次 UNKNOWN，也不作为原请求的自动重试 |
-| 后续传输与部署适配 | 已由上文 bugfix7 的 399 项构建、29 项 JS、真实接口和浏览器检查覆盖；旧报告本身不承担新源码验证 |
-| 新 24 小时连续观察 | 第四次独立运行中，完整观察尚未通过；不得沿用旧观察或本表历史版本的累计时长 |
-
-这次历史构建输入比对不包含文档。下表为历史输出修复后的已验证制品 SHA-256，从私密制品清单中仅摘取摘要，不公开凭据或部署配置。中台和客服现已由上文 bugfix7 JAR 替换；下表中台/客服摘要保留为历史证据，Ops 摘要仍对应本轮运行制品：
-
-| 制品 | SHA-256 |
-| --- | --- |
-| 中台 | `f17727f300c080a2fa013b8e74b9ae5ff333ddfe995877ef28db7097277c4956` |
-| 客服（按钮修复前，`support-bugfix2` 证据） | `6bdef82d3732385d900f03cc962a5158117c684f89bd36fed3a5b9ab485967b8` |
-| Ops Auth | `3a5d8ce26aeb68f8a9607f3e90a4c25b0ac44bdfa5f5a6ae68e0f2eed43bccda` |
-| Ops Knowledge | `8dbe277572289cfd8a9cbd0d8dd157996a04ac9430da864eebb74d868097af8e` |
-| Ops Ticket | `4e325575d592d18386a8bebbfe88433b05601ffccc71f59fdb96e90cba2104bf` |
-| Ops RAG | `d431761aef22fed8d4a92201fb40387852c7fe974624723aa0033dce5778e23f` |
-| Ops 前端 | `8e41298ebfa1cad366fbb11d166f581dd69ca216a09325a7d9d17dcc93b6f2a6` |
-
-原 Ops 与客服第 4 次 UNKNOWN 各保留一个模型 permit，均为零重放、根因未定。客服第 6 次独立成功样本的私有 JFR 只能说明该录制窗口：TLS 1.3 cipher dispose 异常由 JDK 清理代码捕获；10 个 MySQL peer 反向 DNS 校验异常位于连接建立后遥测路径，失败时回退 IP；录制内没有数据库异常类事件。该录制开始于旧失败之后，不能把这些事件归因给旧失败，也不能由耗时相近推断共同原因。新增固定传输分类只改善后续诊断，未释放、重放或解决旧 UNKNOWN。
-
-当前本机数据均为合成验收数据。VPS 与公网部署已获本轮授权，但 Linux 运行、真实异机恢复和公网联调仍未取得本轮完成证据，不由本表推断通过。
-
-既有 VPS 当前为历史人工停机状态：2026-10-15 按用户要求停止 26 个 OpsAgent 容器并保留数据卷，现行 Compose 使用 `restart: "no"`；Docker 正常运行，无运行容器及 80/443 监听。该状态不是本轮部署或联调结果，不得无差别启动全部旧服务、覆盖旧数据或影响其他项目。后续按确定的服务范围部署并独立记录目标环境证据，原定时任务在当前阶段完成后再暂停；未执行的操作不记为完成。
-
-用户已授权由主会话按 VPS 容量决定暂停无用模块或可选组件，优先保障 AI 工作流、RAG 和中台，并保留数据。Docker daemon 作为目标链路运行时继续保留，不默认恢复全部 26 个容器。当前已有本机新制品短时验收，完整观察与目标主机验证继续分别进行，部署容量取舍不代替这些验收。
-
-此前已验证中台 JAR：`672430d2087b867481cb4daebfb84f7d14ef9d9adeb24e6e8b78b8ae02b4cb99`。此前已验证客服 JAR：`b181e28aa042c0ceff43513ea0ea787b14f168453eaad920d7a02ae3a76fbef3`。这些 SHA 不代表本次补充修复后的新制品。较早的备份与隔离故障报告保留各自的制品范围，不描述为对最终全部功能的再次验证。
-
-首次 GitHub Windows 验证发现测试临时目录使用 `RUNNER~1` 短路径别名，与拒绝重定向目录的校验冲突。该次修复仅将测试根目录先解析为真实路径，与生产 CLI 的既有行为一致；当时未放宽生产目录保护、替换运行制品或重启连续观察，不代表后续 VPS 前修复的运行状态。
+部署前的中台 399 项、客服 29 项 JS 及较早 Ops 1071/1075 项测试均按各自版本保留；不能替代最后 Agent 的 1076 项构建，也不能拿本机结果冒充目标环境业务验收。详细历史见 [历史快照](pre-vps-history-20261021.md)。

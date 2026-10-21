@@ -1,0 +1,22 @@
+[Unit]
+Description=Harness and OpsAgent seven-database online backup
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+UMask=0077
+ExecStart=/usr/bin/python3 /opt/harness/production-ops/opsctl.py backup
+TimeoutStartSec=35min
+Nice=10
+IOSchedulingClass=idle
+MemoryMax=256M
+CPUQuota=50%
+TasksMax=128
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/opt/harness/production-backups /opt/harness/production-ops /run/lock

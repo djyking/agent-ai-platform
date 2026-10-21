@@ -1,0 +1,991 @@
+{
+  "format": "harness-phase6-public-evidence-v2",
+  "recordedAt": "2026-10-20T17:33:25.518161+00:00",
+  "scope": "Local synthetic engineering acceptance; not production readiness",
+  "platformBuild": {
+    "status": "PASSED",
+    "source": "platform-bugfix7-build-report.json",
+    "modules": 12,
+    "suites": 80,
+    "tests": 399,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "sourceFilesVerified": 431,
+    "sourceComparisonScope": "All snapshot build inputs/tests byte-verified; Markdown and CI workflow excluded from runtime input equivalence",
+    "artifactGeneration": "BUGFIX_7",
+    "currentAttemptStatus": "PASSED",
+    "finalPlatformArtifact": true,
+    "finalSupportArtifact": true,
+    "verifiedAt": "2026-10-20T16:41:52.570431+00:00",
+    "artifactSha256": {
+      "platform": "862c32eee60c6fa6a59a688ecafb6dd2d6a377fe76430f002cc2f7ad1c10bba6",
+      "support": "0ead915c7d6b82186c6dd6f4877a44b0574305059ff9acc2235672a4f045866c"
+    },
+    "artifactMatchesCurrent": {
+      "platform": true,
+      "support": true
+    },
+    "excludedChangedFiles": [
+      ".github/workflows/verify.yml",
+      "docs/phase6-implementation.md",
+      "docs/validation/phase6/README.md"
+    ],
+    "sourceScopeVerified": true
+  },
+  "artifactSha256": {
+    "platform": "862c32eee60c6fa6a59a688ecafb6dd2d6a377fe76430f002cc2f7ad1c10bba6",
+    "support": "0ead915c7d6b82186c6dd6f4877a44b0574305059ff9acc2235672a4f045866c",
+    "ops-auth": "3a5d8ce26aeb68f8a9607f3e90a4c25b0ac44bdfa5f5a6ae68e0f2eed43bccda",
+    "ops-knowledge": "8dbe277572289cfd8a9cbd0d8dd157996a04ac9430da864eebb74d868097af8e",
+    "ops-ticket": "4e325575d592d18386a8bebbfe88433b05601ffccc71f59fdb96e90cba2104bf",
+    "ops-rag": "d431761aef22fed8d4a92201fb40387852c7fe974624723aa0033dce5778e23f",
+    "ops-web": "8e41298ebfa1cad366fbb11d166f581dd69ca216a09325a7d9d17dcc93b6f2a6",
+    "ops-agent": "46a6625cd093db53703346a799645975ec99f14cbd3999224fef4b07443a0acf",
+    "ops-platform": "d61118dad4eb87071fc92218688780b88d52982548955142551957349ecc1ed2",
+    "ops-gateway": "eb24a3051d632f2806c0e76ba89165163828e1a46e18382d7a7e4f8c9b54ba58"
+  },
+  "additionalDeliveryArtifacts": {
+    "scope": "Additional JARs from the verified Ops build; delivery availability only",
+    "source": "ops-additional-delivery-artifacts.private.json",
+    "recordedAt": "2026-10-20T17:04:14.956620+00:00",
+    "localRuntimeAcceptance": false,
+    "productionAcceptance": false,
+    "artifacts": {
+      "ops-agent": {
+        "status": "AVAILABLE_FROM_VERIFIED_BUILD",
+        "sha256": "46a6625cd093db53703346a799645975ec99f14cbd3999224fef4b07443a0acf",
+        "applicationClassCount": 49,
+        "verifiedSourceInputs": 116,
+        "entryClassPresent": true,
+        "sourceSnapshotVerified": true,
+        "localRuntimeAcceptance": false,
+        "productionAcceptance": false
+      },
+      "ops-platform": {
+        "status": "AVAILABLE_FROM_VERIFIED_BUILD",
+        "sha256": "d61118dad4eb87071fc92218688780b88d52982548955142551957349ecc1ed2",
+        "applicationClassCount": 195,
+        "verifiedSourceInputs": 178,
+        "entryClassPresent": true,
+        "sourceSnapshotVerified": true,
+        "localRuntimeAcceptance": false,
+        "productionAcceptance": false
+      },
+      "ops-gateway": {
+        "status": "AVAILABLE_FROM_VERIFIED_BUILD",
+        "sha256": "eb24a3051d632f2806c0e76ba89165163828e1a46e18382d7a7e4f8c9b54ba58",
+        "applicationClassCount": 5,
+        "verifiedSourceInputs": 62,
+        "entryClassPresent": true,
+        "sourceSnapshotVerified": true,
+        "localRuntimeAcceptance": false,
+        "productionAcceptance": false
+      }
+    }
+  },
+  "frontendTests": {
+    "support": {
+      "status": "PASSED",
+      "source": "deployment-bugfix7-report.json",
+      "scope": "Support DOM behavior including root and nested base paths",
+      "currentSupportSources": true,
+      "realHttpAcceptance": false,
+      "tests": 29,
+      "passed": 29,
+      "failures": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "syntaxChecked": true,
+      "command": "node --test support-pilot/src/test/js/auth.test.mjs support-pilot/src/test/js/approval.test.mjs support-pilot/src/test/js/base-path.test.mjs",
+      "sourceSha256": {
+        "support-pilot/src/main/resources/web/app.js": "581a4b0dff681c3af0b7bcec18153a29cd1cd7962419c2766944eb66bcb36aad",
+        "support-pilot/src/test/js/auth.test.mjs": "20df448099db059e64f0b664a8fdabf360e0aaa31dc295de0063341940e7e137",
+        "support-pilot/src/test/js/approval.test.mjs": "507ce20ba4009959c9fb24d4edf3546a7ed552c8f442c89fbdd179c65c8d8e49",
+        "support-pilot/src/test/js/base-path.test.mjs": "ae4b11704dec4b6426f840ec029fa816d32706032189d422dd84c58cf30acb89"
+      },
+      "supportJarSha256": "0ead915c7d6b82186c6dd6f4877a44b0574305059ff9acc2235672a4f045866c",
+      "supportJarMatchesCurrentArtifact": true
+    },
+    "platformConsole": {
+      "status": "NOT_REVERIFIED_BY_THIS_EXPORT"
+    }
+  },
+  "historicalFrontendTests": {
+    "supportBeforeBugfix7": {
+      "status": "INCONSISTENT_EVIDENCE",
+      "source": "support-ui-js-report.json",
+      "scope": "Support DOM behavior tests",
+      "currentSupportSources": false,
+      "realHttpAcceptance": false,
+      "recordedAt": "2026-10-20T16:10:40.583355+00:00",
+      "syntaxChecked": true,
+      "tests": 25,
+      "passed": 25,
+      "failures": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "command": "node --test support-pilot/src/test/js/auth.test.mjs support-pilot/src/test/js/approval.test.mjs",
+      "syntaxCommand": "node --check support-pilot/src/main/resources/web/app.js",
+      "sourceSha256": {
+        "support-pilot/src/main/resources/web/app.js": "5eaca8d52ae35f1cac541e2eea8508ce333f42c3fc6fa14f818a5b65f18a5e6a",
+        "support-pilot/src/test/js/auth.test.mjs": "20df448099db059e64f0b664a8fdabf360e0aaa31dc295de0063341940e7e137",
+        "support-pilot/src/test/js/approval.test.mjs": "507ce20ba4009959c9fb24d4edf3546a7ed552c8f442c89fbdd179c65c8d8e49"
+      },
+      "reportedStatus": "PASSED",
+      "artifactGeneration": "BEFORE_BUGFIX_7",
+      "currentAttemptStatus": "NOT_RUN"
+    }
+  },
+  "historicalBuilds": {
+    "platformBeforeSupportUiFix": {
+      "status": "PASSED",
+      "source": "platform-final-build-report.json",
+      "modules": 12,
+      "suites": 79,
+      "tests": 389,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "sourceFilesVerified": 183,
+      "command": "mvn clean verify -B -ntp",
+      "sourceComparisonScope": "Production inputs; excludes test fixtures",
+      "artifactGeneration": "BEFORE_SUPPORT_UI_FIX",
+      "finalPlatformArtifact": false,
+      "finalSupportArtifact": false
+    }
+  },
+  "checks": {
+    "support": {
+      "status": "PASSED",
+      "source": "support-bugfix7-report.json",
+      "artifactGeneration": "BUGFIX_7",
+      "finalPlatformArtifact": true,
+      "stage": "COMPLETED",
+      "assertions": {
+        "humanApproval": true,
+        "separateUsers": 3,
+        "crossUserReadDenied": true,
+        "idempotentCreate": true,
+        "csrfRejected": true,
+        "reviewerCannotCreate": true,
+        "generatedAnswerReviewed": true,
+        "approvedAnswerUnchanged": true,
+        "logoutInvalidated": true
+      },
+      "browserLoginVerified": false,
+      "productionAcceptance": false,
+      "artifactBinding": {
+        "platformJarSha256": "862c32eee60c6fa6a59a688ecafb6dd2d6a377fe76430f002cc2f7ad1c10bba6",
+        "platformJarSha256MatchesCurrentArtifact": true,
+        "supportJarSha256": "0ead915c7d6b82186c6dd6f4877a44b0574305059ff9acc2235672a4f045866c",
+        "supportJarSha256MatchesCurrentArtifact": true
+      },
+      "finalSupportArtifact": true,
+      "acceptanceAttempt": "BUGFIX_7",
+      "currentAttemptStatus": "PASSED"
+    },
+    "acp": {
+      "status": "PASSED",
+      "source": "acp-bugfix7-report.json",
+      "artifactGeneration": "POST_FIX",
+      "finalPlatformArtifact": true,
+      "startedAt": "2026-10-20T16:44:51.475349+00:00",
+      "finishedAt": "2026-10-20T16:45:02.918477+00:00",
+      "checkCount": 6,
+      "passedCheckCount": 6,
+      "artifactBinding": {
+        "platformJarSha256": "862c32eee60c6fa6a59a688ecafb6dd2d6a377fe76430f002cc2f7ad1c10bba6",
+        "platformJarSha256MatchesCurrentArtifact": true,
+        "supportJarSha256": "0ead915c7d6b82186c6dd6f4877a44b0574305059ff9acc2235672a4f045866c",
+        "supportJarSha256MatchesCurrentArtifact": true
+      },
+      "acceptanceAttempt": "BUGFIX_7",
+      "currentAttemptStatus": "PASSED"
+    },
+    "opsFinalReadOnly": {
+      "status": "PASSED",
+      "source": "ops-bugfix7-readonly-report.json",
+      "artifactGeneration": "POST_FIX",
+      "finalPlatformArtifact": true,
+      "startedAt": "2026-10-20T16:43:59.347126+00:00",
+      "finishedAt": "2026-10-20T16:44:54.284293+00:00",
+      "checkCount": 8,
+      "passedCheckCount": 8,
+      "artifactBinding": {
+        "platformJarSha256": "862c32eee60c6fa6a59a688ecafb6dd2d6a377fe76430f002cc2f7ad1c10bba6",
+        "platformJarSha256MatchesCurrentArtifact": true,
+        "ragJarSha256": "d431761aef22fed8d4a92201fb40387852c7fe974624723aa0033dce5778e23f",
+        "ragJarSha256MatchesCurrentArtifact": true
+      },
+      "acceptanceAttempt": "BUGFIX_7",
+      "currentAttemptStatus": "PASSED"
+    },
+    "opsIntegration": {
+      "status": "PASSED",
+      "source": "ops-bugfix7-integration-report.json",
+      "artifactGeneration": "POST_FIX",
+      "finalPlatformArtifact": true,
+      "checkCount": 10,
+      "passedCheckCount": 10,
+      "artifactBinding": {
+        "platformJarSha256": "862c32eee60c6fa6a59a688ecafb6dd2d6a377fe76430f002cc2f7ad1c10bba6",
+        "platformJarSha256MatchesCurrentArtifact": true,
+        "ragJarSha256": "d431761aef22fed8d4a92201fb40387852c7fe974624723aa0033dce5778e23f",
+        "ragJarSha256MatchesCurrentArtifact": true
+      },
+      "acceptanceAttempt": "BUGFIX_7",
+      "currentAttemptStatus": "PASSED"
+    },
+    "opsAcl": {
+      "status": "PASSED",
+      "source": "ops-bugfix7-acl-report.json",
+      "artifactGeneration": "POST_FIX",
+      "finalPlatformArtifact": true,
+      "startedAt": "2026-10-20T16:47:23.266090+00:00",
+      "finishedAt": "2026-10-20T16:47:57.210085+00:00",
+      "checkCount": 5,
+      "passedCheckCount": 5,
+      "artifactBindingBasis": "DESIGNATED_POST_FIX_ACCEPTANCE_REPORT",
+      "acceptanceAttempt": "BUGFIX_7",
+      "currentAttemptStatus": "PASSED"
+    },
+    "opsTicket": {
+      "status": "PASSED",
+      "source": "ops-bugfix7-ticket-report.json",
+      "artifactGeneration": "POST_FIX",
+      "finalPlatformArtifact": true,
+      "checkCount": 3,
+      "passedCheckCount": 3,
+      "artifactBindingBasis": "DESIGNATED_POST_FIX_ACCEPTANCE_REPORT",
+      "acceptanceAttempt": "BUGFIX_7",
+      "currentAttemptStatus": "PASSED"
+    }
+  },
+  "historicalChecks": {
+    "upgrade": {
+      "status": "PASSED",
+      "source": "upgrade-final-report.json",
+      "artifactGeneration": "HISTORICAL",
+      "finalPlatformArtifact": false,
+      "startedAt": "2026-10-20T11:07:47.510478+00:00",
+      "finishedAt": "2026-10-20T11:08:47.726515+00:00",
+      "checkCount": 5,
+      "passedCheckCount": 5
+    },
+    "backupPitr": {
+      "status": "PASSED",
+      "source": "recovery-real-report-2.json",
+      "artifactGeneration": "HISTORICAL",
+      "finalPlatformArtifact": false,
+      "startedAt": "2026-10-20T10:39:51.935423+00:00",
+      "finishedAt": "2026-10-20T10:40:36.516771+00:00",
+      "checkCount": 5,
+      "passedCheckCount": 5
+    },
+    "executionFaults": {
+      "status": "PASSED",
+      "source": "execution-report-02.json",
+      "artifactGeneration": "HISTORICAL",
+      "finalPlatformArtifact": false,
+      "startedAt": "2026-10-20T10:47:28.232979+00:00",
+      "finishedAt": "2026-10-20T10:54:04.519572+00:00",
+      "checkCount": 7,
+      "passedCheckCount": 7
+    },
+    "opsReadOnly": {
+      "status": "PASSED",
+      "source": "ops-final-readonly-report.json",
+      "artifactGeneration": "HISTORICAL",
+      "finalPlatformArtifact": false,
+      "checkCount": 6,
+      "passedCheckCount": 6,
+      "artifactBinding": {
+        "platformJarSha256": "672430d2087b867481cb4daebfb84f7d14ef9d9adeb24e6e8b78b8ae02b4cb99",
+        "platformJarSha256MatchesCurrentArtifact": false
+      }
+    }
+  },
+  "priorObservationAttempts": [
+    {
+      "attempt": 1,
+      "finalPlatformArtifact": false,
+      "status": "STOPPED_AFTER_MEASUREMENT_GATE_FAILURE",
+      "observationId": "soak-37cce5a194aa44da8b70f37279c651a2",
+      "rawReportStatus": "RUNNING",
+      "reviewedAt": "2026-10-20T12:31:26.684809+00:00",
+      "rawReportWasModified": false,
+      "completed24Hours": false,
+      "elapsedAtLastReport": 4440.219,
+      "writesRecordedBeforeDispatch": 4459,
+      "databaseReceipts": 4459,
+      "conflictingSequences": null,
+      "duplicateClientReferences": null,
+      "writesReplayed": 0,
+      "reportSha256": "af6c62734b8ac90c73dd3e2592dd5c0dc345308d1c41ae48a73b22bc9197dce0",
+      "windowsSha256": "6776d0289ad77cddb609f9cdda78693c692161d1a20d0b610ef40b9a9e9dbb9e",
+      "databaseStatuses": {
+        "COMPLETED": 4459
+      },
+      "breachedWindows": [
+        {
+          "window": 62,
+          "p95Millis": 516.0,
+          "getP95Millis": 516.0,
+          "postP95Millis": 453.0
+        },
+        {
+          "window": 66,
+          "p95Millis": 750.0,
+          "getP95Millis": 750.0,
+          "postP95Millis": 782.0
+        }
+      ],
+      "pendingResponsesReconciledReadOnlyCount": 1
+    },
+    {
+      "attempt": 2,
+      "finalPlatformArtifact": false,
+      "status": "STOPPED_AFTER_REQUEST_ERROR",
+      "observationId": "soak-aca67a6d34bb42588ea6cb78558caa11",
+      "rawReportStatus": "RUNNING",
+      "reviewedAt": "2026-10-20T15:00:59.840651+00:00",
+      "rawReportWasModified": false,
+      "completed24Hours": false,
+      "serviceCrashEvidence": false,
+      "elapsedAtLastReport": 8820.063,
+      "writesRecordedBeforeDispatch": 8858,
+      "databaseReceipts": 8858,
+      "conflictingSequences": null,
+      "duplicateClientReferences": null,
+      "writesReplayed": 0,
+      "reportSha256": "8b4c77492dd344b2de60a2cd393cd79ab30f2e9d3371ad646ff2f68ddd8575c7",
+      "windowsSha256": "46be31746c19277eba5434ccac62a18abeb6ff6985473d9de91a32598370d9b0",
+      "databaseStatuses": {
+        "COMPLETED": 8858
+      },
+      "breachedWindows": [
+        {
+          "window": 128,
+          "requests": 600,
+          "errors": 1,
+          "p95Millis": 70.003,
+          "getP95Millis": 70.447,
+          "postP95Millis": 66.136,
+          "at": "2026-10-20T14:41:21.457223+00:00"
+        }
+      ],
+      "pendingResponsesReconciledReadOnlyCount": 1,
+      "requestsAtLastReport": {
+        "requests": 88200,
+        "getRequests": 79380,
+        "postRequests": 8820,
+        "errors": 1
+      },
+      "rootCause": "UNDETERMINED"
+    },
+    {
+      "attempt": 3,
+      "finalPlatformArtifact": false,
+      "status": "STOPPED_AFTER_REQUEST_ERROR",
+      "observationId": "soak-633d38a422f742839bd4c4c589c409c5",
+      "rawReportStatus": "RUNNING",
+      "reviewedAt": "2026-10-20T17:16:10.703257+00:00",
+      "rawReportWasModified": false,
+      "completed24Hours": false,
+      "serviceCrashEvidence": false,
+      "elapsedAtLastReport": 1440.047,
+      "writesRecordedBeforeDispatch": 1494,
+      "databaseReceipts": 1494,
+      "conflictingSequences": null,
+      "duplicateClientReferences": null,
+      "writesReplayed": 0,
+      "reportSha256": "a7e49a7b7a5c7021db22e0feae1e5d838d246f62a5cff4873cb52dcc8e097b11",
+      "windowsSha256": "516c289eb7a7375b27a36a1b39d7f02a045e27e2618f64cebf3c802c143eb369",
+      "databaseStatuses": {
+        "COMPLETED": 1494
+      },
+      "breachedWindows": [
+        {
+          "window": 21,
+          "requests": 600,
+          "errors": 1,
+          "p95Millis": 89.695,
+          "getP95Millis": 91.073,
+          "postP95Millis": 81.777,
+          "at": "2026-10-20T17:11:57.695534+00:00"
+        }
+      ],
+      "pendingResponsesReconciledReadOnlyCount": 1,
+      "requestsAtLastReport": {
+        "requests": 14400,
+        "getRequests": 12960,
+        "postRequests": 1440,
+        "errors": 1
+      }
+    }
+  ],
+  "targetEnvironment": {
+    "vpsDeployment": "NOT_STARTED",
+    "linux7Days": "NOT_STARTED",
+    "crossHostRecovery": "NOT_STARTED",
+    "productionRpoRto": "NOT_MEASURED"
+  },
+  "supportUiBuild": {
+    "status": "PASSED",
+    "source": "support-ui-build-report.json",
+    "modules": 7,
+    "suites": 29,
+    "tests": 148,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "sourceFilesVerified": 427,
+    "sourceComparisonScope": "Build inputs including tests; documentation excluded",
+    "scope": "Support UI correction and required Maven dependency modules",
+    "fullPlatformRebuild": false,
+    "finalSupportArtifact": false,
+    "supportJarSha256": "5a5d9a1f6f89c46c2d00064685b78c0ba610eba4341da06a109de40fb04a51be",
+    "supportJarMatchesCurrentArtifact": false,
+    "platformAndOpsArtifactsUnchanged": true,
+    "sourceChangesVerified": true,
+    "changesAfterPriorFullBuild": [
+      "support-pilot/src/main/resources/web/app.js",
+      "support-pilot/src/test/js/auth.test.mjs"
+    ],
+    "artifactGeneration": "BEFORE_BUGFIX_7"
+  },
+  "opsBuild": {
+    "status": "PASSED",
+    "source": "ops-bugfix2-build-report.json",
+    "modules": 17,
+    "suites": 168,
+    "tests": 1071,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 2,
+    "sourceFilesVerified": 1129,
+    "checkstyleViolations": 0,
+    "sourceComparisonScope": "Build inputs including tests; documentation excluded"
+  },
+  "priorSupportUiAttempts": [
+    {
+      "status": "FAILED",
+      "source": "support-bugfix3-report.json",
+      "artifactGeneration": "BEFORE_BUGFIX_7",
+      "finalPlatformArtifact": false,
+      "stage": "OPERATOR_AUTHENTICATED",
+      "assertions": {
+        "humanApproval": null,
+        "separateUsers": null,
+        "crossUserReadDenied": null,
+        "idempotentCreate": null,
+        "csrfRejected": null,
+        "reviewerCannotCreate": null,
+        "generatedAnswerReviewed": null,
+        "approvedAnswerUnchanged": null,
+        "logoutInvalidated": null
+      },
+      "browserLoginVerified": null,
+      "productionAcceptance": false,
+      "finalSupportArtifact": false,
+      "acceptanceAttempt": "BUGFIX_3",
+      "scope": "Before diagnostic and base-path rebuild; does not verify current artifacts",
+      "currentAttemptStatus": "NOT_RUN",
+      "stoppedDuringLogin": true,
+      "businessRunCreated": false,
+      "failureCause": "NOT_ESTABLISHED"
+    },
+    {
+      "status": "FAILED",
+      "source": "support-bugfix4-report.json",
+      "artifactGeneration": "BEFORE_BUGFIX_7",
+      "finalPlatformArtifact": false,
+      "stage": "CREATE_ACKNOWLEDGED",
+      "assertions": {
+        "humanApproval": null,
+        "separateUsers": null,
+        "crossUserReadDenied": null,
+        "idempotentCreate": null,
+        "csrfRejected": null,
+        "reviewerCannotCreate": null,
+        "generatedAnswerReviewed": null,
+        "approvedAnswerUnchanged": null,
+        "logoutInvalidated": null
+      },
+      "browserLoginVerified": null,
+      "productionAcceptance": false,
+      "finalSupportArtifact": false,
+      "acceptanceAttempt": "BUGFIX_4",
+      "scope": "Before diagnostic and base-path rebuild; does not verify current artifacts",
+      "currentAttemptStatus": "NOT_RUN"
+    },
+    {
+      "status": "FAILED",
+      "source": "support-bugfix5-report.json",
+      "artifactGeneration": "BEFORE_BUGFIX_7",
+      "finalPlatformArtifact": false,
+      "stage": "SECOND_USER_AUTHENTICATED",
+      "assertions": {
+        "humanApproval": null,
+        "separateUsers": null,
+        "crossUserReadDenied": null,
+        "idempotentCreate": null,
+        "csrfRejected": null,
+        "reviewerCannotCreate": null,
+        "generatedAnswerReviewed": null,
+        "approvedAnswerUnchanged": null,
+        "logoutInvalidated": null
+      },
+      "browserLoginVerified": null,
+      "productionAcceptance": false,
+      "finalSupportArtifact": false,
+      "acceptanceAttempt": "BUGFIX_5",
+      "scope": "Before diagnostic and base-path rebuild; does not verify current artifacts",
+      "currentAttemptStatus": "NOT_RUN",
+      "stoppedDuringLogin": true,
+      "businessRunCreated": false,
+      "failureCause": "NOT_ESTABLISHED"
+    },
+    {
+      "status": "PASSED",
+      "source": "support-bugfix6-report.json",
+      "artifactGeneration": "BEFORE_BUGFIX_7",
+      "finalPlatformArtifact": false,
+      "stage": "COMPLETED",
+      "assertions": {
+        "humanApproval": true,
+        "separateUsers": 3,
+        "crossUserReadDenied": true,
+        "idempotentCreate": true,
+        "csrfRejected": true,
+        "reviewerCannotCreate": true,
+        "generatedAnswerReviewed": true,
+        "approvedAnswerUnchanged": true,
+        "logoutInvalidated": true
+      },
+      "browserLoginVerified": false,
+      "productionAcceptance": false,
+      "finalSupportArtifact": false,
+      "acceptanceAttempt": "BUGFIX_6",
+      "scope": "Before diagnostic and base-path rebuild; does not verify current artifacts",
+      "currentAttemptStatus": "NOT_RUN"
+    }
+  ],
+  "browser": {
+    "status": "PASSED",
+    "source": "browser-bugfix7-report.json",
+    "recordedAt": "2026-10-20T16:47:06.406597+00:00",
+    "scope": "Browser login, published Studio version, completed Support answer and disabled controls",
+    "productionAcceptance": false,
+    "checks": {
+      "platformOfficialCaptchaLogin": true,
+      "platformStudioAndPublishedVersionVisible": true,
+      "supportOfficialCaptchaLogin": true,
+      "latestCompletedSupportAnswerVisible": true,
+      "completedRunControlsDisabled": true
+    },
+    "checkCount": 5,
+    "passedCheckCount": 5,
+    "artifactSha256": {
+      "platform": "862c32eee60c6fa6a59a688ecafb6dd2d6a377fe76430f002cc2f7ad1c10bba6",
+      "support": "0ead915c7d6b82186c6dd6f4877a44b0574305059ff9acc2235672a4f045866c"
+    },
+    "finalPlatformArtifact": true,
+    "finalSupportArtifact": true,
+    "artifactGeneration": "BUGFIX_7",
+    "currentAttemptStatus": "PASSED",
+    "acceptanceAttempt": "BUGFIX_7"
+  },
+  "historicalBrowser": {
+    "status": "PASSED",
+    "source": "browser-final-report.json",
+    "artifactGeneration": "HISTORICAL",
+    "finalPlatformArtifact": false,
+    "syntheticBusinessDataOnly": true,
+    "passwordChanged": false,
+    "platform": {
+      "officialAccountCaptchaLogin": true,
+      "studioPublishedVersionVisible": true,
+      "supportProjectSelected": true
+    },
+    "support": {
+      "officialAccountCaptchaLogin": true,
+      "publishedAssistantVisible": true,
+      "reviewedSyntheticAnswerVisible": true,
+      "completedRunVisible": true,
+      "modelCalls": 1,
+      "tokens": 382
+    },
+    "finalSupportArtifact": false
+  },
+  "deployment": {
+    "source": "deployment-bugfix7-report.json",
+    "recordedAt": "2026-10-20T16:44:13.156715+00:00",
+    "scope": "Local fixture and configuration validation only",
+    "artifactGeneration": "BUGFIX_7",
+    "finalPlatformArtifact": true,
+    "fixtureTests": "PASS",
+    "dockerComposeParse": "PASS_NO_DAEMON_REQUIRED",
+    "linuxDeployment": "PENDING_ENVIRONMENT",
+    "crossHostRestore": "PENDING_ENVIRONMENT",
+    "rpo15Minutes": "NOT_MEASURED",
+    "rto60Minutes": "NOT_MEASURED",
+    "sevenDayObservation": "NOT_STARTED",
+    "realNotifications": "NOT_SENT",
+    "javaTemplateContracts": {
+      "deploymentLoad": "PASS",
+      "releaseCapabilityValidation": "PASS",
+      "governanceLoad": "PASS",
+      "projects": 2,
+      "releases": 4,
+      "modelConcurrency": 5,
+      "jarSha256": "862c32eee60c6fa6a59a688ecafb6dd2d6a377fe76430f002cc2f7ad1c10bba6"
+    },
+    "status": "PASSED",
+    "supplementalChecks": {
+      "phase5DeploymentFixtures": {
+        "tests": 15,
+        "status": "PASS"
+      },
+      "phase5BundleFixtures": {
+        "tests": 5,
+        "status": "PASS"
+      },
+      "phase6BundleFixtures": {
+        "tests": 8,
+        "status": "PASS"
+      },
+      "supportJavaScript": {
+        "tests": 29,
+        "failures": 0,
+        "skipped": 0,
+        "status": "PASS"
+      },
+      "supportBindingTestsFromFullBuild": {
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "status": "PASS"
+      },
+      "supportBuiltJarConfiguration": {
+        "status": "PASS",
+        "jarSha256": "0ead915c7d6b82186c6dd6f4877a44b0574305059ff9acc2235672a4f045866c",
+        "matchesCurrentArtifact": true,
+        "scope": "Offline actual JAR constructors only"
+      }
+    },
+    "supportDeploymentTemplates": {
+      "status": "PASS_STATIC_CONTRACT",
+      "opsIdentityDefault": true,
+      "httpsPublicOriginRequired": true,
+      "prefixProxyStripsSupport": true,
+      "cookiePathScoped": true,
+      "nginxRuntimeSyntax": "NOT_RUN",
+      "tlsBrowserProxyAcceptance": "NOT_VERIFIED_BY_STATIC_CHECK"
+    },
+    "currentAttemptStatus": "PASSED"
+  },
+  "priorRuntimeRegressions": {
+    "historicalOutputAuthorization": {
+      "status": "FAILED",
+      "source": "ops-bugfix-readonly-report.json",
+      "artifactGeneration": "HISTORICAL",
+      "finalPlatformArtifact": false,
+      "startedAt": "2026-10-20T15:36:36.406932+00:00",
+      "finishedAt": "2026-10-20T15:36:53.807128+00:00",
+      "checkCount": 3,
+      "passedCheckCount": 2,
+      "artifactBinding": {
+        "platformJarSha256": "f18d392a26a921ef5a79278523f0759f5f9bd84bbe1ce45d0e138287d0a60a04",
+        "platformJarSha256MatchesCurrentArtifact": false,
+        "ragJarSha256": "06317f86ca6ff707d9d0b11a6672c42d5452685ed8e00742053176a241eea7cf",
+        "ragJarSha256MatchesCurrentArtifact": false
+      },
+      "review": {
+        "reason": "HISTORICAL_OUTPUT_DELEGATION_EXPIRED",
+        "httpTimeoutRegressionEstablished": false
+      }
+    },
+    "modelCall": {
+      "status": "FAILED",
+      "source": "ops-bugfix-integration-report.json",
+      "artifactGeneration": "HISTORICAL",
+      "finalPlatformArtifact": false,
+      "checkCount": 8,
+      "passedCheckCount": 7,
+      "artifactBinding": {
+        "platformJarSha256": "f18d392a26a921ef5a79278523f0759f5f9bd84bbe1ce45d0e138287d0a60a04",
+        "platformJarSha256MatchesCurrentArtifact": false,
+        "ragJarSha256": "06317f86ca6ff707d9d0b11a6672c42d5452685ed8e00742053176a241eea7cf",
+        "ragJarSha256MatchesCurrentArtifact": false
+      },
+      "review": {
+        "status": "UNRESOLVED_PRESERVED",
+        "recordedAt": "2026-10-20T15:45:10.139058+00:00",
+        "failureCode": "MODEL_CALL_OUTCOME_UNKNOWN",
+        "invocationKind": "MODEL",
+        "rootCause": "UNDETERMINED",
+        "attempts": 1,
+        "unknownPermitCount": 1,
+        "replays": 0,
+        "scope": "Read-only reconciliation; preserved unresolved outcome"
+      }
+    },
+    "supportModelCall": {
+      "status": "FAILED",
+      "source": "support-bugfix4-report.json",
+      "artifactGeneration": "HISTORICAL",
+      "finalPlatformArtifact": false,
+      "stage": "CREATE_ACKNOWLEDGED",
+      "assertions": {
+        "humanApproval": null,
+        "separateUsers": null,
+        "crossUserReadDenied": null,
+        "idempotentCreate": null,
+        "csrfRejected": null,
+        "reviewerCannotCreate": null,
+        "generatedAnswerReviewed": null,
+        "approvedAnswerUnchanged": null,
+        "logoutInvalidated": null
+      },
+      "browserLoginVerified": null,
+      "productionAcceptance": false,
+      "finalSupportArtifact": false,
+      "review": {
+        "status": "UNRESOLVED_PRESERVED",
+        "recordedAt": "2026-10-20T16:18:04.323148+00:00",
+        "failureCode": "MODEL_CALL_OUTCOME_UNKNOWN",
+        "invocationKind": "MODEL",
+        "rootCause": "UNDETERMINED",
+        "attempts": 1,
+        "modelCalls": 1,
+        "unknownPermitCount": 1,
+        "replays": 0,
+        "successfulKnowledgeToolCalls": 1,
+        "releasedToolPermitCount": 1,
+        "scope": "Read-only reconciliation; preserved unresolved outcome"
+      }
+    }
+  },
+  "modelUnknownOutcomes": {
+    "ops": {
+      "status": "UNRESOLVED_PRESERVED",
+      "recordedAt": "2026-10-20T15:45:10.139058+00:00",
+      "failureCode": "MODEL_CALL_OUTCOME_UNKNOWN",
+      "invocationKind": "MODEL",
+      "rootCause": "UNDETERMINED",
+      "attempts": 1,
+      "unknownPermitCount": 1,
+      "replays": 0,
+      "scope": "Read-only reconciliation; preserved unresolved outcome"
+    },
+    "support": {
+      "status": "UNRESOLVED_PRESERVED",
+      "recordedAt": "2026-10-20T16:18:04.323148+00:00",
+      "failureCode": "MODEL_CALL_OUTCOME_UNKNOWN",
+      "invocationKind": "MODEL",
+      "rootCause": "UNDETERMINED",
+      "attempts": 1,
+      "modelCalls": 1,
+      "unknownPermitCount": 1,
+      "replays": 0,
+      "successfulKnowledgeToolCalls": 1,
+      "releasedToolPermitCount": 1,
+      "scope": "Read-only reconciliation; preserved unresolved outcome"
+    }
+  },
+  "modelDiagnosticReview": {
+    "status": "REVIEWED_LATER_SAMPLE",
+    "recordedAt": "2026-10-20T16:30:58.135778+00:00",
+    "scope": "Later independent synthetic sample; cannot recover earlier failures",
+    "diagnosticRunStatus": "COMPLETED",
+    "priorFailuresResolved": false,
+    "priorFailuresReplayed": false,
+    "rawMessagesPublished": false,
+    "findings": [
+      {
+        "kind": "TLS13_CIPHER_DISPOSE_EXCEPTIONS",
+        "interpretation": "JDK TLS 1.3 cipher disposal catches these cleanup exceptions; no attribution to prior failed Runs"
+      },
+      {
+        "kind": "MYSQL_PEER_REVERSE_DNS_VALIDATION",
+        "interpretation": "Post-connect peer telemetry reverse-DNS validation falls back to IP; no database exception event was observed in this recording",
+        "eventCount": 10
+      }
+    ],
+    "limits": [
+      "Successful later sample does not resolve previous UNKNOWN outcomes",
+      "Duration similarity does not establish a common cause",
+      "Recording coverage cannot prove absence of earlier exceptions"
+    ]
+  },
+  "local24HourObservation": {
+    "status": "RUNNING",
+    "rawReportStatus": "RUNNING",
+    "observationId": "soak-00d293fc7e434b29963ea84655b8787e",
+    "startedAt": "2026-10-20T17:31:54.235474+00:00",
+    "updatedAt": "2026-10-20T17:32:54.275991+00:00",
+    "requestedSeconds": 86400,
+    "elapsedMonotonicSeconds": 60.031,
+    "completedWindows": 1,
+    "completedMinuteWindows": 1,
+    "authRefreshes": 0,
+    "rps": 10,
+    "continuous": true,
+    "qualityPassed": null,
+    "requests": {
+      "requests": 600,
+      "getRequests": 540,
+      "postRequests": 60,
+      "errors": 0
+    },
+    "thresholds": {
+      "apiP95Millis": 500,
+      "maxSchedulerGapSeconds": 5,
+      "requiredDurationSeconds": 86400
+    },
+    "latestWindow": {
+      "window": 1,
+      "requests": 600,
+      "getRequests": 540,
+      "postRequests": 60,
+      "errors": 0,
+      "errorRate": 0.0,
+      "p95Millis": 83.997,
+      "getP95Millis": 84.011,
+      "postP95Millis": 77.131,
+      "elapsedMonotonicSeconds": 60.0
+    },
+    "completed24Hours": false,
+    "reportedCompleted24Hours": false,
+    "qualityGateFailed": false,
+    "active": true,
+    "observerScriptSha256": "b095d143241cf865940ce592596ddd15a89615889f5b8203a230d7535d0590b9",
+    "transport": {
+      "policy": "THREAD_LOCAL_ORIGIN_KEEP_ALIVE",
+      "threadLocal": true,
+      "noRetry": true,
+      "maxIdleSeconds": 5,
+      "opened": 8,
+      "reused": 594,
+      "discarded": 5,
+      "active": 3
+    },
+    "finalPlatformArtifact": true,
+    "liveness": {
+      "checkedAt": "2026-10-20T17:33:25.518161+00:00",
+      "processExists": true,
+      "identityMatches": true,
+      "fresh": true,
+      "active": true,
+      "maximumReportAgeSeconds": 120,
+      "reportAgeSeconds": 31.242,
+      "scriptMatchesReference": true
+    },
+    "statusBasis": "PROCESS_IDENTITY_AND_REPORT_FRESHNESS"
+  },
+  "observerSmoke": {
+    "status": "SHORT_RUN_PASSED",
+    "rawReportStatus": "SHORT_RUN_PASSED",
+    "observationId": "soak-c5f6f5244b4e4bc8aa5233a38c831ea6",
+    "startedAt": "2026-10-20T16:48:13.827734+00:00",
+    "updatedAt": "2026-10-20T16:49:13.925829+00:00",
+    "finishedAt": "2026-10-20T16:49:13.925829+00:00",
+    "requestedSeconds": 60,
+    "elapsedMonotonicSeconds": 60.094,
+    "completedWindows": 1,
+    "completedMinuteWindows": 1,
+    "authRefreshes": 0,
+    "rps": 10,
+    "unreconciledCommands": 0,
+    "continuous": true,
+    "qualityPassed": true,
+    "requests": {
+      "requests": 600,
+      "getRequests": 540,
+      "postRequests": 60,
+      "errors": 0
+    },
+    "thresholds": {
+      "apiP95Millis": 500,
+      "maxSchedulerGapSeconds": 5,
+      "requiredDurationSeconds": 86400
+    },
+    "latestWindow": {
+      "window": 1,
+      "requests": 600,
+      "getRequests": 540,
+      "postRequests": 60,
+      "errors": 0,
+      "errorRate": 0.0,
+      "p95Millis": 117.445,
+      "getP95Millis": 117.445,
+      "postP95Millis": 115.111,
+      "elapsedMonotonicSeconds": 60.016
+    },
+    "completed24Hours": false,
+    "reportedCompleted24Hours": false,
+    "qualityGateFailed": false,
+    "active": false,
+    "observerScriptSha256": "4e625d110e43bfb77a955b3e4ea1b84297b7380a82f3f88e669b5aff741629d7",
+    "finalPlatformArtifact": true
+  },
+  "observerKeepaliveSmoke": {
+    "status": "SHORT_RUN_PASSED",
+    "rawReportStatus": "SHORT_RUN_PASSED",
+    "observationId": "soak-279adb59735745078b33d7833895eb58",
+    "startedAt": "2026-10-20T17:29:53.762346+00:00",
+    "updatedAt": "2026-10-20T17:30:53.804907+00:00",
+    "finishedAt": "2026-10-20T17:30:53.803936+00:00",
+    "requestedSeconds": 60,
+    "elapsedMonotonicSeconds": 60.047,
+    "completedWindows": 1,
+    "completedMinuteWindows": 1,
+    "authRefreshes": 0,
+    "rps": 10,
+    "unreconciledCommands": 0,
+    "continuous": true,
+    "qualityPassed": true,
+    "requests": {
+      "requests": 600,
+      "getRequests": 540,
+      "postRequests": 60,
+      "errors": 0
+    },
+    "thresholds": {
+      "apiP95Millis": 500,
+      "maxSchedulerGapSeconds": 5,
+      "requiredDurationSeconds": 86400
+    },
+    "latestWindow": {
+      "window": 1,
+      "requests": 600,
+      "getRequests": 540,
+      "postRequests": 60,
+      "errors": 0,
+      "errorRate": 0.0,
+      "p95Millis": 81.6,
+      "getP95Millis": 81.6,
+      "postP95Millis": 78.145,
+      "elapsedMonotonicSeconds": 60.0
+    },
+    "completed24Hours": false,
+    "reportedCompleted24Hours": false,
+    "qualityGateFailed": false,
+    "active": false,
+    "observerScriptSha256": "b095d143241cf865940ce592596ddd15a89615889f5b8203a230d7535d0590b9",
+    "transport": {
+      "policy": "THREAD_LOCAL_ORIGIN_KEEP_ALIVE",
+      "threadLocal": true,
+      "noRetry": true,
+      "maxIdleSeconds": 5,
+      "opened": 9,
+      "reused": 592,
+      "discarded": 9,
+      "active": 0
+    },
+    "finalPlatformArtifact": true
+  }
+}

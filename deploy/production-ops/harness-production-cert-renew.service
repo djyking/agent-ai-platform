@@ -1,0 +1,22 @@
+[Unit]
+Description=Renew Docker-volume OpsAgent certificates and reload the current Web
+Requires=docker.service
+Wants=network-online.target
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+UMask=0077
+ExecStart=/usr/bin/python3 /opt/harness/production-ops/opsctl.py cert-renew
+TimeoutStartSec=15min
+Nice=10
+MemoryMax=256M
+CPUQuota=50%
+TasksMax=128
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/opt/harness/production-ops /run/lock

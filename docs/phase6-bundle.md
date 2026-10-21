@@ -1,16 +1,17 @@
 # 第六阶段双仓库工程包
 
-`validation/platform/phase6_bundle.py` 打包中台、独立客服 BFF、OpsAgent Auth/Knowledge/Ticket/RAG/Agent/Platform/Gateway 和 Ops 前端。它只接受中台仓库与 `.work/opsagent-phase6` 隔离 worktree 的两个干净、已提交 `develop/` 分支。不会替用户提交，也不读取原 OpsAgent 工作目录中的未提交修改。
+`validation/platform/phase6_bundle.py` 打包中台、独立客服 BFF、OpsAgent Auth/Knowledge/Ticket/RAG/Agent/Platform/Gateway/DemoOrder 和 Ops 前端。它只接受中台仓库与 `.work/opsagent-phase6` 隔离 worktree 的两个干净、已提交 `develop/` 分支。不会替用户提交，也不读取原 OpsAgent 工作目录中的未提交修改。
 
 包包含：
 
 - 两个仓库的完整提交 SHA、分支和打包时 clean 状态。
 - 含 ACP、Onboarding、Studio/Onboarding schema 2 和控制台的中台 JAR，以及独立客服 JAR。
-- 七个 OpsAgent JAR、完整 `ops-web/dist` 和本轮七个显式身份/问答 schema、升级、恢复及保留 SQL。即使应用自身源码没有变化，也统一核对本轮构建的公共依赖，避免旧镜像混用旧权限代码。
+- 八个 OpsAgent JAR、完整 `ops-web/dist` 和本轮七个显式身份/问答 schema、升级、恢复及保留 SQL。即使应用自身源码没有变化，也统一核对本轮构建的公共依赖，避免旧镜像混用旧权限代码。
 - 第五阶段部署/备份/监控文件和第六阶段客服部署、恢复工具镜像构建文件及公开文档；包含既有 Ops 主机的最小组合生成器、同域入口和内部 TLS 生成器。包内是无秘密的工具与模板，不包含生成的生产配置或证书。
 - 每个文件的 SHA-256、字节数，以及外部 ZIP 校验文件。
+- 当前 VPS 专用的九个已审运维源文件（`deploy/production-ops/`）及明确列入白名单的公开验收摘要与历史版本；不包含生产 `control.json`、证书或任何生成后的私有配置。这些运维工具绑定当前主机路径，迁移时须重新审查。
 
-包不含 `.work`、私密配置、密钥、令牌、会话、测试报告、数据库备份、下载的安装包或历史业务数据。Ops 基础库建库及旧环境历史迁移仍按匹配提交的原部署规程执行；包内新增 SQL 不代替原服务完整安装过程。
+包不含 `.work`、私密配置、密钥、令牌、会话、原始测试报告、数据库备份、下载的安装包或历史业务数据。Ops 基础库建库及旧环境历史迁移仍按匹配提交的原部署规程执行；包内新增 SQL 不代替原服务完整安装过程。
 
 先完成前后端构建和相应测试，核对实际使用的二进制，再计算每个 JAR 的 SHA-256。以下命令只读取已构建前端并输出其规范化清单摘要，不打包：
 
@@ -31,6 +32,7 @@ python validation/platform/phase6_bundle.py --ops-repository .work/opsagent-phas
   "ops-agent": {"path": "ops-agent-service/target/ops-agent-service-1.0.0-SNAPSHOT.jar", "sha256": "<Agent已验SHA256>"},
   "ops-platform": {"path": "ops-platform-service/target/ops-platform-service-1.0.0-SNAPSHOT.jar", "sha256": "<Platform已验SHA256>"},
   "ops-gateway": {"path": "ops-gateway/target/ops-gateway-1.0.0-SNAPSHOT.jar", "sha256": "<Gateway已验SHA256>"},
+  "ops-demo-order": {"path": "ops-demo-order-service/target/ops-demo-order-service-1.0.0-SNAPSHOT.jar", "sha256": "<DemoOrder已验SHA256>"},
   "ops-web": {"path": "ops-web/dist", "sha256": "<上述前端规范化清单SHA256>"}
 }
 ```
@@ -47,6 +49,14 @@ python validation/platform/phase6_bundle.py --repository . --ops-repository .wor
 
 连续观察报告只导出无秘密的状态、观察 ID、真实经过时间和读取时报告摘要，不复制报告内容或本机私有路径。`RUNNING` 只能来自最近 180 秒内更新的报告。`PASSED` 要求实际经过所请求的至少 86400 秒、完整分钟数准确、连续性及质量检查均通过、没有首失败记录或未对账写请求。86400 秒必须有 864000 个请求，其中 GET 777600、POST 86400，错误为零。
 
-打包器还读取报告同目录的 `windows.jsonl`，核验 1440 个完整分钟的顺序、时间、读写数量、每窗质量和最终窗口与报告一致，并只导出窗口文件摘要与已核验请求数量。缺窗、重复窗、部分窗、非有限延迟、失败窗或汇总不一致均拒绝 `PASSED`。短跑、失败、终止保持原状态，不能折算为 24 小时。Linux 七天观察、真实异机恢复和公网部署在此本机工程包中仍标为目标环境待执行；后续已授权部署需要独立记录目标验收，不从本机结果推断完成。
+打包器还读取报告同目录的 `windows.jsonl`，核验 1440 个完整分钟的顺序、时间、读写数量、每窗质量和最终窗口与报告一致，并只导出窗口文件摘要与已核验请求数量。缺窗、重复窗、部分窗、非有限延迟、失败窗或汇总不一致均拒绝 `PASSED`。短跑、失败、终止保持原状态，不能折算为 24 小时。Linux 七天观察和真实异机恢复仍标为待执行。当前公网部署事实来自包内明确白名单的公开目标验收摘要；`productionAcceptance=false` 保留未完成长期可靠性与灾备认证的边界，不表示已上线入口仍未部署。
 
 代码会核验报告字段的一致性，不提供独立的远端时间或防篡改证明；应保留原始逐分钟窗口和命令账本，供交付后复核。打包时的状态是快照，长跑完成后应另外保存完整验收记录，不覆盖已经交付的 ZIP。
+
+## 用户提前终止观察的交付
+
+当前页面的三个演练依赖 DemoOrder，因此工程包必须包含已核验的 DemoOrder JAR；缺失该产物时拒绝生成不完整的交付包。旧七服务工程包保留为历史快照。
+
+用户明确取消部署前观察时，保留原观察报告及窗口文件，不把最后的 `RUNNING` 改成 `PASSED`。可额外传入 `--observation-interruption-review <私有终止复核JSON>`，由复核记录绑定原报告 SHA、窗口 SHA、观察 ID、真实已过时间和停止时间。该记录必须明确 `USER_STOPPED_EARLY`、`WAIVED_NOT_PASSED`、未完成24小时、未修改原报告。打包器核对一致性后仅导出这一事实与复核摘要；不导出路径、凭据或复核中的业务数据，也不提供用户授权或时间的独立防篡改证明。
+
+未提供终止复核时，过期 `RUNNING` 仍会拒绝打包。失败观察不能通过此入口改成停止或通过，完整观察的原有逐分钟证据门槛保持不变。公网功能验收与Linux七日观察、异机恢复、生产RPO/RTO分别记录。

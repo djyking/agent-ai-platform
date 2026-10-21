@@ -17,6 +17,8 @@ class Phase6BundleTest(unittest.TestCase):
         names = {bundle.previous.DEPLOY_PREFIX + name for name in bundle.previous.DEPLOY_ALLOWLIST}
         names |= set(bundle.previous.REQUIRED_DOCS) | set(bundle.PHASE6_DOCS)
         names |= {bundle.PHASE6_PREFIX + name for name in bundle.PHASE6_DEPLOY}
+        names |= {bundle.PRODUCTION_OPS_PREFIX + name for name in bundle.PRODUCTION_OPS_FILES}
+        names |= set(bundle.PUBLIC_EVIDENCE_FILES)
         return [(name, "100644", "fixture-object") for name in sorted(names)]
 
     def jar(self, root, role, private=False, old_schema=False):
@@ -58,13 +60,24 @@ class Phase6BundleTest(unittest.TestCase):
             with self.subTest(missing=path), self.assertRaisesRegex(ValueError, "Required Phase 6"):
                 bundle.platform_files([entry for entry in self.entries() if entry[0] != path])
         self.assertNotIn("docs/validation/acceptance.json", selected)
+        for name in bundle.PUBLIC_EVIDENCE_FILES:
+            self.assertIn(name, selected)
+        with self.assertRaises(ValueError):
+            bundle.platform_files(self.entries() + [("docs/validation/phase6/local-evidence.json", "120000", "fixture")])
         for name, mode in [
+            (bundle.PRODUCTION_OPS_PREFIX + "control.json", "100644"),
+            (bundle.PRODUCTION_OPS_PREFIX + "opsctl.py", "120000"),
             (bundle.PHASE6_PREFIX + "private/runtime.env", "100644"),
             (bundle.PHASE6_PREFIX + "unreviewed.sh", "100644"),
             (bundle.PHASE6_PREFIX + "support.service", "120000"),
         ]:
             with self.assertRaises(ValueError):
                 bundle.platform_files(self.entries() + [(name, mode, "fixture")])
+        for name in bundle.PRODUCTION_OPS_FILES:
+            path = bundle.PRODUCTION_OPS_PREFIX + name
+            self.assertIn(path, selected)
+            with self.subTest(missing=path), self.assertRaisesRegex(ValueError, "Required Phase 6"):
+                bundle.platform_files([entry for entry in self.entries() if entry[0] != path])
         with self.assertRaises(ValueError):
             bundle.platform_files([e for e in self.entries() if not e[0].endswith("phase6-onboarding.md")])
         with self.assertRaises(ValueError):
@@ -93,6 +106,57 @@ class Phase6BundleTest(unittest.TestCase):
                 bundle.checked_jar(root, "platform", self.jar(root, "platform", old_schema=True))
             with self.assertRaisesRegex(ValueError, "Private resource"):
                 bundle.checked_jar(root, "platform", self.jar(root, "platform", private=True))
+
+    def test_demo_artifact_must_contain_actual_application(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            spec = self.jar(root, "ops-demo-order")
+            bundle.checked_jar(root, "ops-demo-order", spec)
+            artifact = Path(spec["path"])
+            with zipfile.ZipFile(artifact, "w") as archive:
+                archive.writestr("BOOT-INF/classes/com/opsagent/other/Application.class", b"wrong application")
+            spec["sha256"] = bundle.sha(artifact.read_bytes())
+            with self.assertRaisesRegex(ValueError, "required Phase 6 classes"):
+                bundle.checked_jar(root, "ops-demo-order", spec)
+
+    def test_explicit_user_stop_keeps_raw_report_and_cannot_claim_pass(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = self.observation(root, age_seconds=600)
+            raw = path.read_bytes()
+            report = json.loads(raw)
+            windows = path.with_name("windows.jsonl")
+            windows.write_bytes(b"preserved raw window evidence\n")
+            review = {"status": "USER_STOPPED_EARLY", "acceptanceStatus": "WAIVED_NOT_PASSED",
+                      "completed24Hours": False, "continuousObservationAccepted": False,
+                      "rawReportWasModified": False, "rawReportStatus": "RUNNING",
+                      "observationId": report["observationId"], "reportSha256": bundle.sha(raw),
+                      "elapsedAtLastReport": 61, "windowsSha256": bundle.sha(windows.read_bytes()),
+                      "stoppedAt": (datetime.now(timezone.utc) - timedelta(seconds=500)).isoformat()}
+            review["privateCredential"] = "must-not-be-exported"
+            review_path = root / "interruption.json"
+            review_path.write_text(json.dumps(review))
+            result = bundle.observation_summary(path, review_path)
+            self.assertEqual("USER_STOPPED_EARLY", result["status"])
+            self.assertEqual("WAIVED_NOT_PASSED", result["acceptanceStatus"])
+            self.assertFalse(result["completed24Hours"])
+            self.assertEqual(raw, path.read_bytes())
+            self.assertNotIn("must-not-be-exported", json.dumps(result))
+            for key, invalid in [("reportSha256", "0" * 64), ("windowsSha256", "0" * 64),
+                                 ("observationId", "soak-" + "b" * 32),
+                                 ("completed24Hours", True), ("elapsedAtLastReport", 86400),
+                                 ("acceptanceStatus", "PASSED"), ("rawReportWasModified", True)]:
+                with self.subTest(key=key):
+                    review_path.write_text(json.dumps({**review, key: invalid}))
+                    with self.assertRaisesRegex(ValueError, "Interruption review"):
+                        bundle.observation_summary(path, review_path)
+            for stopped in [(datetime.now(timezone.utc) - timedelta(seconds=700)).isoformat(),
+                            (datetime.now(timezone.utc) + timedelta(seconds=60)).isoformat(),
+                            datetime.now().isoformat()]:
+                with self.subTest(stopped=stopped):
+                    review_path.write_text(json.dumps({**review, "stoppedAt": stopped}))
+                    with self.assertRaisesRegex(ValueError, "interruption timeline"):
+                        bundle.observation_summary(path, review_path)
 
     def test_frontend_tree_is_complete_hashed_and_has_no_extra_resources(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -225,6 +289,10 @@ class Phase6BundleTest(unittest.TestCase):
             manifest_path = root / ".work/artifacts.json"
             manifest_path.write_text(json.dumps(specs))
             observation = self.observation(root / ".work")
+            manifest_path.write_text(json.dumps({k: v for k, v in specs.items() if k != "ops-demo-order"}))
+            with self.assertRaisesRegex(ValueError, "including DemoOrder"):
+                bundle.build(root, ops, manifest_path, observation)
+            manifest_path.write_text(json.dumps(specs))
             result = bundle.build(root, ops, manifest_path, observation)
             self.assertTrue(result["readBackVerified"])
             built = bundle.verify_bundle(Path(result["bundle"]))
@@ -232,6 +300,7 @@ class Phase6BundleTest(unittest.TestCase):
             self.assertEqual("RUNNING", built["local24HourObservation"]["status"])
             self.assertEqual("PENDING_TARGET_ENVIRONMENT", built["linux7DayObservation"])
             self.assertFalse(built["productionAcceptance"])
+            self.assertIn("ops-demo-order", built["artifacts"])
             with zipfile.ZipFile(result["bundle"]) as archive:
                 self.assertTrue(all(".work/" not in name and "observation.json" not in name
                                     for name in archive.namelist()))

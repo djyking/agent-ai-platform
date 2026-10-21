@@ -30,6 +30,17 @@ PHASE6_DOCS = frozenset({
     "docs/phase6-studio-pagination.md", "docs/phase6-continuous-observation.md",
     "docs/phase6-bundle.md",
 })
+PRODUCTION_OPS_PREFIX = "deploy/production-ops/"
+PRODUCTION_OPS_FILES = frozenset({
+    "README.md", "opsctl.py", "install.py", "restore-host-observer.py", "test_opsctl.py",
+    "harness-production-backup.service", "harness-production-backup.timer",
+    "harness-production-cert-renew.service", "harness-production-cert-renew.timer",
+})
+PUBLIC_EVIDENCE_FILES = frozenset({
+    "docs/validation/phase6/README.md", "docs/validation/phase6/local-evidence.json",
+    "docs/validation/phase6/pre-vps-history-20261021.md",
+    "docs/validation/phase6/pre-vps-local-evidence-20261020.json",
+})
 OPS_FILES = frozenset({
     "README.md", "docs/harness-phase6.md",
     "ops-auth-service/src/main/resources/harness-identity-schema.sql",
@@ -50,6 +61,7 @@ ARTIFACTS = {
     "ops-agent": ("opsagent", "ops-agent-service", "opsagent/services/ops-agent.jar"),
     "ops-platform": ("opsagent", "ops-platform-service", "opsagent/services/ops-platform.jar"),
     "ops-gateway": ("opsagent", "ops-gateway", "opsagent/services/ops-gateway.jar"),
+    "ops-demo-order": ("opsagent", "ops-demo-order-service", "opsagent/services/ops-demo-order.jar"),
 }
 PLATFORM_PACKAGE = "BOOT-INF/classes/io/github/djyking/harness/platform/"
 REQUIRED_CLASSES = {
@@ -83,6 +95,7 @@ REQUIRED_CLASSES = {
     "ops-agent": {"BOOT-INF/classes/com/opsagent/agent/AgentApplication.class"},
     "ops-platform": {"BOOT-INF/classes/com/opsagent/platform/OpsPlatformApplication.class"},
     "ops-gateway": {"BOOT-INF/classes/com/opsagent/gateway/OpsGatewayApplication.class"},
+    "ops-demo-order": {"BOOT-INF/classes/com/opsagent/demo/DemoOrderApplication.class"},
 }
 
 
@@ -117,13 +130,25 @@ def reject_output_redirects(path):
 def platform_files(entries):
     selected = previous.selected_files(entries)
     for name, mode, object_id in entries:
+        if name in PUBLIC_EVIDENCE_FILES:
+            if mode not in {"100644", "100755"} or not safe_member(name):
+                raise ValueError("Non-regular public acceptance file: " + name)
+            selected[name] = object_id
         if name.startswith(PHASE6_PREFIX):
             if name[len(PHASE6_PREFIX):] not in PHASE6_DEPLOY or not safe_member(name):
                 raise ValueError("Unreviewed Phase 6 deployment file: " + name)
             if mode not in {"100644", "100755"}:
                 raise ValueError("Non-regular deployment file: " + name)
             selected[name] = object_id
+        elif name.startswith(PRODUCTION_OPS_PREFIX):
+            if name[len(PRODUCTION_OPS_PREFIX):] not in PRODUCTION_OPS_FILES or not safe_member(name):
+                raise ValueError("Unreviewed production operations file: " + name)
+            if mode not in {"100644", "100755"}:
+                raise ValueError("Non-regular production operations file: " + name)
+            selected[name] = object_id
     missing = {PHASE6_PREFIX + name for name in PHASE6_DEPLOY} | PHASE6_DOCS
+    missing |= {PRODUCTION_OPS_PREFIX + name for name in PRODUCTION_OPS_FILES}
+    missing |= PUBLIC_EVIDENCE_FILES
     if not missing <= selected.keys():
         raise ValueError("Required Phase 6 deployment files and documentation are not committed")
     return selected
@@ -205,7 +230,7 @@ def frontend_digest(payloads):
     return sha(json.dumps(manifest, sort_keys=True, separators=(",", ":")).encode())
 
 
-def observation_summary(path):
+def observation_summary(path, interruption_review=None):
     """Export only bounded non-secret state, never the source report or its private paths."""
     data = path.read_bytes()
     report = json.loads(data)
@@ -272,6 +297,28 @@ def observation_summary(path):
                     "verifiedRequests": requests}
     elif complete:
         raise ValueError("Incomplete observation cannot claim completed24Hours")
+    if interruption_review is not None:
+        review_bytes = interruption_review.read_bytes()
+        review = json.loads(review_bytes)
+        if (status not in {"RUNNING", "INTERRUPTED"} or complete
+                or review.get("status") != "USER_STOPPED_EARLY"
+                or review.get("acceptanceStatus") != "WAIVED_NOT_PASSED"
+                or review.get("completed24Hours") is not False
+                or review.get("continuousObservationAccepted") is not False
+                or review.get("rawReportWasModified") is not False
+                or review.get("rawReportStatus") != status
+                or review.get("observationId") != report.get("observationId")
+                or review.get("reportSha256") != sha(data)
+                or review.get("elapsedAtLastReport") != elapsed
+                or review.get("windowsSha256") != sha(path.with_name("windows.jsonl").read_bytes())):
+            raise ValueError("Interruption review must bind the unchanged incomplete observer evidence")
+        stopped = datetime.fromisoformat(review["stoppedAt"].replace("Z", "+00:00"))
+        updated = datetime.fromisoformat(report["updatedAt"].replace("Z", "+00:00"))
+        if stopped.tzinfo is None or updated.tzinfo is None or not updated <= stopped <= datetime.now(timezone.utc):
+            raise ValueError("Invalid observer interruption timeline")
+        evidence.update(rawReportStatus=status, acceptanceStatus="WAIVED_NOT_PASSED",
+                        interruptionReviewSha256=sha(review_bytes))
+        status = "USER_STOPPED_EARLY"
     if status == "RUNNING":
         updated = datetime.fromisoformat(report["updatedAt"].replace("Z", "+00:00"))
         age = (datetime.now(timezone.utc) - updated).total_seconds()
@@ -314,7 +361,7 @@ def verify_bundle(path):
         return manifest
 
 
-def build(repository, ops_repository, artifact_manifest, observation_report):
+def build(repository, ops_repository, artifact_manifest, observation_report, interruption_review=None):
     root = repository.resolve(strict=True)
     ops = ops_repository.resolve(strict=True)
     if ops != (root / ".work/opsagent-phase6").resolve(strict=True):
@@ -322,7 +369,7 @@ def build(repository, ops_repository, artifact_manifest, observation_report):
     provenance = {name: previous.clean_commit(repo) for name, repo in [("platform", root), ("opsagent", ops)]}
     specs = json.loads(artifact_manifest.read_text(encoding="utf-8-sig"))
     if set(specs) != set(ARTIFACTS) | {"ops-web"}:
-        raise ValueError("Exactly platform, support, seven Ops service JARs, and ops-web are required")
+        raise ValueError("Exactly platform, support, eight Ops service JARs including DemoOrder, and ops-web are required")
     payloads = {}
     for repo_name, repo, selector in [("platform", root, platform_files), ("opsagent", ops, ops_files)]:
         selected = selector(previous.tree_entries(repo, provenance[repo_name][0]))
@@ -342,7 +389,7 @@ def build(repository, ops_repository, artifact_manifest, observation_report):
             or not re.fullmatch(r"[a-f0-9]{64}", front_spec["sha256"]) or front_hash != front_spec["sha256"]):
         raise ValueError("Ops frontend differs from caller-verified canonical manifest SHA-256")
     payloads.update({"opsagent/ops-web/dist/" + name: content for name, content in frontend.items()})
-    local_observation = observation_summary(observation_report)
+    local_observation = observation_summary(observation_report, interruption_review)
     if len(payloads) != len({n.casefold() for n in payloads}) or any(not safe_member(n) for n in payloads):
         raise ValueError("Unsafe or colliding package payload paths")
     manifest = {
@@ -355,7 +402,8 @@ def build(repository, ops_repository, artifact_manifest, observation_report):
         "linux7DayObservation": "PENDING_TARGET_ENVIRONMENT",
         "crossHostRecovery": "PENDING_TARGET_ENVIRONMENT",
         "productionAcceptance": False, "privateStateIncluded": False, "testReportsIncluded": False,
-        "acceptanceScope": "Local engineering; authorized VPS installation and public access require separate target acceptance",
+        "publicTargetEvidenceEntry": "docs/validation/phase6/local-evidence.json",
+        "acceptanceScope": "Engineering package with committed public target-acceptance facts; no claim of long-duration production reliability or cross-host recovery",
         "artifactProvenance": "Caller-verified SHA-256; no embedded Git compilation attestation",
         "gitCommitScope": "Exact committed deployment files and docs, not independent proof of artifact compilation",
         "fileHashScope": "All payload files; external ZIP SHA-256 protects the manifest",
@@ -408,6 +456,8 @@ def main():
     parser.add_argument("--ops-repository", type=Path, required=True)
     parser.add_argument("--artifacts", type=Path)
     parser.add_argument("--observation-report", type=Path)
+    parser.add_argument("--observation-interruption-review", type=Path,
+                        help="Explicit user-stop review bound to unchanged raw evidence; never counts as PASSED")
     parser.add_argument("--inspect-frontend", action="store_true",
                         help="Print the built ops-web canonical manifest digest without packaging")
     args = parser.parse_args()
@@ -417,7 +467,8 @@ def main():
         return
     if not args.artifacts or not args.observation_report:
         parser.error("--artifacts and --observation-report are required for packaging")
-    print(json.dumps(build(args.repository, args.ops_repository, args.artifacts, args.observation_report), indent=2))
+    print(json.dumps(build(args.repository, args.ops_repository, args.artifacts, args.observation_report,
+                           args.observation_interruption_review), indent=2))
 
 
 if __name__ == "__main__":

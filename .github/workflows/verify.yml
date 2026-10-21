@@ -69,6 +69,8 @@ jobs:
         run: python validation/platform/phase5_bundle_test.py
       - name: Validate continuous observation accounting
         run: python -m unittest discover -s validation/platform -p "test_phase6_*.py"
+      - name: Validate pinned production maintenance boundaries
+        run: python -m unittest discover -s deploy/production-ops -p "test_*.py"
       - name: Install Compose version used by the target environment
         uses: docker/setup-compose-action@v2.4.0
         with:
