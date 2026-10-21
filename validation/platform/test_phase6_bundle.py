@@ -52,6 +52,11 @@ class Phase6BundleTest(unittest.TestCase):
     def test_phase6_allowlist_rejects_missing_files_private_files_and_symlinks(self):
         selected = bundle.platform_files(self.entries())
         self.assertIn("docs/phase6-onboarding.md", selected)
+        for name in ("full-ui.prepare.py", "full-ui.md", "tests/test_full_ui.py"):
+            path = bundle.PHASE6_PREFIX + name
+            self.assertIn(path, selected)
+            with self.subTest(missing=path), self.assertRaisesRegex(ValueError, "Required Phase 6"):
+                bundle.platform_files([entry for entry in self.entries() if entry[0] != path])
         self.assertNotIn("docs/validation/acceptance.json", selected)
         for name, mode in [
             (bundle.PHASE6_PREFIX + "private/runtime.env", "100644"),

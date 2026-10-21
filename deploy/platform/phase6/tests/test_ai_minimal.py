@@ -454,6 +454,10 @@ class ProxyContractTests(unittest.TestCase):
                      "Set HARNESS_SPRING_BINDING_CLASSPATH to reviewed existing Spring/Boot/YAML jars")
 class SpringBindingTests(unittest.TestCase):
     def test_generated_jvm_properties_override_mounted_yaml_and_conflicting_env_spellings(self):
+        base, spec, digest = fixture(False)
+        self.check_rendered_properties(base, spec, digest)
+
+    def check_rendered_properties(self, base, spec, digest, profile="ai-minimal", java_services=prepare.JAVA):
         java = str(Path(os.environ["JAVA_HOME"]) / "bin" / ("java.exe" if os.name == "nt" else "java")) \
             if os.environ.get("JAVA_HOME") else shutil.which("java")
         self.assertTrue(java, "Java 17+ is required for the explicit offline Spring binding check")
@@ -498,13 +502,12 @@ class FixedConfigurationCheck {
     }
 }
 """
-        base, spec, digest = fixture(False)
-        result, review = prepare.render(base, spec, digest)
+        result, review = prepare.render(base, spec, digest, profile)
         with tempfile.TemporaryDirectory() as name:
             temporary = Path(name)
             java_file = temporary / "FixedConfigurationCheck.java"
             java_file.write_text(source, encoding="utf-8")
-            for service in prepare.JAVA:
+            for service in java_services:
                 with self.subTest(service=service):
                     expected = dict(review["fixedJvmProperties"][service])
                     variables = {key: value for key, value in result["services"][service]["environment"].items()

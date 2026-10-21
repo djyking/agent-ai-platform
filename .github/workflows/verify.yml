@@ -40,6 +40,8 @@ jobs:
         run: .\mvnw.cmd clean verify -B -ntp
       - name: Verify effective Spring configuration using built artifact dependencies
         run: python deploy/platform/phase6/tests/run_spring_binding.py --jar harness-platform-service/target/harness-platform-service-0.1.0-SNAPSHOT.jar
+      - name: Verify full UI Spring configuration using built artifact dependencies
+        run: python deploy/platform/phase6/tests/run_spring_binding.py --profile full-ui --jar harness-platform-service/target/harness-platform-service-0.1.0-SNAPSHOT.jar
       - name: Validate deployment templates against built Java contracts
         run: python validation/platform/phase5_deployment_validate.py --jar harness-platform-service/target/harness-platform-service-0.1.0-SNAPSHOT.jar --report .work/phase5/deployment-contracts.json
   api-contract:

@@ -78,15 +78,18 @@ def accepted_result(result: unittest.TestResult) -> bool:
     return result.testsRun == 1 and not result.skipped and result.wasSuccessful()
 
 
-def execute_binding(classpath: str) -> unittest.TestResult:
+def execute_binding(classpath: str, profile: str = "ai-minimal") -> unittest.TestResult:
     previous = os.environ.get("HARNESS_SPRING_BINDING_CLASSPATH")
     os.environ["HARNESS_SPRING_BINDING_CLASSPATH"] = classpath
     try:
+        full_ui = profile == "full-ui"
         spec = importlib.util.spec_from_file_location(
-            "required_spring_binding_check", Path(__file__).with_name("test_ai_minimal.py"))
+            "required_spring_binding_check", Path(__file__).with_name(
+                "test_full_ui.py" if full_ui else "test_ai_minimal.py"))
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
-        suite = unittest.defaultTestLoader.loadTestsFromTestCase(module.SpringBindingTests)
+        suite = unittest.defaultTestLoader.loadTestsFromTestCase(
+            module.FullUiSpringBindingTests if full_ui else module.SpringBindingTests)
         return unittest.TextTestRunner(verbosity=2).run(suite)
     finally:
         if previous is None:
@@ -98,6 +101,7 @@ def execute_binding(classpath: str) -> unittest.TestResult:
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--jar", type=Path, required=True)
+    parser.add_argument("--profile", choices=("ai-minimal", "full-ui"), default="ai-minimal")
     args = parser.parse_args(argv)
     try:
         digest = hashlib.sha256()
@@ -106,7 +110,8 @@ def main(argv=None) -> int:
                 digest.update(chunk)
         with tempfile.TemporaryDirectory(prefix="harness-spring-binding-") as temporary:
             libraries = extract_dependencies(args.jar, Path(temporary))
-            result = execute_binding(os.pathsep.join(map(str, libraries)))
+            classpath = os.pathsep.join(map(str, libraries))
+            result = execute_binding(classpath) if args.profile == "ai-minimal" else execute_binding(classpath, args.profile)
             passed = accepted_result(result)
             print(json.dumps({
                 "status": "PASSED" if passed else "FAILED", "tests": result.testsRun,

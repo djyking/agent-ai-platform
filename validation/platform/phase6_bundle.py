@@ -19,6 +19,7 @@ PHASE6_DEPLOY = frozenset({
     "README.md", "support.service", "support.env.example", "support.nginx.example.conf",
     "backup-tools.Dockerfile", "ops-runtime.Dockerfile",
     "ai-minimal.prepare.py", "ai-minimal.inputs.example.json", "ai-minimal.md",
+    "full-ui.prepare.py", "full-ui.md", "tests/test_full_ui.py",
     "ai-minimal.nginx.locations.conf", "internal-tls.nginx.conf", "support.Dockerfile",
     "prepare-internal-tls.py", "internal-tls.md", "tests/test_ai_minimal.py",
     "tests/run_spring_binding.py", "tests/test_spring_binding_runner.py",

@@ -24,6 +24,11 @@ JAVA = tuple(name for name in CORE if name.startswith("ops-") and name != "ops-w
 REPLACED = JAVA + ("ops-web-app",)
 NEW = ("harness-api", "harness-worker-1", "support", "harness-internal-tls")
 IMAGE_KEYS = set(REPLACED) | {"platform", "support", "internalTls"}
+FULL_UI_ADDITIONS = (
+    "ops-demo-order-app", "demo-redis", "demo-rabbitmq", "prometheus", "alertmanager",
+    "observation-collector", "otel-collector", "tempo", "grafana", "sentinel",
+)
+FULL_UI_JAVA = JAVA + ("ops-demo-order-app",)
 REQUIRED_INPUTS = {
     "format", "baseComposeSha256", "runtimeDirectory", "network",
     "vectorMode", "images", "trustStoreType", "configurationReview",
@@ -34,6 +39,7 @@ SHA256 = re.compile(r"[a-f0-9]{64}")
 OTEL_WRAPPER_SERVICES = frozenset({
     "ops-rag-app", "ops-agent-app", "ops-platform-app", "ops-gateway-app",
 })
+FULL_UI_OTEL_WRAPPER_SERVICES = OTEL_WRAPPER_SERVICES | {"ops-demo-order-app"}
 OTEL_WRAPPER_SHA256 = "386d1d7e2335e35dfe3b80a09b716e669f108008e53635d5adf71ced1da389ed"
 OTEL_WRAPPER = "/opt/otel/java-entrypoint.sh"
 OTEL_AGENT = "/opt/otel/opentelemetry-javaagent.jar"
@@ -59,6 +65,19 @@ SERVICE_PROPERTIES = {
     "ops-ticket-app": {"ops.alertmanager.enabled": "false"},
     "ops-platform-app": {"ops.operations.inspection-enabled": "false"},
 }
+FULL_UI_COMMON_PROPERTIES = {
+    **COMMON_PROPERTIES,
+    "spring.cloud.sentinel.enabled": "true",
+    "spring.cloud.sentinel.eager": "true",
+    "spring.cloud.sentinel.transport.dashboard": "sentinel:8858",
+    "otel.sdk.disabled": "false",
+}
+FULL_UI_SERVICE_PROPERTIES = {
+    **SERVICE_PROPERTIES,
+    "ops-ticket-app": {"ops.alertmanager.enabled": "true"},
+    "ops-platform-app": {"ops.operations.inspection-enabled": "true"},
+    "ops-demo-order-app": {"ops.demo.nacos-enabled": "true"},
+}
 
 
 def property_identity(key: str) -> str:
@@ -69,6 +88,7 @@ MANAGED_PROPERTIES = {
     property_identity(key) for key in (
         *COMMON_PROPERTIES, "ops.knowledge.vector.enabled",
         *(key for values in SERVICE_PROPERTIES.values() for key in values),
+        *(key for values in FULL_UI_SERVICE_PROPERTIES.values() for key in values),
         "spring.application.json",
         # Private env files own credentials and release selection; no JVM overrides.
         "ops.harness.application-id", "ops.harness.application-credential",
@@ -132,7 +152,7 @@ def append_trust(options: str, store_type: str) -> str:
     ).strip()
 
 
-def configuration_review(spec: dict, base_digest: str) -> dict:
+def configuration_review(spec: dict, base_digest: str, profile: str = "ai-minimal") -> dict:
     review = mapping(spec["configurationReview"], "configurationReview")
     require(set(review) == {"baseComposeSha256", "evidenceSha256", "effectiveVectorEnabled", "services"},
             "Exact target configuration review declarations are required")
@@ -143,7 +163,10 @@ def configuration_review(spec: dict, base_digest: str) -> dict:
     require(type(review["effectiveVectorEnabled"]) is bool,
             "Reviewed effective vector mode must be a boolean, not an environment alias")
     services = mapping(review["services"], "configurationReview.services")
-    require(set(services) == set(JAVA), "Every Java service needs its own configuration review")
+    full_ui = profile == "full-ui"
+    java_services = FULL_UI_JAVA if full_ui else JAVA
+    wrapper_services = FULL_UI_OTEL_WRAPPER_SERVICES if full_ui else OTEL_WRAPPER_SERVICES
+    require(set(services) == set(java_services), "Every Java service needs its own configuration review")
     for name, value in services.items():
         value = mapping(value, "Java configuration review")
         keys = {"sourcesReviewed", "launchOptionsReviewed", "dynamicConfiguration", "launchProfile"}
@@ -151,7 +174,7 @@ def configuration_review(spec: dict, base_digest: str) -> dict:
                 "Explicit reviewed Java launch profile is required")
         if value["launchProfile"] == "reviewed-otel-wrapper":
             keys |= {"wrapperSha256", "launchEvidenceSha256"}
-            require(name in OTEL_WRAPPER_SERVICES, "OTel wrapper profile is not approved for this service")
+            require(name in wrapper_services, "OTel wrapper profile is not approved for this service")
             require(value.get("wrapperSha256") == OTEL_WRAPPER_SHA256,
                     "Only the exact reviewed OTel wrapper is supported")
             require(isinstance(value.get("launchEvidenceSha256"), str)
@@ -161,12 +184,18 @@ def configuration_review(spec: dict, base_digest: str) -> dict:
                 "Exact Java configuration review declarations are required")
         require(value["sourcesReviewed"] is True and value["launchOptionsReviewed"] is True,
                 "Mounted/imported sources and image launch options must be reviewed")
-        require(value["dynamicConfiguration"] == "disabled",
+        expected_dynamic = "managed-demo-nacos" if full_ui and name == "ops-demo-order-app" else "disabled"
+        require(value["dynamicConfiguration"] == expected_dynamic,
                 "Unreviewed or enabled dynamic configuration is outside this candidate")
+        if full_ui and name in wrapper_services:
+            require(value["launchProfile"] == "reviewed-otel-wrapper",
+                    "Full UI requires the reviewed OTel wrapper for every traced application")
     return review
 
 
-def lock_java_properties(service: dict, name: str, vector: bool, launch: dict) -> dict:
+def lock_java_properties(service: dict, name: str, vector: bool, launch: dict,
+                         profile: str = "ai-minimal") -> dict:
+    full_ui = profile == "full-ui"
     env = environment(service, name)
     require(not service.get("command"), "Java command overrides require separate launch review")
     if launch["launchProfile"] == "direct":
@@ -191,7 +220,8 @@ def lock_java_properties(service: dict, name: str, vector: bool, launch: dict) -
         # Explicitly disable only this optional, identified monitoring agent. Keep
         # the wrapper's instance UUID behavior, original mounts and files intact.
         # Empty environment overrides any inherited image-level JDK_JAVA_OPTIONS.
-        env["JDK_JAVA_OPTIONS"] = ""
+        if not full_ui:
+            env["JDK_JAVA_OPTIONS"] = ""
     require(not service.get("env_file"),
             "Resolve existing Java env files into the reviewed base before rendering")
     blocked_environment = {
@@ -200,6 +230,8 @@ def lock_java_properties(service: dict, name: str, vector: bool, launch: dict) -
             "JAVA_OPTIONS", "JAVA_ARGS",
         )
     }
+    if full_ui and launch["launchProfile"] == "reviewed-otel-wrapper":
+        blocked_environment.remove(property_identity("JDK_JAVA_OPTIONS"))
     require(not any(property_identity(key) in blocked_environment and value not in (None, "")
                     for key, value in env.items()),
             "Alternate JVM launch options or Spring JSON require separate review")
@@ -215,7 +247,7 @@ def lock_java_properties(service: dict, name: str, vector: bool, launch: dict) -
                 "Unsupported launcher or argument-file token in JAVA_TOOL_OPTIONS")
         if launch["launchProfile"] == "reviewed-otel-wrapper":
             require(not token.startswith(("-javaagent", "-agentlib", "-agentpath", "-Xrun")),
-                    "Reviewed OTel disablement cannot retain an alternate agent launch")
+                    "Reviewed OTel profile cannot retain an alternate agent launch")
         if not token.startswith("-D"):
             continue
         key = token[2:].partition("=")[0]
@@ -226,8 +258,9 @@ def lock_java_properties(service: dict, name: str, vector: bool, launch: dict) -
         seen.add(identity)
         require(identity not in MANAGED_PROPERTIES,
                 "Existing JVM property conflicts with fixed intent or private env ownership")
-    properties = dict(COMMON_PROPERTIES)
-    properties.update(SERVICE_PROPERTIES.get(name, {}))
+    properties = dict(FULL_UI_COMMON_PROPERTIES if full_ui else COMMON_PROPERTIES)
+    service_properties = FULL_UI_SERVICE_PROPERTIES if full_ui else SERVICE_PROPERTIES
+    properties.update(service_properties.get(name, {}))
     if name == "ops-knowledge-app":
         properties["ops.knowledge.vector.enabled"] = str(vector).lower()
     # Only this fixed non-secret matrix becomes JVM properties. Keep original JVM
@@ -248,18 +281,24 @@ def private_env(path: str) -> dict:
     return {"path": path, "required": True, "format": "raw"}
 
 
-def render(base: dict, spec: dict, base_digest: str) -> tuple[dict, dict]:
+def render(base: dict, spec: dict, base_digest: str,
+           profile: str = "ai-minimal") -> tuple[dict, dict]:
+    require(profile in ("ai-minimal", "full-ui"), "Unsupported deployment profile")
+    full_ui = profile == "full-ui"
+    java_services = FULL_UI_JAVA if full_ui else JAVA
     mapping(base, "base Compose")
     mapping(spec, "inputs")
     require(set(spec) == REQUIRED_INPUTS, "Unexpected or missing input keys")
-    require(spec["format"] == "harness-ai-minimal-inputs-v2", "Unsupported input format")
+    input_format = "harness-full-ui-inputs-v1" if full_ui else "harness-ai-minimal-inputs-v2"
+    require(spec["format"] == input_format, "Unsupported input format")
     require(spec["baseComposeSha256"] == base_digest, "Base Compose digest mismatch")
     require(base.get("name") == "opsagent", "Target Compose project must remain opsagent")
     services = mapping(base.get("services"), "services")
     require(all(name in services for name in CORE), "A required Ops service is absent")
     require(not any(name in services for name in NEW), "New services already exist; review upgrade separately")
     images = mapping(spec["images"], "images")
-    require(set(images) == IMAGE_KEYS, "Exactly the reviewed image mapping is required")
+    image_keys = IMAGE_KEYS | {"ops-demo-order-app"} if full_ui else IMAGE_KEYS
+    require(set(images) == image_keys, "Exactly the reviewed image mapping is required")
     require(all(isinstance(v, str) and PINNED_IMAGE.fullmatch(v) for v in images.values()),
             "Use immutable image digests or exact local sha256 image IDs")
     directory = spec["runtimeDirectory"]
@@ -292,11 +331,15 @@ def render(base: dict, spec: dict, base_digest: str) -> tuple[dict, dict]:
             raise
         raise InvalidPlan("Invalid network input") from None
 
-    reviewed_configuration = configuration_review(spec, base_digest)
+    reviewed_configuration = configuration_review(spec, base_digest, profile)
     old_vector = reviewed_configuration["effectiveVectorEnabled"]
     require(spec["vectorMode"] in ("preserve", "disable-approved"), "Unknown vector mode")
     vector = old_vector and spec["vectorMode"] == "preserve"
     selected = list(CORE) + (["elasticsearch", "qdrant"] if vector else [])
+    if full_ui:
+        require(spec["vectorMode"] == "preserve" and old_vector,
+                "Full UI preserves the reviewed hybrid retrieval and index administration")
+        selected.extend(FULL_UI_ADDITIONS)
     require(all(name in services for name in selected), "Enabled vector mode needs both ES and Qdrant")
 
     result = {"name": "opsagent", "services": {}}
@@ -326,16 +369,25 @@ def render(base: dict, spec: dict, base_digest: str) -> tuple[dict, dict]:
             require(isinstance(mount, dict), "Use normalized Compose JSON, not unresolved YAML")
             if mount.get("type") == "bind":
                 require(str(mount.get("source", "")).startswith("/"), "Existing bind source must be target-absolute")
-        if name in JAVA:
-            service["depends_on"] = dependency_map(("mysql", "redis", "rabbitmq", "nacos"))
+        if name in java_services:
+            if not full_ui:
+                service["depends_on"] = dependency_map(("mysql", "redis", "rabbitmq", "nacos"))
+            else:
+                require(isinstance(service.get("depends_on", {}), dict),
+                        "Full UI requires normalized dependency declarations")
+                service.setdefault("depends_on", {})
             env = environment(service, name)
             require("harness-local" not in str(env.get("SPRING_PROFILES_ACTIVE", ""))
                     and "harness-local" not in str(env.get("SPRING_PROFILES_INCLUDE", "")),
                     "harness-local cannot be deployed")
             locked_properties[name] = lock_java_properties(
-                service, name, vector, reviewed_configuration["services"][name])
-            env.update(OTEL_SDK_DISABLED="true", SENTINEL_EAGER="false", SENTINEL_DASHBOARD="")
-        elif name != "ops-web-app":
+                service, name, vector, reviewed_configuration["services"][name], profile)
+            if full_ui:
+                env.update(OTEL_SDK_DISABLED="false", SENTINEL_ENABLED="true",
+                           SENTINEL_EAGER="true", SENTINEL_DASHBOARD="sentinel:8858")
+            else:
+                env.update(OTEL_SDK_DISABLED="true", SENTINEL_EAGER="false", SENTINEL_DASHBOARD="")
+        elif name != "ops-web-app" and not full_ui:
             service.pop("depends_on", None)
         result["services"][name] = service
 
@@ -345,8 +397,8 @@ def render(base: dict, spec: dict, base_digest: str) -> tuple[dict, dict]:
             out[name]["depends_on"].update(dependency_map(("elasticsearch", "qdrant")))
     environment(out["ops-knowledge-app"], "knowledge")["OPS_VECTOR_ENABLED"] = str(vector).lower()
     environment(out["ops-knowledge-app"], "knowledge")["OPS_TICKET_URL"] = "http://ops-ticket-app:8102"
-    environment(out["ops-ticket-app"], "ticket")["OPS_ALERTMANAGER_ENABLED"] = "false"
-    environment(out["ops-platform-app"], "platform")["OPS_OPERATIONS_INSPECTION_ENABLED"] = "false"
+    environment(out["ops-ticket-app"], "ticket")["OPS_ALERTMANAGER_ENABLED"] = str(full_ui).lower()
+    environment(out["ops-platform-app"], "platform")["OPS_OPERATIONS_INSPECTION_ENABLED"] = str(full_ui).lower()
     environment(out["ops-auth-app"], "auth")["OPS_HARNESS_IDENTITY_ENABLED"] = "true"
     rag_env = environment(out["ops-rag-app"], "rag")
     # Private env_file must own these values rather than stale base environment.
@@ -485,7 +537,8 @@ def render(base: dict, spec: dict, base_digest: str) -> tuple[dict, dict]:
         if key in base:
             result[key] = copy.deepcopy(base[key])
     review = {
-        "format": "harness-ai-minimal-review-v2", "status": "RENDERED_NOT_DEPLOYED",
+        "format": "harness-full-ui-review-v1" if full_ui else "harness-ai-minimal-review-v2",
+        "status": "RENDERED_NOT_DEPLOYED",
         "baseComposeSha256": base_digest, "services": sorted(out),
         "selectedOpsCount": len(selected), "newServiceCount": len(NEW),
         "oldVectorEnabled": old_vector, "vectorEnabled": vector,
@@ -493,10 +546,10 @@ def render(base: dict, spec: dict, base_digest: str) -> tuple[dict, dict]:
         "configurationReview": copy.deepcopy(reviewed_configuration),
         "configurationReviewNature": "REVIEWED_DECLARATIONS_NOT_AUTOMATIC_TARGET_INSPECTION",
         "fixedJvmProperties": locked_properties,
-        "optionalOtelAgentDisabled": any(
+        "optionalOtelAgentDisabled": not full_ui and any(
             value["launchProfile"] == "reviewed-otel-wrapper"
             for value in reviewed_configuration["services"].values()),
-        "optionalOtelAgentDisabledServices": sorted(
+        "optionalOtelAgentDisabledServices": [] if full_ui else sorted(
             name for name, value in reviewed_configuration["services"].items()
             if value["launchProfile"] == "reviewed-otel-wrapper"),
         "restartPolicy": "no", "newHostPorts": [],
@@ -516,6 +569,22 @@ def render(base: dict, spec: dict, base_digest: str) -> tuple[dict, dict]:
             "Keep historical data, unrelated projects, optional components and old restart policy intact.",
         ],
     }
+    if full_ui:
+        review.update(
+            profile="full-ui", pageFlowServicesPreserved=list(FULL_UI_ADDITIONS),
+            reviewedOtelAgentsPreserved=sorted(FULL_UI_OTEL_WRAPPER_SERVICES),
+            sentinelRuntimeEnabled=True, alertmanagerWebhookEnabled=True,
+            continuousInspectionEnabled=True, mainRabbitmqRequired=True,
+            inactiveLegacyLabSelected=False,
+        )
+        review["requiredBeforeStart"].extend([
+            "Verify current CMDB/collector scope; Grafana and the Sentinel dashboard remain selected.",
+            "Verify Demo order/notification isolation, Nacos managed revisions and existing broker identities.",
+            "Verify Prometheus firing/resolved delivery, automatic event runs and manual/Agent recovery end to end.",
+            "Verify OTel UUID identity, trace ingestion and current actual-call topology, plus real inspection samples.",
+            "Declare reranker-disabled ranking behavior; hybrid retrieval, citations and index administration stay enabled.",
+            "Reserve memory for unrelated spot/crypto services even when they are temporarily stopped or failed.",
+        ])
     return result, review
 
 
@@ -525,7 +594,7 @@ def write_private(path: Path, data: str) -> None:
         stream.write(data)
 
 
-def main() -> int:
+def main(profile: str = "ai-minimal") -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base-compose", required=True, type=Path)
     parser.add_argument("--inputs", required=True, type=Path)
@@ -535,11 +604,11 @@ def main() -> int:
         raw = args.base_compose.read_bytes()
         base = json.loads(raw)
         spec = json.loads(args.inputs.read_text(encoding="utf-8-sig"))
-        result, review = render(base, spec, hashlib.sha256(raw).hexdigest())
+        result, review = render(base, spec, hashlib.sha256(raw).hexdigest(), profile)
         destination = args.output_directory
         require(not destination.exists() and not destination.is_symlink(), "Output directory must be new")
         destination.mkdir(parents=False, mode=0o700)
-        write_private(destination / "compose.ai-minimal.private.json", json.dumps(result, indent=2) + "\n")
+        write_private(destination / f"compose.{profile}.private.json", json.dumps(result, indent=2) + "\n")
         write_private(destination / "review.json", json.dumps(review, indent=2) + "\n")
         source = Path(__file__).resolve().parent
         for origin, target in (
