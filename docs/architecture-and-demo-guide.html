@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent 应用平台 × OpsAgent｜架构、使用与演示指南</title>
+<style>
+:root{--ink:#18312c;--muted:#60756d;--green:#286953;--lime:#dce9bc;--paper:#f4f6f0;--line:#dce4d9;--blue:#365f91;--amber:#805d22;--white:#fff;--radius:20px}*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.75 system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif}a{color:var(--green);text-underline-offset:4px}a:hover{color:#143d30}code{font: .88em/1.6 ui-monospace,SFMono-Regular,Consolas,monospace;overflow-wrap:anywhere}button{font:inherit}.wrap{max-width:1240px;margin:auto;padding:0 40px}.hero{background:#153a31;color:#f6f9ee;padding:58px 0 46px}.eyebrow{color:#bcd4a1;font-size:12px;letter-spacing:.16em;font-weight:800}.hero h1{font-size:clamp(30px,4vw,48px);line-height:1.25;letter-spacing:-.03em;max-width:900px;margin:18px 0}.hero p{max-width:850px;color:#d2e0d5}.hero .links{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}.pill{display:inline-flex;align-items:center;gap:8px;border:1px solid #d1dcc6;border-radius:100px;padding:8px 16px;font-size:13px;text-decoration:none;font-weight:650}.hero .pill{color:#f1f7e7;border-color:#51725c}.hero .primary{background:var(--lime);color:#193b2e;border-color:var(--lime)}.bar{position:sticky;top:0;z-index:4;background:#f4f6f0f5;backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}.bar nav{display:flex;gap:26px;overflow:auto;padding:15px 0;white-space:nowrap}.bar a{font-size:13px;font-weight:700;text-decoration:none}.section{padding:54px 0 0;scroll-margin-top:70px}.section h2{font-size:28px;letter-spacing:-.025em;margin:0 0 10px;line-height:1.4}.lead{color:var(--muted);max-width:920px;margin:0 0 26px}.number{font-size:13px;color:var(--green);font-weight:800;display:block;margin-bottom:8px;letter-spacing:.12em}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.card{background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:24px}.card h3{font-size:20px;margin:0 0 8px;line-height:1.5}.card p{margin:8px 0;color:var(--muted);font-size:14px}.label{font-size:12px;font-weight:750;color:var(--green);display:inline-block;margin-bottom:10px}.note{background:#eaf0e2;border-left:4px solid #87a567;border-radius:0 12px 12px 0;padding:16px 20px;font-size:14px;margin:22px 0}.note.amber{background:#f6efde;border-color:#bd9751}.diagram{background:#fff;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;padding:20px 18px 12px}.diagram-scroll{overflow-x:auto}.diagram svg{display:block;width:100%;min-width:820px;height:auto}.diagram-caption{color:var(--muted);font-size:13px;margin:8px 12px}.legend{display:flex;flex-wrap:wrap;gap:18px;font-size:12px;margin:0 12px 16px}.legend span::before{content:"";display:inline-block;width:10px;height:10px;background:#dceae4;border:1px solid #286953;border-radius:3px;margin-right:7px}.legend .ops::before{background:#e4ecf6;border-color:#567ca2}.legend .infra::before{background:#f2eee6;border-color:#8f826b}.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:16px;background:white}table{border-collapse:collapse;width:100%;min-width:680px;text-align:left;font-size:14px}th,td{padding:16px 20px;border-bottom:1px solid var(--line);vertical-align:top}tr:last-child td{border-bottom:0}th{font-size:12px;color:var(--muted);font-weight:800;background:#edf2e8}td:first-child{font-weight:650;min-width:155px}.good{color:var(--green);font-weight:700}.boundary{color:var(--amber);font-weight:700}.routes{display:grid;gap:22px}.route{background:#fff;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}.route header{display:grid;grid-template-columns:52px 1fr;gap:18px;padding:26px 28px;border-bottom:1px solid var(--line);background:linear-gradient(100deg,#f1f5e9,#fff)}.route-badge{background:#e3ecd5;color:var(--green);display:flex;align-items:center;justify-content:center;width:48px;height:48px;font-size:24px;font-weight:750;border-radius:14px}.route h3{margin:0;font-size:22px}.meta{color:var(--muted);font-size:13px;margin-top:6px}.route-body{padding:24px 28px}.entry{font-size:14px;margin:0 0 16px}.steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;counter-reset:step;list-style:none;margin:18px 0;padding:0}.steps li{position:relative;background:#f5f7f2;border:1px solid #e4e9df;border-radius:12px;padding:16px;font-size:13px;color:var(--muted)}.steps li::before{counter-increment:step;content:"0" counter(step);display:block;color:var(--green);font-weight:800;font-size:12px;margin-bottom:6px}.steps strong{display:block;color:var(--ink);font-size:15px;margin-bottom:6px}.result{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px;font-size:14px}.result p{margin:0}.result strong{display:block;font-size:12px;color:var(--green);margin-bottom:5px}.result .care strong{color:var(--amber)}.quote{font-size:18px;color:var(--ink);border-left:3px solid var(--green);padding:4px 0 4px 20px;margin:22px 0}.timeline{display:grid;gap:0;margin-top:24px}.scene{display:grid;grid-template-columns:95px 1fr;gap:22px;padding:22px 0;border-top:1px solid var(--line)}.scene time{font-size:14px;color:var(--green);font-weight:800}.scene h3{font-size:18px;margin:0 0 7px}.scene p{color:var(--muted);font-size:14px;margin:0}.scene .say{color:var(--ink);margin-top:8px}.faq{display:grid;grid-template-columns:1fr 1fr;gap:18px}.faq details{border:1px solid var(--line);border-radius:14px;padding:18px 20px;background:white}.faq summary{cursor:pointer;font-weight:700;font-size:15px}.faq p{font-size:14px;color:var(--muted);margin-bottom:0}.sources{font-size:13px;color:var(--muted);display:grid;gap:8px;padding-left:20px}.sources code{font-size:12px}footer{border-top:1px solid var(--line);margin-top:52px;padding:28px 0 42px;color:var(--muted);font-size:12px}.print{border:1px solid #9eb094;border-radius:100px;padding:8px 14px;background:none;color:#e7f0dc;cursor:pointer}.foot-grid{display:flex;gap:28px;justify-content:space-between}.small{font-size:13px;color:var(--muted)}@media(max-width:860px){.wrap{padding:0 22px}.grid,.faq{grid-template-columns:1fr}.steps{grid-template-columns:1fr 1fr}.result{grid-template-columns:1fr}.hero{padding-top:36px}.bar nav{gap:20px}.route header,.route-body{padding:20px}.section{padding-top:38px}.scene{grid-template-columns:70px 1fr;gap:14px}.foot-grid{display:block}}@media(max-width:500px){.steps{grid-template-columns:1fr}.route h3{font-size:19px}.route header{gap:12px;grid-template-columns:42px 1fr}.route-badge{width:40px;height:40px}.section h2{font-size:25px}}@media print{body{background:white;font-size:11pt}.hero{background:white;color:#153a31;padding:20px 0}.hero p,.eyebrow{color:#47675b}.hero .pill{color:#153a31;border-color:#b8c9bd}.bar,.print{display:none}.wrap{max-width:none;padding:0 16px}.section{padding-top:26px}.route,.card,.scene,.faq details{break-inside:avoid}.diagram svg{min-width:0}.diagram-scroll{overflow:visible}.steps{grid-template-columns:repeat(4,1fr)}a{color:inherit}.route header{background:#f2f5ef}.sources{font-size:9pt}.hero h1{font-size:28pt}.section h2{font-size:21pt}}
+</style>
+</head>
+<body>
+<header class="hero"><div class="wrap">
+  <div class="eyebrow">SYSTEM GUIDE · VERIFIED DEPLOYMENT · 2026.10.21</div>
+  <h1>从业务闭环，理解<br>OpsAgent 与 Agent 应用平台。</h1>
+  <p>OpsAgent 负责运维业务与知识；中台提供可复用的应用构建、发布和受控执行；独立客服验证第二种业务接入。两者已在明确的问答链路完成对接，仍保留原有流式会话与运维 Agent。</p>
+  <div class="links"><a class="pill primary" href="https://opsagent.cloud/dashboard" target="_blank" rel="noopener">打开 OpsAgent ↗</a><a class="pill" href="https://opsagent.cloud/console/" target="_blank" rel="noopener">打开中台 ↗</a><a class="pill" href="https://opsagent.cloud/support/" target="_blank" rel="noopener">打开客服 ↗</a><button class="print" type="button" onclick="window.print()">打印 / 保存 PDF</button></div>
+</div></header>
+<div class="bar"><div class="wrap"><nav aria-label="指南目录"><a href="#architecture">01 服务架构</a><a href="#integration">02 接入边界</a><a href="#routes">03 使用路线</a><a href="#interview">04 演示脚本</a><a href="#evidence">05 事实依据</a></nav></div></div>
+<main class="wrap">
+<section class="section" id="architecture">
+  <span class="number">01 / ARCHITECTURE</span><h2>当前架构：一个公网入口，三个工作界面。</h2>
+  <p class="lead">部署在一台 12 GB 规格 VPS 的 Docker Compose 中。最近交付快照为 28 个运行服务。图中按职责分组，不把每个模块都画成一条独立链路；这是单机部署，不是高可用集群。</p>
+  <div class="diagram">
+    <div class="legend"><span class="ops">Ops 业务服务</span><span>中台与独立业务应用</span><span class="infra">共享基础设施 / 外部模型</span></div>
+    <div class="diagram-scroll">
+    <svg viewBox="0 0 1160 760" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="arch-title arch-desc">
+      <title id="arch-title">OpsAgent、中台与客服的当前服务架构</title>
+      <desc id="arch-desc">三个网页通过同一 HTTPS Nginx 入口进入 Ops Gateway、中台 Console BFF/API 和客服 BFF。客服调用中台 API；Ops 受控非流式问答调用中台，原流式会话与运维 Agent 留在 Ops。中台 API 和 Worker 通过 MySQL 任务账本协调，Ops 提供身份和授权知识。底层保留检索、队列、注册和观测组件。</desc>
+      <defs><marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#789085"/></marker></defs>
+      <style>.s-title{font:700 18px system-ui,"Microsoft YaHei",sans-serif;fill:#18312c}.s-sub{font:13px system-ui,"Microsoft YaHei",sans-serif;fill:#5c7468}.s-small{font:12px system-ui,"Microsoft YaHei",sans-serif;fill:#5c7468}.s-heading{font:700 13px system-ui,"Microsoft YaHei",sans-serif;fill:#286953}.wire{stroke:#789085;stroke-width:1.8;fill:none;marker-end:url(#arr)}.dash{stroke-dasharray:5 4}.ops-box{fill:#edf3fa;stroke:#c1d3e4}.plat-box{fill:#edf4e8;stroke:#c7d9bd}.infra-box{fill:#f5f2eb;stroke:#ddd3c1}</style>
+      <rect x="24" y="14" width="338" height="70" rx="12" class="ops-box"/><text x="46" y="42" class="s-title">OpsAgent · 业务工作台</text><text x="46" y="66" class="s-sub">Vue · / · 事件 / 知识 / 自动化 / 观测</text>
+      <rect x="410" y="14" width="338" height="70" rx="12" class="plat-box"/><text x="432" y="42" class="s-title">Agent 平台 · 独立控制台</text><text x="432" y="66" class="s-sub">React · /console/ · 构建 / 发布 / 治理</text>
+      <rect x="796" y="14" width="338" height="70" rx="12" class="plat-box"/><text x="818" y="42" class="s-title">客服助手 · 独立应用</text><text x="818" y="66" class="s-sub">/support/ · 咨询 / 审核 / 交付</text>
+      <path class="wire" d="M193 84V112"/><path class="wire" d="M579 84V112"/><path class="wire" d="M965 84V112"/>
+      <rect x="24" y="114" width="1110" height="58" rx="12" fill="#1f5140"/><text x="48" y="141" font-size="17" font-weight="700" fill="#fff">opsagent.cloud · HTTPS / Nginx</text><text x="48" y="160" font-size="12" fill="#d5e4d8">统一域名与静态资源入口；按路径转发。内部 API、数据库与模型密钥不直接交给浏览器。</text>
+      <path class="wire" d="M193 172V205"/><path class="wire" d="M579 172V205"/><path class="wire" d="M965 172V205"/>
+      <rect x="24" y="207" width="338" height="350" rx="16" fill="#f7f9fd" stroke="#cedce8"/><text x="44" y="237" class="s-heading">OPS 业务域</text>
+      <rect x="44" y="252" width="298" height="58" rx="10" class="ops-box"/><text x="60" y="277" class="s-title">Ops Gateway</text><text x="60" y="298" class="s-small">原业务 API 路由与访问控制</text>
+      <path class="wire" d="M193 310V327"/>
+      <rect x="44" y="329" width="298" height="86" rx="10" class="ops-box"/><text x="60" y="355" class="s-title">Auth · Ticket · Knowledge</text><text x="60" y="378" class="s-sub">既有账号 / 工单 / 文档与版本权限</text><text x="60" y="399" class="s-small">Ops Platform：告警 / 配置 / 目录 / SLA</text>
+      <rect x="44" y="429" width="298" height="106" rx="10" class="ops-box"/><text x="60" y="455" class="s-title">Ops RAG + Ops Agent</text><text x="60" y="478" class="s-sub">RAG：混合检索、引用、当前来源 ACL</text><text x="60" y="500" class="s-sub">旧会话 SSE / 运维 Agent 仍在 Ops</text><text x="60" y="521" class="s-small">非流式受控问答 → 中台执行</text>
+      <rect x="410" y="207" width="338" height="350" rx="16" fill="#f4f8f1" stroke="#d1dfc8"/><text x="430" y="237" class="s-heading">AGENT 平台</text>
+      <rect x="430" y="252" width="298" height="96" rx="10" class="plat-box"/><text x="446" y="278" class="s-title">Console BFF + Platform API</text><text x="446" y="301" class="s-sub">应用 Studio / 评测 / 固定版本发布</text><text x="446" y="322" class="s-small">Run API · 审批 · 配额 · ACP 兼容 profile</text><text x="446" y="340" class="s-small">Java 17 / Spring Boot · 服务端会话</text>
+      <path class="wire" d="M579 348V380"/><text x="592" y="370" class="s-small">共享 SQL 任务账本</text>
+      <rect x="430" y="382" width="298" height="119" rx="10" class="plat-box"/><text x="446" y="408" class="s-title">Harness Worker · 同一运行内核</text><text x="446" y="432" class="s-sub">持久状态 / 租约 / 审批 / 预算</text><text x="446" y="455" class="s-sub">模型与工具调用 / 事件与回执</text><text x="446" y="478" class="s-small">UNKNOWN 保留，写调用不盲目重放</text>
+      <text x="432" y="532" class="s-small">身份与授权知识通过内部 TLS 接口接回 Ops</text>
+      <rect x="796" y="207" width="338" height="350" rx="16" fill="#fafbf7" stroke="#d1dfc8"/><text x="816" y="237" class="s-heading">第二个应用与外部能力</text>
+      <rect x="816" y="252" width="298" height="96" rx="10" class="plat-box"/><text x="832" y="278" class="s-title">Support BFF</text><text x="832" y="302" class="s-sub">复用 Ops 身份，保有独立应用身份</text><text x="832" y="324" class="s-sub">正式发布 → 生成答案 → 人工审核</text><text x="832" y="342" class="s-small">应用凭据与上游令牌留在服务端</text>
+      <path class="wire" d="M816 300H751"/>
+      <rect x="816" y="382" width="298" height="119" rx="10" class="infra-box"/><text x="832" y="408" class="s-title">外部模型服务</text><text x="832" y="433" class="s-sub">DeepSeek：已验证真实生成</text><text x="832" y="456" class="s-sub">OpenAI：embedding / 既有模型接入</text><text x="832" y="479" class="s-small">不把支持的配置项当成所有供应商已验</text>
+      <path class="wire" d="M728 440H813"/>
+      <text x="818" y="532" class="s-small">Ops 原有模型链路也可直接调用外部模型</text>
+      <path class="wire" d="M342 444H389V330H427"/><rect x="345" y="350" width="72" height="54" rx="5" fill="#fff"/><text x="354" y="371" class="s-small">受控问答</text><text x="354" y="391" class="s-small">固定版本</text>
+      <path class="wire dash" d="M460 501V547H382V373H345"/>
+      <path class="wire" d="M193 557V590"/><path class="wire" d="M579 557V590"/>
+      <rect x="24" y="592" width="1110" height="144" rx="14" class="infra-box"/>
+      <text x="44" y="620" class="s-heading">基础设施 · 按领域隔离数据与依赖</text>
+      <text x="44" y="650" class="s-title">MySQL · Redis · RabbitMQ</text><text x="44" y="675" class="s-sub">业务库 / 平台账本；业务缓存与异步事件</text><text x="44" y="701" class="s-small">中台 worker 基于 SQL，不用 MQ 替代运行账本</text>
+      <text x="422" y="650" class="s-title">Elasticsearch + Qdrant</text><text x="422" y="675" class="s-sub">关键词 + 向量混合召回 / RRF</text><text x="422" y="701" class="s-small">当前停用 reranker，仍保留向量检索</text>
+      <text x="792" y="650" class="s-title">注册、演练与观测</text><text x="792" y="675" class="s-sub">Nacos / Sentinel / DemoOrder</text><text x="792" y="697" class="s-small">Prometheus / Alertmanager / Grafana</text><text x="792" y="718" class="s-small">OTel / Tempo / 采集器；Demo 专用 Redis / MQ</text>
+    </svg></div>
+    <p class="diagram-caption">实线表示主要调用或数据依赖；虚线表示中台对 Ops 身份与知识授权的回查。组件被合并展示；私网 TLS 代理、采集器及部分单独容器没有逐个绘制。</p>
+  </div>
+  <div class="grid" style="margin-top:20px">
+    <article class="card"><span class="label">业务层</span><h3>OpsAgent</h3><p>解决“发生了什么、如何处理、依据是什么”。保留工单、知识、来源权限、运维处置及业务界面。</p></article>
+    <article class="card"><span class="label">共享能力层</span><h3>Agent 应用平台</h3><p>解决“谁能调用哪个版本、运行到哪一步、谁批准、花了多少、未知结果怎么办”。提供应用生命周期和执行账本。</p></article>
+    <article class="card"><span class="label">复用验证</span><h3>独立客服</h3><p>使用另一应用身份与界面调用同一中台，验证生成后人工审核、用户隔离与原答案交付，不复刻 Ops 业务系统。</p></article>
+  </div>
+</section>
+
+<section class="section" id="integration">
+  <span class="number">02 / INTEGRATION BOUNDARY</span><h2>“已对接”成立，但范围需要说准确。</h2>
+  <p class="lead">已验证的是后端受控知识问答接入及客服接入。当前 Ops 页面以流式体验为主，不能把任意一次页面聊天都当成中台 Run。</p>
+  <div class="table-wrap"><table><thead><tr><th>链路</th><th>当前执行归属</th><th>展示时如何说明</th></tr></thead><tbody>
+    <tr><td>Ops 非流式文档 / 工单问答</td><td><span class="good">已接 Harness</span><br><code>/api/rag/ask</code>、非流式 <code>/api/rag/chat</code></td><td>Ops 先检索与校验来源，Harness 按固定发布执行模型并记账，读取答案时再核当前权限。已有真实 COMPLETED Run。</td></tr>
+    <tr><td>主“智能问答”页</td><td><span class="boundary">Ops 原会话执行器</span><br><code>/rag/chat</code> → <code>/conversations/{id}/stream</code></td><td>展示有引用的流式问答、历史会话和业务知识能力；不声称该页面由 Harness 执行。</td></tr>
+    <tr><td>工单“文档与问答”页</td><td><span class="boundary">Ops 原流式链路</span><br>当前调用 <code>/api/rag/stream</code></td><td>非流式接入接口已有适配，但当前工单 UI 尚未调用该接口。两者要分别介绍。</td></tr>
+    <tr><td>自动化中心 / 运维 Agent</td><td><span class="boundary">Ops 原业务 Agent 与审批</span></td><td>展示真实诊断、精确动作审批、修复回执、工单与告警闭环；不是全量迁入中台。</td></tr>
+    <tr><td>独立客服</td><td><span class="good">中台正式发布与 Run</span></td><td>可现场直接证明“独立应用 → 同一运行平台 → 人审 → 原答案交付”，是中台复用的首选演示。</td></tr>
+    <tr><td>账号与权限</td><td><span class="good">复用既有 Ops 身份</span></td><td>各入口使用独立会话，按应用 / 项目 / 用户授权。复用身份源不等于三个入口自动单点登录。</td></tr>
+  </tbody></table></div>
+  <div class="note">中台后端对接证据可在“平台管理 → 运行记录”核对：文档 Run <code>ada306e6-75d5-44ad-bdcd-93db0be2f6c7</code>、附件问答 Run <code>ecac78e6-80ca-4bad-9732-d051b130f7bf</code>。先切换到已获授权的 Ops 接入项目；看不到记录时先检查项目和权限，不用管理员权限绕过隔离。已有记录的回读不会再次调用模型。</div>
+</section>
+
+<section class="section" id="routes">
+  <span class="number">03 / COMPLETE USER JOURNEYS</span><h2>四条可讲清楚的闭环路线。</h2>
+  <p class="lead">建议先走 D 和 B，让观众看到结果，再根据关注点展开 A 或 C。以下为操作路线；本指南没有再次发起模型请求、故障演练或修改生产发布。</p>
+  <div class="routes">
+    <article class="route" id="route-a"><header><span class="route-badge">A</span><div><h3>知识 → 发布 → 有据回答 → 回到原文</h3><div class="meta">面向业务 / RAG 能力 · 管理员或知识维护者 + 有阅读权限的用户 · 约 3–5 分钟</div></div></header><div class="route-body">
+      <p class="entry">入口：<a href="https://opsagent.cloud/knowledge" target="_blank" rel="noopener">知识与经验</a> → <a href="https://opsagent.cloud/knowledge/review" target="_blank" rel="noopener">知识审核</a> → <a href="https://opsagent.cloud/rag/chat" target="_blank" rel="noopener">智能问答</a></p>
+      <ol class="steps"><li><strong>准备文档</strong>选择已有维护手册，展示正文、版本和切片。若现场新增，只上传自己有权演示的资料。</li><li><strong>完成发布</strong>新资料先上传、解析，提交审核后由有权限的角色发布；检查索引管理状态，不把“已上传”当“可检索”。</li><li><strong>基于事实提问</strong>在智能问答提出手册中可核对的问题，例如“故障恢复后如何核对业务已恢复？”</li><li><strong>核验引用</strong>展开参考上下文，跳回来源，核对版本、片段和答案。展示历史记录可读，必要时对比没有证据的问题。</li></ol>
+      <div class="result"><p><strong>闭环结果</strong>一份经过审核的知识成为可追溯回答，答案能回到真实来源；现场主问答页展示的是 Ops 流式链路。</p><p class="care"><strong>预条件与边界</strong>需已发布且有权读取的知识、索引可用、模型已配置。当前停用 reranker；HYBRID_RRF 是已验召回方式，不保证每条查询都有向量命中。</p></div>
+    </div></article>
+    <article class="route" id="route-b"><header><span class="route-badge">B</span><div><h3>真实故障 → 诊断 → 审批 → 恢复 → 事件关闭</h3><div class="meta">面向运维 / Agent 工程 · 获授权运维或管理员，访客仅本人隔离场景 · 约 4–8 分钟，模型与监控需等待</div></div></header><div class="route-body">
+      <p class="entry">入口：<a href="https://opsagent.cloud/automation?tab=experience" target="_blank" rel="noopener">自动化中心 · 我的演练</a> → “运行与审批” → 关联 <a href="https://opsagent.cloud/tickets" target="_blank" rel="noopener">事件处置</a></p>
+      <ol class="steps"><li><strong>确认健康基线</strong>选择 Nacos Redis 配置漂移、Sentinel 限流或 RabbitMQ 消费暂停。推荐每次只展示一类；目标健康且按钮可用时才发起。</li><li><strong>看诊断依据</strong>观察实际业务异常、告警、工单和 Agent 运行。解释它读取了哪些配置 / 指标，如何形成处置计划。</li><li><strong>批准具体动作</strong>打开待审批，核对同一事件、目标、配置修订及具体参数，然后批准。展示“模型建议”与“执行权限”分离。</li><li><strong>核对真正恢复</strong>看恢复工具回执、业务探针 200、连续成功、同一告警解决、工单 RESOLVED 和 Run COMPLETED，而不只看绿色标签。</li></ol>
+      <div class="result"><p><strong>闭环结果</strong>从业务故障到可证明的恢复。稳定的回看素材：工单 2099（Nacos）、2101（Sentinel）、2103（Rabbit）；它们属于 Ops 运维 Agent。</p><p class="care"><strong>预条件与边界</strong>实时演练会改变隔离目标，现场不并发启动。不成功时如实展示 NEEDS_ATTENTION 与人工接管；人工或 TTL 恢复不能称为 Agent 成功。不要现场测试陌生生产目标。</p></div>
+    </div></article>
+    <article class="route" id="route-c"><header><span class="route-badge">C</span><div><h3>应用草稿 → 体验 → 评测 → 发布 → 使用反馈</h3><div class="meta">面向平台 / 研发 · 有 Studio 编辑、评测、发布和运行权限的项目用户 · 约 4–6 分钟</div></div></header><div class="route-body">
+      <p class="entry">入口：<a href="https://opsagent.cloud/console/#/" target="_blank" rel="noopener">中台 · 应用</a> → 某应用 Studio → <a href="https://opsagent.cloud/console/#/tasks" target="_blank" rel="noopener">任务工作台</a></p>
+      <ol class="steps"><li><strong>定义可交付助手</strong>从模板创建独立演示应用，选已授权模型，写任务目标；按需要绑定知识和工具。保存草稿再体验。</li><li><strong>先体验与评测</strong>在“构建与体验”试问，把有代表性的输入加入固定样本；在“评测”比较候选与基线，查看结果和规则。</li><li><strong>固定版本发布</strong>进入“发布与接入”，核对模型、能力、运行策略和评测结果，审阅后确认。不要为演示覆盖正在被业务使用的默认版本。</li><li><strong>以正式版本使用</strong>打开已发布助手，创建任务，查看结果和处理轨迹，再到“运行与反馈”回看。草稿后续变化不会改写已有任务快照。</li></ol>
+      <div class="result"><p><strong>闭环结果</strong>从想法到有版本、有评测、有运行反馈的助手，解释中台为何不是“又一个聊天界面”。</p><p class="care"><strong>预条件与边界</strong>真实体验与评测会调用模型。含人审的样本也需要指定审核员处理；规则通过不等于全面模型质量证明。“应用接入”审批后仍需真实身份配置和生效核验。</p></div>
+    </div></article>
+    <article class="route" id="route-d"><header><span class="route-badge">D</span><div><h3>客服咨询 → 生成待审答案 → 审核 → 原答案交付</h3><div class="meta">面向中台复用 / 人在回路 · 分别获授权的客服专员和审核员 · 约 3–5 分钟</div></div></header><div class="route-body">
+      <p class="entry">入口：<a href="https://opsagent.cloud/support/" target="_blank" rel="noopener">独立客服工作台</a>；中台应用页可选 <a href="https://opsagent.cloud/console/#/apps/support-answer-review" target="_blank" rel="noopener">support-answer-review</a>，需先切到正确授权项目</p>
+      <ol class="steps"><li><strong>专员提交咨询</strong>选择已正式发布的客服助手，提一个符合当前知识范围的问题，保存本次运行编号。</li><li><strong>展示“待审核”</strong>解释答案已经生成，但还没有作为最终交付完成。把同一 Run 编号交给审核员，不重新提交一个问题。</li><li><strong>审核员核对</strong>退出后以审核员身份登录，输入 Run 编号，检查完整待审内容和依据，填写说明，再“确认并继续”或拒绝。</li><li><strong>专员读取交付</strong>重新以专员登录，打开原运行，核对 COMPLETED 与原答案。批准不会触发第二次生成，也不会把审核意见当成答案。</li></ol>
+      <div class="result"><p><strong>闭环结果</strong>第二业务应用复用中台 Run、发布与审批。已有真实样例 <code>ac2262e3-bdaa-404b-bbf6-99285ed7f9a6</code> 为一次模型调用，审核前后答案摘要一致。</p><p class="care"><strong>预条件与边界</strong>当前公网客服没有真实业务知识，因此应明确转人工，不编造政策；未接真实订单、退款或客户消息发送。浏览器角色下拉不授予权限，须使用已获授权身份。</p></div>
+    </div></article>
+  </div>
+</section>
+
+<section class="section" id="interview">
+  <span class="number">04 / THE 12-MINUTE DEMO</span><h2>面试演示：一个业务结果，三个工程问题。</h2>
+  <p class="lead">主线建议：先让对方看懂系统解决什么，再展示“如何安全执行、如何追溯依据、如何被第二个应用复用”。不用逐个介绍 28 个容器。</p>
+  <blockquote class="quote">“我把 OpsAgent 的业务能力和可复用的 Agent 运行平台分开。业务系统负责证据和权限，中台负责版本、执行、审批与账本。先用受控问答打通，再用独立客服验证它能服务另一种业务。”</blockquote>
+  <div class="timeline">
+    <article class="scene"><time>0:00–1:30</time><div><h3>给出场景与架构边界</h3><p>展示运行总览和本页架构。指出三个入口共用身份源但各自会话；说明单 VPS 部署及原运维 Agent 尚未迁移。</p><p class="say">讲法：“不是把所有功能搬进中台，而是明确谁管业务、谁管可复用的运行协议。”</p></div></article>
+    <article class="scene"><time>1:30–5:00</time><div><h3>展示一个故障处置闭环</h3><p>走路线 B：时间紧先回看已完成 Rabbit 工单 2103 的故障、审批、回执、恢复证据；有充足时间才发起新隔离演练。不要把生成模型的等待伪装成已完成。</p><p class="say">讲法：“审批绑定具体动作与参数，绿色结果来自业务恢复证据；模型答得像，不代表已经修好。”</p></div></article>
+    <article class="scene"><time>5:00–7:00</time><div><h3>把答案与证据对应起来</h3><p>走路线 A 的后半段：打开既有维护手册，问一个有答案的问题，展开引用。再切中台已有 Ops 问答 Run，看固定 release、事件和调用账本，清楚标注两种执行链路。</p><p class="say">讲法：“来源权限不只在检索时校验，读取历史平台答案时也要重新确认，避免撤权后仍泄露答案。”</p></div></article>
+    <article class="scene"><time>7:00–10:30</time><div><h3>用独立客服证明中台复用</h3><p>走路线 D：专员提交 → 审核员核对 → 原答案交付；旁边展示 Studio 的正式发布配置和对应 Run。只读介绍现有发布即可，不必现场改生产策略。</p><p class="say">讲法：“第二个应用没有复制运行引擎，仍复用版本、隔离、人审和执行账本；它自己的业务知识目前还待接入。”</p></div></article>
+    <article class="scene"><time>10:30–12:00</time><div><h3>用工程取舍结束</h3><p>展示一次 UNKNOWN / NEEDS_ATTENTION 的保留记录，说明不盲重放、不把失败隐藏。概括租约与版本竞争控制、幂等键和输出 ACL；明确七天观察与异机恢复未验。</p><p class="say">讲法：“我能保证账本、审批和请求归属的规则，但不承诺任意第三方调用 exactly-once；未知结果需要核验。”</p></div></article>
+  </div>
+  <div class="note">五分钟压缩版：架构 45 秒 → 已完成故障回看 90 秒 → 客服人审闭环 2 分钟 → 边界与取舍 45 秒。后端岗位重点讲状态机、事务与权限；AI 应用岗位重点讲证据、评测和人审；平台岗位重点讲发布、隔离和第二业务复用。</div>
+  <div class="faq">
+    <details><summary>为什么不把 OpsAgent 全部迁进中台？</summary><p>工单、告警、业务恢复、文档权限属于业务域。先迁明确、可验证的受控问答执行链路，保留 SSE 和已有运维工作流，可降低一次性迁移风险。后续迁移应独立设计行为兼容、账本与回退策略。</p></details>
+    <details><summary>为什么不只调用一次模型 API？</summary><p>真实应用还要处理固定发布、创建幂等、审批、暂停取消、权限撤销、费用与未知结果。单次模型调用只覆盖其中一步，中台把这些可复用运行规则从各业务中抽出来。</p></details>
+    <details><summary>写操作超时后会怎样？</summary><p>远端可能已执行，不能以“超时”推断未执行。保留 UNKNOWN、调用和预算账本，不跨执行器自动重放；对可核验工具，由授权流程核对远端回执再决定后续。</p></details>
+    <details><summary>12 GB 单机能证明什么？</summary><p>已证明当前选定服务和业务短时验收可运行。最终交付采样约有 4.6 GiB MemAvailable，不能推断任意并发峰值、无故障长期运行或高可用。扩容、长期观察与灾备有独立证据要求。</p></details>
+  </div>
+  <p class="small">演示前准备：使用公网地址而非 127.0.0.1；提前检查登录和角色授权；选一份可公开讲述的手册；准备一条成功工单与一条客服已完成记录作回看材料；不投屏密码、私有配置、真实客户内容或模型密钥。现场若出现失败，说明事实并回看已有证据，不清理失败记录。</p>
+</section>
+
+<section class="section" id="evidence">
+  <span class="number">05 / VERIFIED SCOPE</span><h2>事实依据与后续边界。</h2>
+  <div class="grid">
+    <article class="card"><span class="label">已完成</span><h3>公网功能验收</h3><p>三个入口实际登录；知识混合检索；受控非流式问答；客服生成后审核；三类独立故障恢复演练。最终两仓精确提交 CI 已通过。</p></article>
+    <article class="card"><span class="label">待业务配置</span><h3>知识与值班信息</h3><p>客服真实业务知识、订单退款与消息渠道未接入。SLA 需有效值班收件人与班次；现有无收件人死信保留，未自动重发。</p></article>
+    <article class="card"><span class="label">待独立验证</span><h3>长期可靠性与灾备</h3><p>24 小时前置观察已按用户要求停止，不算通过；Linux 七天观察、真实异机恢复、RPO/RTO 尚未验收。加密货币进程与原观察定时任务已停用。</p></article>
+  </div>
+  <ul class="sources">
+    <li><a href="validation/phase6/README.md">当前部署与验收记录</a>、<a href="validation/phase6/local-evidence.json">公开结构化证据</a>：部署范围、真实调用、业务恢复和未完成项。</li>
+    <li><a href="phase6-implementation.md">阶段六实现说明</a>：平台职责、身份与输出授权、ACP 文本 / JSON 兼容 profile。ACP 不是 A2A、会话或多模态全兼容。</li>
+    <li>平台导航与应用生命周期：<code>platform-console/src/App.tsx</code>、<code>Studio.tsx</code>、<code>Runs.tsx</code>；独立客服：<code>support-pilot/README.md</code> 与 <code>src/main/resources/web/index.html</code>。</li>
+    <li>Ops 导航与实际流式调用：<code>ops-web/src/router/index.ts</code>、<code>views/TicketDetailView.vue</code>、<code>api/rag-stream.ts</code>；受控非流式适配：<code>api/harness-answers.ts</code> 与 <code>ops-rag-service/.../RagController.java</code>。</li>
+    <li>交付基线：平台 <code>ab2c05acb3c0</code>、Ops <code>e1878a4c6b72</code>；源码核查日 <time datetime="2026-10-21">2026-10-21</time>。本指南是该次部署与源码的功能说明，后续界面改动和运行状态应以当次验证为准。</li>
+  </ul>
+</section>
+</main>
+<footer><div class="wrap foot-grid"><span>Agent 应用平台 × OpsAgent · 架构与演示指南 · 2026-10-21</span><span>本文件可离线阅读 · 无外部字体、脚本或图片依赖 · 不含登录凭据</span></div></footer>
+</body></html>

@@ -1,5 +1,7 @@
 # Harness 架构与运行语义
 
+本文重点描述执行内核和 SDK 的设计语义。当前公网服务架构、OpsAgent 接入边界、页面使用路线及面试演示方案，见 [架构与演示指南](architecture-and-demo-guide.html)；部署状态以 [阶段六验收记录](validation/phase6/README.md) 为准。
+
 ## 1. 依赖方向
 
 ```mermaid
@@ -18,7 +20,7 @@ flowchart TD
 
 `harness-core` 不依赖其他业务模块。Workflow 是 `Program`，生成 `ModelAction`、`ToolAction`、`WaitAction` 等命令；AgentLoop 也是同一接口的实现。RAG 是正常的工具，Prompt 在创建定义时形成不可变版本/输入快照。任何一个能力都不另建执行账本、审批系统或隐藏的工具重试器。
 
-新 Agent 应复用这些契约，业务对象、资源规则、业务检索和审批界面由宿主提供。将来中台新增共享 worker、管理 API、配置服务与 UI 时仍复用这套运行协议；SDK 不会仅因能力增多就自动变成中台，需要明确服务边界、租户配额与运维责任。
+新 Agent 应复用这些契约，业务对象、资源规则、业务检索和审批界面由宿主提供。目前中台已在同一运行协议上提供共享 worker、管理 API、配置与 UI；SDK 与集中部署仍有不同的服务边界、租户配额与运维责任。
 
 ## 2. 单次运行
 

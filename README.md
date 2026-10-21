@@ -8,6 +8,8 @@
 
 产品名称统一使用“Agent 应用平台 / Agent Platform”；“Agent 中台”用于说明内部业务定位。Harness 保留为执行内核与 SDK 的技术名称，现有 `harness-*` 模块、Java 包名、API 路径和配置前缀保持兼容，仓库名仍为 `agent-ai-platform`。
 
+了解当前系统可先打开 [服务架构、使用路线与演示指南](docs/architecture-and-demo-guide.html)：含架构图、四条业务闭环及面试演示脚本，并明确 Ops 非流式问答已接入中台、现有流式页面和运维 Agent 仍由 Ops 执行的边界。
+
 ## 快速运行
 
 需要 JDK 17 和首次下载 Maven/依赖时的网络连接。仓库自带 Maven Wrapper 3.9.11，不需要修改系统 Maven。

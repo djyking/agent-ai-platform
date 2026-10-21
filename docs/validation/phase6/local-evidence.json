@@ -1,7 +1,7 @@
 {
   "format": "harness-phase6-public-evidence-v3",
   "recordedAt": "2026-10-21T03:42:33.801805+00:00",
-  "scope": "Actual public VPS functional acceptance and bounded capacity checks; not long-duration production reliability or disaster recovery certification",
+  "scope": "Public VPS acceptance at original recorded times plus console-only API UI increment; local UI runtime remains blocked by local Docker environment; not long-duration reliability or disaster recovery certification",
   "publicOrigin": "https://opsagent.cloud",
   "deploymentStatus": "DEPLOYED_PUBLIC_HTTPS",
   "browser": {
@@ -15,14 +15,17 @@
     "supportCompletedControlsDisabled": true,
     "supportModelCalls": 1,
     "supportChargedTokens": 117,
-    "supportBusinessKnowledge": "NOT_CONFIGURED_EXPLICIT_HUMAN_REFERRAL"
+    "supportBusinessKnowledge": "NOT_CONFIGURED_EXPLICIT_HUMAN_REFERRAL",
+    "recordedAt": "2026-10-21T03:40:42.474526+00:00",
+    "scope": "Original public login and support acceptance; not rerun during console UI increment"
   },
   "builds": {
     "platform": {
       "tests": 399,
       "failures": 0,
       "errors": 0,
-      "skipped": 0
+      "skipped": 0,
+      "scope": "Original backend build; Java tests not rerun for UI-only increment"
     },
     "opsFinalAgent": {
       "tests": 1076,
@@ -42,10 +45,23 @@
     "productionMaintenance": {
       "tests": 9,
       "status": "PASSED"
+    },
+    "consoleUiIncrement": {
+      "frontendTests": 44,
+      "frontendTestStatus": "PASSED",
+      "frontendBuild": "PASSED",
+      "mavenPackage": "PASSED",
+      "javaTestsRerun": false,
+      "nonConsoleJarEntriesCompared": 17276,
+      "nonConsoleJarBytesIdentical": true,
+      "nonConsolePayloadSha256": "404d70b3e516bc630deb5c7a0b7439e4fb98e811ccc67d7345300e22097d838d",
+      "comparisonChain": "original accepted JAR -> first console UI JAR -> final console UI JAR",
+      "htmlPatternUnicodeSetsVAssertions": 30,
+      "htmlPatternCompatibility": "PASSED",
+      "testCountsSource": "Primary session executions; JAR/package evidence separately hashed below"
     }
   },
   "artifactSha256": {
-    "platform": "862c32eee60c6fa6a59a688ecafb6dd2d6a377fe76430f002cc2f7ad1c10bba6",
     "support": "0ead915c7d6b82186c6dd6f4877a44b0574305059ff9acc2235672a4f045866c",
     "ops-auth": "3a5d8ce26aeb68f8a9607f3e90a4c25b0ac44bdfa5f5a6ae68e0f2eed43bccda",
     "ops-knowledge": "8dbe277572289cfd8a9cbd0d8dd157996a04ac9430da864eebb74d868097af8e",
@@ -55,10 +71,12 @@
     "ops-agent": "72bc0004811b04bb2754a9ffdeaafddc2194c04dde147308b27f95415dd51236",
     "ops-platform": "d61118dad4eb87071fc92218688780b88d52982548955142551957349ecc1ed2",
     "ops-gateway": "eb24a3051d632f2806c0e76ba89165163828e1a46e18382d7a7e4f8c9b54ba58",
-    "ops-demo-order": "689ec40024997a0c8fd60df32037d5099c7316b2bf723cfb6062e4e0d65b54a7"
+    "ops-demo-order": "689ec40024997a0c8fd60df32037d5099c7316b2bf723cfb6062e4e0d65b54a7",
+    "platform-api": "1600746f6ef4045733fd6632805afebb6d1f4867d24a1c463a4e5ddfe2b96dc9",
+    "platform-worker": "862c32eee60c6fa6a59a688ecafb6dd2d6a377fe76430f002cc2f7ad1c10bba6"
   },
   "deployment": {
-    "composeSha256": "cda33cd6eb819a48b3203193e8ed63005baa3408027e578309c1781b325487c2",
+    "composeSha256": "a083fba52c524f6bc04037d71cd17fa440de40e8e85806f4c0ac42519475fabf",
     "runningContainers": 28,
     "containersWithHealthyDockerHealthcheck": 18,
     "containersWithoutDockerHealthcheck": 10,
@@ -80,7 +98,17 @@
     "originalRankingEquivalenceClaimed": false,
     "agentImage": "sha256:9d06f119a554520694b88786f027cdf56912b9155bd0ace7258a5ff5a34370b0",
     "webImage": "sha256:ff58ba756326b854fa92e39da19a92722920703740e7f88e531be13c1f809f41",
-    "webPayloadByteIdenticalAfterPermissionFix": true
+    "webPayloadByteIdenticalAfterPermissionFix": true,
+    "originalFunctionalAcceptanceComposeSha256": "cda33cd6eb819a48b3203193e8ed63005baa3408027e578309c1781b325487c2",
+    "controlSha256": "0218bd15f301d03c731b0575ab249ba6b277d52e07f40f8935ad0db25d44ac52",
+    "lastConsoleUiDeploymentAt": "2026-10-21T04:40:16.470516+00:00",
+    "apiImage": "sha256:c0d1169b3ea229f3cd878660930facb807188c93fdb5385252ecb688f6c27c4c",
+    "workerImage": "sha256:e85c5855daef2cf1f74ddbc4b436a471b4554a41bc679ea7f95661b10e49fe16",
+    "workerUnchangedInUiIncrement": true,
+    "changedContainersInUiIncrement": [
+      "harness-api"
+    ],
+    "dockerHealthcheckCountsScope": "Original 2026-10-21T03:37Z resource samples; not resampled for this UI increment"
   },
   "opsAcceptance": {
     "knowledgeUploadParsePublishIndex": "PASSED",
@@ -118,7 +146,8 @@
     "earlierDiagnosticFailuresPreserved": 2,
     "earlierFailedDrillRecovery": "MANUAL_NOT_COUNTED_AS_AGENT_SUCCESS",
     "nativeOpenAiProbe": "VERIFIED",
-    "kimi": "NO_TARGET_KEY_NOT_VERIFIED"
+    "kimi": "NO_TARGET_KEY_NOT_VERIFIED",
+    "rerunInConsoleUiIncrement": false
   },
   "operations": {
     "sevenDatabaseOnlineBackup": "VERIFIED",
@@ -134,7 +163,8 @@
     "oldObservationAutomation": "PAUSED",
     "hostObserver": "PRIVATE_BIND_RESTORED",
     "prometheusTargetsUp": 26,
-    "prometheusTargetsTotal": 26
+    "prometheusTargetsTotal": 26,
+    "rerunInConsoleUiIncrement": false
   },
   "memory": {
     "sampleStart": "2026-10-21T03:37:06.525673+00:00",
@@ -150,7 +180,8 @@
     "hostAndContainerPressureIncrements": 0,
     "representativePeakCapacityProven": false,
     "mysqlConnections": 13,
-    "mysqlMaxConnections": 50
+    "mysqlMaxConnections": 50,
+    "resampledAfterConsoleUiIncrement": false
   },
   "crypto": {
     "servicesStoppedOrKeptStopped": 12,
@@ -158,7 +189,8 @@
     "automaticRestartDisabled": true,
     "codeConfigDataRetained": true,
     "fullDataBackupOrMigrationPerformed": false,
-    "futureSameHostReserveBytes": 0
+    "futureSameHostReserveBytes": 0,
+    "repeatedInConsoleUiIncrement": false
   },
   "auditDeadLetterQueue": {
     "baselineMessages": 72,
@@ -211,6 +243,120 @@
     "resources-post-crypto-final-20261021T033727Z.private.json": "e3b975f2196a7e4e85a3b920e26fda97e4326edeb66dbe1553388e7c71ce65ca",
     "crypto-migration-stop-20261021/migration-stop-summary.json": "9197fb14135b614c3a9080871d1214d43e07a263b8002fd194aa3d3f5e25c9c6",
     "observation-user-stop-20261021T005041Z/interruption-review.json": "bd53561706d1cf5428951f74006d2d38c999869893ec5055e6b22860f049c27f",
-    "target-acceptance-20261021/ops-business/audit-sla-investigation-summary.json": "b4a40150a2c2f17025a473376c81c95fea56298869d36796b650b7f0c423d94e"
+    "target-acceptance-20261021/ops-business/audit-sla-investigation-summary.json": "b4a40150a2c2f17025a473376c81c95fea56298869d36796b650b7f0c423d94e",
+    "console-ui-20261021/jar-payload-comparison.json": "9075a2497af911fba70db9780adbf909e032f743b6c0a0a87f6d878c4ef6c036",
+    "console-ui-20261021/deploy-20261021T041429Z/deployment-report.json": "12db4b63d76e8939fd252ef31bbd396d2d2cdd5118d6152b8936e46b584ae1e1",
+    "console-ui-20261021/local-deployment-report.json": "ee52e5d6b8cb0560aa1a5d0018f1587989a2e692d15b6e2b38303e34037f6860",
+    "console-ui-20261021/local-environment-diagnosis.json": "5fc0a4edaca52f9ec9426784266176afa7744ad51b707abdde8ac00f7cac1142",
+    "console-ui-final-20261021/jar-payload-comparison.json": "c4fb0193fc8e0538809d1ac62f26b1919b6cb49af0aeace4406ec704b9615421",
+    "console-ui-final-20261021/final-jar-binding.json": "8f55a10668f8538d722c07789d0f1e30ac60a2d0df8e02f661b38389f07966cd",
+    "console-ui-final-20261021/image-build/image-report.json": "f51645efc812c08f0b50ced099f4141043fdc1b52e2d10b47d60a53b41442cb4",
+    "console-ui-final-20261021/deploy-20261021T043959Z/deployment-report.json": "44162bd7ea01b59b4778a50dd356c89328249058f99c42e0d769badf60592bb1",
+    "console-ui-final-maven-package.log": "cc0cb1bc5be27664402a57ef52a48bcf769140fd0d041b5a09bfe589e18552f0",
+    "console-ui-final-20261021/local-recovery-20261021T045021Z/local-recovery-report.json": "f2bafd6d654d89a593ee484e0cc0df1d04c7c2f22602c7d8d8e3edbc9e9feef4",
+    "console-ui-final-20261021/browser-final-acceptance.json": "e411c449e02ed1292596aef22d28a48b36d7c667fa34bf8fef1d41eae889186c"
+  },
+  "updatedAt": "2026-10-21T04:57:27.218693+00:00",
+  "consoleUiIncrement": {
+    "status": "API_UI_DEPLOYED_AND_CONTROL_REBOUND",
+    "deployedAt": "2026-10-21T04:40:16.470516+00:00",
+    "changes": [
+      "Application onboarding spacing, form fields, request cards and administrator lifecycle section",
+      "Checkbox dimensions for shared capabilities and release confirmation",
+      "Escaped identifier hyphen in HTML pattern for Unicode Sets v compatibility"
+    ],
+    "publicVisualVerification": {
+      "status": "PASSED",
+      "pages": [
+        "/console/#/onboarding",
+        "/console/#/capabilities",
+        "Studio publish and integration tab"
+      ],
+      "verifiedJarSha256": "284c0dbe39848878b571f652667bdae58a7fe28b46435ba07252ada1965bb5c6",
+      "scope": "Actual primary-session screenshots on first UI package; not claimed as final-package visual rerun",
+      "screenshots": {
+        "console-ui-20261021/public-onboarding-fixed.png": "8e2785b6413b04cff0651721ca203bed24ca91535d76f466edd4d4b01965ca10",
+        "console-ui-20261021/public-capabilities-fixed.png": "f62c93ede5daa575cd2ee2a82ecc553d3106651b59ba996f76acc9792afa2c69",
+        "console-ui-20261021/public-release-fixed.png": "51c3a0c61791f117a72e2734b3cb5d2c8f2888000fd818d4607755e015af9756"
+      }
+    },
+    "finalPackagePublicStaticAssetsVerified": 6,
+    "workerUnchanged": true,
+    "otherContainersUnchanged": true,
+    "oldImagesPreserved": true,
+    "databaseMigrationPerformed": false,
+    "consoleSessionsRequireLoginAgain": true,
+    "businessAcceptanceRerun": false,
+    "originalFailureAndUnknownEvidencePreserved": true,
+    "finalPackageBrowserVerification": {
+      "status": "PASSED_FINAL_CONSOLE_LOGIN_ONBOARDING_AND_PATTERN",
+      "recordedAt": "2026-10-21T04:57:27.218693+00:00",
+      "verifiedJarSha256": "1600746f6ef4045733fd6632805afebb6d1f4867d24a1c463a4e5ddfe2b96dc9",
+      "loginWithOriginalCredentialsAndOfficialCaptcha": true,
+      "passwordChanged": false,
+      "pages": [
+        "/console/#/onboarding"
+      ],
+      "onboardingVisibleLayout": "PASSED",
+      "screenshot": {
+        "path": "console-ui-final-20261021/public-onboarding-final.png",
+        "sha256": "47189c706e8c301dacc1b533bdffc33bbefe8160410fbd41ba005d5c47ee4337"
+      },
+      "identifierPatternUnicodeSetsV": "PASSED_FOR_BOTH_FIELDS",
+      "validSampleAccepted": "support-assistant",
+      "invalidSampleRejected": "bad id",
+      "earlierCaptchaExpiryFailuresPreserved": 2,
+      "earlierCaptchaExpiryCountedAsBusinessRegression": false,
+      "readOnlyNavigationAfterLogin": true,
+      "onboardingApplicationsSubmitted": 0,
+      "publicationsCreated": 0,
+      "modelCalls": 0,
+      "managementPageVerificationIncluded": false,
+      "sourceReport": "console-ui-final-20261021/browser-final-acceptance.json"
+    }
+  },
+  "localConsoleEnvironment": {
+    "recordedAt": "2026-10-21T04:50:24.8893524+00:00",
+    "status": "BLOCKED_LOCAL_DOCKER_ENVIRONMENT",
+    "diagnosisStatus": "BLOCKED_DOCKER_NORMAL_START_FAILED",
+    "apiPort": 8110,
+    "apiListening": false,
+    "localUiRuntimeAcceptancePassed": false,
+    "windowsMySqlState": "Stopped",
+    "windowsMySqlStoppedByUser": true,
+    "port3306Released": true,
+    "dockerEngineAvailable": false,
+    "normalDockerStartAttempted": true,
+    "blockers": [
+      "Docker Desktop normal startup still fails because backend cannot rename sailor-ingest.sock to .stale: file cannot be accessed"
+    ],
+    "earlierPortConflictResolved": true,
+    "earlierExactSocketCleanupApprovalRejected": true,
+    "socketDeleteOrMoveAttemptedInLatestRecovery": false,
+    "databaseActionsPerformedInLatestRecovery": false,
+    "passwordChanged": false,
+    "databaseMigrationPerformed": false,
+    "dataVolumesChanged": false,
+    "factoryResetPerformed": false,
+    "unknownRunsReplayed": false,
+    "publicDeploymentUnaffected": true
+  },
+  "architectureAndDemoGuide": {
+    "path": "docs/architecture-and-demo-guide.html",
+    "sha256": "785e6624a40cf759ec00751f07e6b0e5c53680ec44a43ecfa95687f24ab17db7",
+    "format": "standalone HTML with inline SVG",
+    "journeys": 4,
+    "externalDependencies": 0,
+    "covers": [
+      "Service architecture",
+      "Knowledge-to-cited-answer route",
+      "Incident-to-approved-recovery route",
+      "Studio preview-evaluate-publish-feedback route",
+      "Support generate-review-deliver route",
+      "12-minute and 5-minute interview scripts"
+    ],
+    "integrationBoundary": "Non-streaming Ops ask/chat interfaces use HARNESS; main conversation and ticket streaming UI and operational Agent remain Ops-owned",
+    "supportBusinessKnowledge": "NOT_CONFIGURED_EXPLICIT_HUMAN_REFERRAL",
+    "newBusinessModelCallsOrDrillsPerformedByGuide": false
   }
 }

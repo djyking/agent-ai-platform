@@ -3,7 +3,15 @@ import { ClipboardCheck, RefreshCw } from "lucide-react";
 import { ApiError, commandKey, projectPath, request } from "./api";
 import { useRemote } from "./hooks";
 import { clearPending, persistPending, readPending } from "./pending-commands";
-import { Empty, ErrorNotice, Loading, Notice, PageHeading } from "./ui";
+import {
+  Badge,
+  Empty,
+  ErrorNotice,
+  Field,
+  Loading,
+  Notice,
+  PageHeading,
+} from "./ui";
 import type { Principal } from "./types";
 
 type Entry = {
@@ -129,7 +137,7 @@ export function Onboarding({
 
   const disabled = busy || !!pending;
   return (
-    <div className="page">
+    <div className="page onboarding-page">
       <PageHeading
         eyebrow="Access"
         title="应用接入"
@@ -148,14 +156,28 @@ export function Onboarding({
       {pending ? (
         <div className="notice warning" role="status">
           原操作结果待核对，已暂停新的提交。
-          <button disabled={busy || !pending.key} onClick={reconcile}>
+          <button
+            className="button small"
+            disabled={busy || !pending.key}
+            onClick={reconcile}
+          >
             核对原操作结果
           </button>
         </div>
       ) : null}
-      <section className="panel">
-        <h2>申请接入</h2>
+      <section
+        className="panel onboarding-panel"
+        aria-labelledby="onboarding-request-heading"
+      >
+        <div className="panel-heading">
+          <div>
+            <h2 id="onboarding-request-heading">申请接入</h2>
+            <p>填写应用信息与使用范围，提交后由管理员审核。</p>
+          </div>
+          <span className="tag">新申请</span>
+        </div>
         <form
+          className="onboarding-form"
           onSubmit={(event) => {
             event.preventDefault();
             void mutate(
@@ -172,39 +194,45 @@ export function Onboarding({
           }}
         >
           <div className="form-grid">
-            <label>
-              应用名称
+            <Field label="应用名称" required>
               <input
+                aria-label="应用名称"
                 value={name}
+                placeholder="例如：客服知识助手"
                 maxLength={100}
                 required
                 onChange={(e) => setName(e.target.value)}
               />
-            </label>
-            <label>
-              应用标识
+            </Field>
+            <Field
+              label="应用标识"
+              required
+              hint="使用字母、数字、点、下划线或短横线，最多 64 个字符。"
+            >
               <input
+                aria-label="应用标识"
                 value={application}
+                placeholder="例如：support-assistant"
                 maxLength={64}
-                pattern="[A-Za-z0-9][A-Za-z0-9._-]{0,63}"
+                pattern={"[A-Za-z0-9][A-Za-z0-9._\\-]{0,63}"}
                 required
                 onChange={(e) => setApplication(e.target.value)}
               />
-            </label>
-            <label>
-              目标项目
+            </Field>
+            <Field label="目标项目" required>
               <input
+                aria-label="目标项目"
                 value={target}
                 disabled={!globalAdmin}
                 maxLength={64}
-                pattern="[A-Za-z0-9][A-Za-z0-9._-]{0,63}"
+                pattern={"[A-Za-z0-9][A-Za-z0-9._\\-]{0,63}"}
                 required
                 onChange={(e) => setTarget(e.target.value)}
               />
-            </label>
-            <label>
-              使用范围
+            </Field>
+            <Field label="使用范围">
               <select
+                aria-label="使用范围"
                 value={profile}
                 onChange={(e) => setProfile(e.target.value)}
               >
@@ -214,36 +242,71 @@ export function Onboarding({
                   </option>
                 ))}
               </select>
-            </label>
+            </Field>
           </div>
-          <label>
-            业务用途与维护责任
+          <Field
+            label="业务用途与维护责任"
+            required
+            hint="说明服务对象、需要的能力与维护责任。请勿填写密码、令牌或其他凭据。"
+          >
             <textarea
+              aria-label="业务用途与维护责任"
               value={purpose}
+              rows={4}
+              placeholder="例如：为客服人员提供知识问答，由客服支持团队负责维护内容与处理反馈。"
               maxLength={600}
               required
               onChange={(e) => setPurpose(e.target.value)}
             />
-          </label>
-          <p>接入绑定当前用户。请勿在用途说明中填写密码、令牌或其他凭据。</p>
-          <button className="button primary" type="submit" disabled={disabled}>
-            <ClipboardCheck size={16} /> 提交申请
-          </button>
+          </Field>
+          <div className="onboarding-form-footer">
+            <p className="field-hint">接入申请将绑定当前登录用户。</p>
+            <button
+              className="button primary"
+              type="submit"
+              disabled={disabled}
+            >
+              <ClipboardCheck size={16} /> 提交申请
+            </button>
+          </div>
         </form>
       </section>
       {admin ? (
-        <section className="panel">
-          <label>
-            本次审批或生命周期操作的理由
-            <input
-              value={reason}
-              maxLength={300}
-              onChange={(e) => setReason(e.target.value)}
-            />
-          </label>
-          <p>
-            轮换会暂停新调用，管理员完成凭据交付、排空迁移和重启后重新验证。停用立即阻止新调用及后续执行授权，历史任务归属保留。
-          </p>
+        <section
+          className="panel onboarding-panel"
+          aria-labelledby="onboarding-review-heading"
+        >
+          <div className="panel-heading">
+            <div>
+              <h2 id="onboarding-review-heading">审批与生命周期</h2>
+              <p>填写操作理由后，在下方申请记录中选择要处理的应用。</p>
+            </div>
+            <span className="tag">管理员</span>
+          </div>
+          <div className="onboarding-panel-body">
+            <Field
+              label="本次审批或生命周期操作的理由"
+              hint="审批、拒绝、轮换和停用均需要操作理由，该理由会进入审计记录。"
+            >
+              <input
+                aria-label="本次审批或生命周期操作的理由"
+                value={reason}
+                maxLength={300}
+                placeholder="填写本次操作的背景与原因"
+                onChange={(e) => setReason(e.target.value)}
+              />
+            </Field>
+            <div className="onboarding-lifecycle-notes">
+              <p>
+                <strong>轮换凭据</strong>
+                暂停新调用，待管理员完成凭据交付、排空迁移和重启后重新验证。
+              </p>
+              <p>
+                <strong>停用应用</strong>
+                立即阻止新调用及后续执行授权，历史任务归属保留。
+              </p>
+            </div>
+          </div>
         </section>
       ) : null}
       {remote.loading ? (
@@ -251,22 +314,49 @@ export function Onboarding({
       ) : remote.error ? (
         <ErrorNotice error={remote.error} onRetry={remote.reload} />
       ) : (
-        <section aria-label="接入申请">
+        <section className="onboarding-requests" aria-label="接入申请">
+          <div className="section-title">
+            <h2>接入申请记录</h2>
+            <span className="count-label">
+              当前页 {remote.data?.items.length ?? 0} 项
+            </span>
+          </div>
           {!remote.data?.items.length ? (
-            <Empty title="当前页没有可见申请" />
+            <div className="panel">
+              <Empty
+                title="当前页没有可见申请"
+                description="提交接入申请后，可在这里跟踪审批、配置与启用状态。"
+              />
+            </div>
           ) : null}
           {remote.data?.items.map((entry) => (
-            <article className="panel" key={entry.id}>
-              <h2>{entry.name}</h2>
-              <p>
-                <strong>{states[entry.state] ?? entry.state}</strong> ·{" "}
-                {entry.targetProject} / {entry.applicationId}
-              </p>
-              <p>{entry.purpose}</p>
-              <p>
-                范围：{profiles[entry.profile] ?? entry.profile}；维护用户：
-                {entry.subject}；凭据版本：{entry.generation}
-              </p>
+            <article className="panel onboarding-entry" key={entry.id}>
+              <div className="onboarding-entry-heading">
+                <div>
+                  <h3>{entry.name}</h3>
+                  <p>
+                    {entry.targetProject} / {entry.applicationId}
+                  </p>
+                </div>
+                <Badge value={entry.state}>
+                  {states[entry.state] ?? entry.state}
+                </Badge>
+              </div>
+              <p className="onboarding-purpose">{entry.purpose}</p>
+              <dl className="onboarding-entry-meta">
+                <div>
+                  <dt>使用范围</dt>
+                  <dd>{profiles[entry.profile] ?? entry.profile}</dd>
+                </div>
+                <div>
+                  <dt>维护用户</dt>
+                  <dd>{entry.subject}</dd>
+                </div>
+                <div>
+                  <dt>凭据版本</dt>
+                  <dd>{entry.generation}</dd>
+                </div>
+              </dl>
               {entry.state === "DISABLED" ? (
                 <p>
                   {entry.provisioned?.identityDisabled
@@ -287,10 +377,11 @@ export function Onboarding({
                   </p>
                 </details>
               ) : null}
-              <div className="heading-actions">
+              <div className="onboarding-entry-actions">
                 {admin && entry.state === "REQUESTED" ? (
                   <>
                     <button
+                      className="button primary"
                       disabled={disabled || !reason.trim()}
                       onClick={() =>
                         void mutate(
@@ -303,6 +394,7 @@ export function Onboarding({
                       批准
                     </button>
                     <button
+                      className="button danger-outline"
                       disabled={disabled || !reason.trim()}
                       onClick={() =>
                         void mutate(
@@ -319,6 +411,7 @@ export function Onboarding({
                 {entry.state === "PROVISIONED" &&
                 entry.subject === principal.subject ? (
                   <button
+                    className="button primary"
                     disabled={disabled}
                     onClick={() =>
                       void mutate(
@@ -333,6 +426,7 @@ export function Onboarding({
                 ) : null}
                 {admin && entry.state === "ACTIVE" ? (
                   <button
+                    className="button"
                     disabled={disabled || !reason.trim()}
                     onClick={() =>
                       void mutate(
@@ -350,6 +444,7 @@ export function Onboarding({
                   entry.state,
                 ) ? (
                   <button
+                    className="button danger-outline"
                     disabled={disabled || !reason.trim()}
                     onClick={() =>
                       void mutate(
@@ -376,11 +471,16 @@ export function Onboarding({
               </details>
             </article>
           ))}
-          <div className="heading-actions">
-            <button disabled={!cursor} onClick={() => setCursor("")}>
+          <div className="onboarding-pagination">
+            <button
+              className="button small"
+              disabled={!cursor}
+              onClick={() => setCursor("")}
+            >
               第一页
             </button>
             <button
+              className="button small"
               disabled={!remote.data?.nextCursor}
               onClick={() => setCursor(remote.data?.nextCursor ?? "")}
             >
