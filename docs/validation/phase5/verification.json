@@ -1,0 +1,120 @@
+{
+  "scope": "local engineering acceptance; production acceptance pending",
+  "jarSha256": "f3a81f7b4411831b0e1f19db96d106f40b4facc3607f657ce73a2d25b4788236",
+  "java": {
+    "status": "PASS",
+    "tests": 325,
+    "modules": {
+      "harness-adapters": {
+        "tests": 21,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "harness-capabilities": {
+        "tests": 18,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "harness-core": {
+        "tests": 59,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "harness-evals": {
+        "tests": 11,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "harness-examples": {
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "harness-integrations-opsagent": {
+        "tests": 16,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "harness-platform-client": {
+        "tests": 8,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "harness-platform-service": {
+        "tests": 135,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "harness-storage-jdbc": {
+        "tests": 32,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "harness-validation": {
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "support-pilot": {
+        "tests": 8,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    }
+  },
+  "frontend": {
+    "status": "PASS",
+    "files": 7,
+    "tests": 37
+  },
+  "supportPilotUi": {
+    "status": "PASS",
+    "tests": 10
+  },
+  "apiContracts": {
+    "executionOperations": 11,
+    "catalogOperations": 14,
+    "status": "PASS"
+  },
+  "bundleTests": {
+    "tests": 5,
+    "status": "PASS"
+  },
+  "tlsChecks": 16,
+  "linuxDeployment": "PENDING_ENVIRONMENT",
+  "local24HourObservation": "NOT_COMPLETED",
+  "linux7DayObservation": "NOT_STARTED",
+  "rpoRto": "NOT_MEASURED",
+  "mysqlBaseline": {
+    "bufferPoolBytes": 1073741824,
+    "redoCapacityBytes": 1073741824,
+    "innodbFlushLogAtTrxCommit": 1,
+    "syncBinlog": 1,
+    "memoryKiB": 66826744,
+    "server": "isolated-local-53955",
+    "mysqlVersion": "8.0.46",
+    "tuningReason": "100k synthetic dataset exceeded original 128MiB buffer/100MiB redo baseline"
+  },
+  "syntheticFixtureBackupBeforeSchemaUpgrade": {
+    "purpose": "Retain all synthetic capacity/fault/UNKNOWN evidence before isolated fixture schema replacement",
+    "database": "harness_phase5_execution",
+    "bytes": 542124776,
+    "sha256": "e5f07841f4dd0f7d2de44eddcf2098c650ca4aaf387370afbbc0667e2b5af9a9",
+    "dumpExitCode": 0,
+    "restoreVerified": false,
+    "databaseReset": true,
+    "unknownRunsRetainedInBackup": 3,
+    "resetReason": "New schema fixture after immutable backup; old UNKNOWN outcomes not marked resolved"
+  }
+}

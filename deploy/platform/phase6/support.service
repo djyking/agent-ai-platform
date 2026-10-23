@@ -1,0 +1,23 @@
+[Unit]
+Description=Agent Platform customer support BFF
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=harness
+Group=harness
+WorkingDirectory=/opt/harness/support
+EnvironmentFile=/etc/harness/support.env
+ExecStart=/usr/bin/java -XX:MaxRAMPercentage=70 -Dfile.encoding=UTF-8 -Duser.timezone=UTC -jar /opt/harness/support/support.jar
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

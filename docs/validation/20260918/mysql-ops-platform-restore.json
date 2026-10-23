@@ -1,0 +1,65 @@
+{
+  "restoredDatabase": "harness_restore_2f9df9d53aed439f",
+  "schemaVersion": 1,
+  "restoredWorkersStarted": false,
+  "boundary": "Logical backup restored into a fresh isolated schema; no external action replay, production RPO/RTO, or identity database restore claimed",
+  "sourceDatabaseOverwritten": false,
+  "privateBackupRetained": true,
+  "backupSha256": "524160a1af5450ce550049e10e9c1f47c370c468b45bd66265f880a73997fd25",
+  "mysqlVersion": "8.0.46",
+  "checks": [
+    {
+      "sha256": "e5e1da914339a75bad152b1c126539ecab2e0faefde67150d70ba709f7f386a7",
+      "exactMatch": true,
+      "tableGroup": "schema"
+    },
+    {
+      "sha256": "1172516a7621d94b11bf6499992979451a3cf999bc636d94c4036e0accbc8b71",
+      "exactMatch": true,
+      "tableGroup": "runs"
+    },
+    {
+      "sha256": "8c0a420a099560aa44e548b00c7a213e21096c98da88c96f4a07f041d2fb5d8c",
+      "exactMatch": true,
+      "tableGroup": "events"
+    },
+    {
+      "sha256": "d49ad25f9877cb84c1b5c03f2d3f69354625836637bed93bafd3e76b26c93a74",
+      "exactMatch": true,
+      "tableGroup": "owners"
+    },
+    {
+      "sha256": "ca37ed54b823b2cdaa601f81e27157894bb92465c07a9c0867dc1f60ab29e59a",
+      "exactMatch": true,
+      "tableGroup": "commands"
+    },
+    {
+      "sha256": "901bbce2f53652b27c3a363eeec12e43d4f11e6e6198faf30f7759b7b6b63051",
+      "exactMatch": true,
+      "tableGroup": "audit"
+    },
+    {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exactMatch": true,
+      "tableGroup": "evidence"
+    },
+    {
+      "sha256": "530459435ea427d8e22e9300de103639ae7080c7d11f87b32829907859dec309",
+      "exactMatch": true,
+      "tableGroup": "releases"
+    },
+    {
+      "sha256": "519c3d2a61cdafc93443292cc4dedc53d2f6251c6e64817d0e81274727ed0d7c",
+      "exactMatch": true,
+      "tableGroup": "scopes"
+    },
+    {
+      "sha256": "686da34151091d165eb3bae996f430257175eb5ab066cb8008df7af79f4adeb1",
+      "exactMatch": true,
+      "tableGroup": "slots"
+    }
+  ],
+  "sourceDatabase": "harness_platform_ops",
+  "at": "2026-09-18T05:22:34.4865573Z",
+  "status": "PASSED"
+}

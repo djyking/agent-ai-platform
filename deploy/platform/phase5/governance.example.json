@@ -1,0 +1,20 @@
+{
+  "clusterId": "platform",
+  "generation": "phase5-v1",
+  "modelConcurrency": 5,
+  "defaultProvider": {
+    "concurrency": 5,
+    "requestsPerMinute": 120,
+    "failuresBeforeOpen": 5,
+    "cooldownMillis": 30000
+  },
+  "defaultTool": {
+    "concurrency": 10,
+    "requestsPerMinute": 300,
+    "failuresBeforeOpen": 5,
+    "cooldownMillis": 30000
+  },
+  "providers": {},
+  "tools": {},
+  "budgets": {}
+}

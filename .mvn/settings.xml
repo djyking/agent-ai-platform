@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<settings xmlns="http://maven.apache.org/SETTINGS/1.2.0">
+  <mirrors>
+    <mirror>
+      <id>nexus-kd</id>
+      <name>Project public dependencies</name>
+      <url>https://repo.maven.apache.org/maven2</url>
+      <mirrorOf>*</mirrorOf>
+    </mirror>
+  </mirrors>
+</settings>

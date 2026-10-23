@@ -1,0 +1,1151 @@
+{
+  "status": "PASSED",
+  "startedAt": "2026-09-20T04:42:39.732001+00:00",
+  "checks": [
+    {
+      "name": "two_workers_shared_concurrency",
+      "status": "PASSED",
+      "startedAt": "2026-09-20T04:43:01.059911+00:00",
+      "evidence": {
+        "runs": 12,
+        "twoRecentWorkerHeartbeats": 2,
+        "observedMaxToolCalls": 10,
+        "dispatches": 12,
+        "sampleRun": "233343e2-ba5b-4d10-a4a1-43f5d5997f68"
+      },
+      "finishedAt": "2026-09-20T04:43:04.770142+00:00"
+    },
+    {
+      "name": "ten_tasks_five_models_two_projects",
+      "status": "PASSED",
+      "startedAt": "2026-09-20T04:43:04.777471+00:00",
+      "evidence": {
+        "simultaneousSubmittedPrimaryRuns": 10,
+        "secondaryRunId": "4287d8fd-5abe-4704-9e88-b1a56f408653",
+        "secondaryProgressMillis": 5390.0,
+        "observedMaxModelCalls": 5,
+        "configuredModelLimit": 5,
+        "observedMaxExecutionSlots": 7,
+        "configuredExecutionLimit": 10
+      },
+      "finishedAt": "2026-09-20T04:43:12.913423+00:00"
+    },
+    {
+      "name": "calendar_reservation_and_real_fixture_usage",
+      "status": "PASSED",
+      "startedAt": "2026-09-20T04:43:12.917724+00:00",
+      "evidence": {
+        "runId": "b7827d1c-b899-4174-84df-b9112b470a01",
+        "chargedTokens": 22,
+        "waitingReservedTokens": 8000,
+        "terminalReservationsSettled": true
+      },
+      "finishedAt": "2026-09-20T04:43:16.327012+00:00"
+    },
+    {
+      "name": "100k_history_and_10rps_api",
+      "status": "PASSED",
+      "startedAt": "2026-09-20T04:43:16.334283+00:00",
+      "evidence": {
+        "syntheticTerminalRows": 100000,
+        "seedSource": "new_fixture",
+        "seedDurationSeconds": 72.187,
+        "historyValidationDurationSeconds": 38.656,
+        "historyValidation": {
+          "referenceRegex": "^platform-phase5-[a-f0-9]{8}-history-[0-9]+$",
+          "platformReferenceRows": 100000,
+          "coreRows": 100000,
+          "indexRows": 100000,
+          "platformRows": 100000,
+          "coreTerminalRows": 100000,
+          "distinctReferences": 100000,
+          "joinedTerminalRows": 100000,
+          "ownershipProjectionMatches": 100000,
+          "readOnlyValidation": true
+        },
+        "readWriteRatio": {
+          "getPercent": 90,
+          "postPercent": 10
+        },
+        "sustained": {
+          "requests": 200,
+          "offeredRequestsPerSecond": 10,
+          "durationSeconds": 19.985,
+          "getRequests": 180,
+          "postRequests": 20,
+          "readWriteRatio": "90:10",
+          "errors": 0,
+          "p95Millis": 125.0,
+          "getP95Millis": 125.0,
+          "postP95Millis": 156.0,
+          "maxMillis": 172.0,
+          "postCommands": [
+            {
+              "idempotencyKey": "platform-phase5-193a9fc2-load-sustained-0",
+              "runId": "b461cc2a-e213-4baf-869b-265822d74007",
+              "status": 202,
+              "millis": 172.0
+            },
+            {
+              "idempotencyKey": "platform-phase5-193a9fc2-load-sustained-10",
+              "runId": "72ca21f0-0a5a-4dea-8884-b1e7893aeffd",
+              "status": 202,
+              "millis": 78.0
+            },
+            {
+              "idempotencyKey": "platform-phase5-193a9fc2-load-sustained-20",
+              "runId": "813a3399-17e4-4fd1-979a-4080707a2678",
+              "status": 202,
+              "millis": 78.0
+            },
+            {
+              "idempotencyKey": "platform-phase5-193a9fc2-load-sustained-30",
+              "runId": "0bfdca82-d06a-4990-a66e-7312edacff25",
+              "status": 202,
+              "millis": 94.0
+            },
+            {
+              "idempotencyKey": "platform-phase5-193a9fc2-load-sustained-40",
+              "runId": "54c4ec57-089b-41a3-92a5-2614765d9411",
+              "status": 202,
+              "millis": 78.0
+            },
+            {
+              "idempotencyKey": "platform-phase5-193a9fc2-load-sustained-50",
+              "runId": "ce88c74e-c582-4ebb-a031-b6aeedd13533",
+              "status": 202,
+              "millis": 62.0
+            },
+            {
+              "idempotencyKey": "platform-phase5-193a9fc2-load-sustained-60",
+              "runId": "38012fc9-f843-448f-962b-a498aec1deae",
+              "status": 202,
+              "millis": 78.0
+            },
+            {
+              "idempotencyKey": "platform-phase5-193a9fc2-load-sustained-70",
+              "runId": "d4b76ab8-0567-4fdc-8a0f-68dbe9f71a7e",
+              "status": 202,
+              "millis": 156.0
+            },
+            {
+              "idempotencyKey": "platform-phase5-193a9fc2-load-sustained-80",
+              "runId": "5c59ee71-a4d1-4743-a132-93d5ced7bc68",
+              "status": 202,
+              "millis": 94.0
+            },
+            {
+              "idempotencyKey": "platform-phase5-193a9fc2-load-sustained-90",
+              "runId": "b508ee79-ef07-40d6-a931-722c5f9a59e3",
+              "status": 202,
+              "millis": 125.0
+            },
+            {
+              "idempotencyKey": "platform-phase5-193a9fc2-load-sustained-100",
+              "runId": "76cad351-b307-468c-b265-05490af90caf",
+              "status": 202,
+              "millis": 125.0
+            },
+            {
+              "idempotencyKey": "platform-phase5-193a9fc2-load-sustained-110",
+              "runId": "88e62e66-4a79-480f-ade0-6233c3e753f8",
+              "status": 202,
+              "millis": 94.0
+            },
+            {
+              "idempotencyKey": "platform-phase5-193a9fc2-load-sustained-120",
+              "runId": "36318fb4-237b-4cce-8020-c05788802109",
+              "status": 202,
+              "millis": 141.0
+            },
+            {
+              "idempotencyKey": "platform-phase5-193a9fc2-load-sustained-130",
+              "runId": "7a99ef9a-4c8d-48ae-b470-35f55903b46e",
+              "status": 202,
+              "millis": 78.0
+            },
+            {
+              "idempotencyKey": "platform-phase5-193a9fc2-load-sustained-140",
+              "runId": "0cb38f50-10a1-4aa6-a381-205977785b40",
+              "status": 202,
+              "millis": 94.0
+            },
+            {
+              "idempotencyKey": "platform-phase5-193a9fc2-load-sustained-150",
+              "runId": "f2adc9e0-bbdc-4702-a491-a23398b6b881",
+              "status": 202,
+              "millis": 94.0
+            },
+            {
+              "idempotencyKey": "platform-phase5-193a9fc2-load-sustained-160",
+              "runId": "d6e38f5b-ab1e-4e75-8b51-54f82c303b21",
+              "status": 202,
+              "millis": 94.0
+            },
+            {
+              "idempotencyKey": "platform-phase5-193a9fc2-load-sustained-170",
+              "runId": "452e592c-78be-484b-b237-1249a52ad0bf",
+              "status": 202,
+              "millis": 63.0
+            },
+            {
+              "idempotencyKey": "platform-phase5-193a9fc2-load-sustained-180",
+              "runId": "ebcf2892-0bff-4228-a877-6ee2bbb04907",
+              "status": 202,
+              "millis": 125.0
+            },
+            {
+              "idempotencyKey": "platform-phase5-193a9fc2-load-sustained-190",
+              "runId": "afe9a038-652f-4fbb-bf0e-346a9903bed4",
+              "status": 202,
+              "millis": 110.0
+            }
+          ],
+          "completedPostRuns": [
+            {
+              "runId": "b461cc2a-e213-4baf-869b-265822d74007",
+              "dispatchCount": 1
+            },
+            {
+              "runId": "72ca21f0-0a5a-4dea-8884-b1e7893aeffd",
+              "dispatchCount": 1
+            },
+            {
+              "runId": "813a3399-17e4-4fd1-979a-4080707a2678",
+              "dispatchCount": 1
+            },
+            {
+              "runId": "0bfdca82-d06a-4990-a66e-7312edacff25",
+              "dispatchCount": 1
+            },
+            {
+              "runId": "54c4ec57-089b-41a3-92a5-2614765d9411",
+              "dispatchCount": 1
+            },
+            {
+              "runId": "ce88c74e-c582-4ebb-a031-b6aeedd13533",
+              "dispatchCount": 1
+            },
+            {
+              "runId": "38012fc9-f843-448f-962b-a498aec1deae",
+              "dispatchCount": 1
+            },
+            {
+              "runId": "d4b76ab8-0567-4fdc-8a0f-68dbe9f71a7e",
+              "dispatchCount": 1
+            },
+            {
+              "runId": "5c59ee71-a4d1-4743-a132-93d5ced7bc68",
+              "dispatchCount": 1
+            },
+            {
+              "runId": "b508ee79-ef07-40d6-a931-722c5f9a59e3",
+              "dispatchCount": 1
+            },
+            {
+              "runId": "76cad351-b307-468c-b265-05490af90caf",
+              "dispatchCount": 1
+            },
+            {
+              "runId": "88e62e66-4a79-480f-ade0-6233c3e753f8",
+              "dispatchCount": 1
+            },
+            {
+              "runId": "36318fb4-237b-4cce-8020-c05788802109",
+              "dispatchCount": 1
+            },
+            {
+              "runId": "7a99ef9a-4c8d-48ae-b470-35f55903b46e",
+              "dispatchCount": 1
+            },
+            {
+              "runId": "0cb38f50-10a1-4aa6-a381-205977785b40",
+              "dispatchCount": 1
+            },
+            {
+              "runId": "f2adc9e0-bbdc-4702-a491-a23398b6b881",
+              "dispatchCount": 1
+            },
+            {
+              "runId": "d6e38f5b-ab1e-4e75-8b51-54f82c303b21",
+              "dispatchCount": 1
+            },
+            {
+              "runId": "452e592c-78be-484b-b237-1249a52ad0bf",
+              "dispatchCount": 1
+            },
+            {
+              "runId": "ebcf2892-0bff-4228-a877-6ee2bbb04907",
+              "dispatchCount": 1
+            },
+            {
+              "runId": "afe9a038-652f-4fbb-bf0e-346a9903bed4",
+              "dispatchCount": 1
+            }
+          ],
+          "duplicateDispatches": 0
+        },
+        "burst": {
+          "requests": 100,
+          "offeredRequestsPerSecond": 20,
+          "durationSeconds": 5.031,
+          "getRequests": 90,
+          "postRequests": 10,
+          "readWriteRatio": "90:10",
+          "errors": 0,
+          "p95Millis": 94.0,
+          "getP95Millis": 94.0,
+          "postP95Millis": 109.0,
+          "maxMillis": 109.0,
+          "postCommands": [
+            {
+              "idempotencyKey": "platform-phase5-193a9fc2-load-burst-0",
+              "runId": "8a16ebf6-5df0-4086-9a5e-a9bb61cd669e",
+              "status": 202,
+              "millis": 78.0
+            },
+            {
+              "idempotencyKey": "platform-phase5-193a9fc2-load-burst-10",
+              "runId": "ac7d4ab6-bb83-4c5d-afea-b31e51be407c",
+              "status": 202,
+              "millis": 78.0
+            },
+            {
+              "idempotencyKey": "platform-phase5-193a9fc2-load-burst-20",
+              "runId": "49637418-b74b-40f5-98f1-9e936c85eff4",
+              "status": 202,
+              "millis": 93.0
+            },
+            {
+              "idempotencyKey": "platform-phase5-193a9fc2-load-burst-30",
+              "runId": "c4d42803-91b9-4e45-9cc9-9282faae50b5",
+              "status": 202,
+              "millis": 78.0
+            },
+            {
+              "idempotencyKey": "platform-phase5-193a9fc2-load-burst-40",
+              "runId": "1b141388-bf4d-4e1b-8c2b-6ebc5ad16014",
+              "status": 202,
+              "millis": 109.0
+            },
+            {
+              "idempotencyKey": "platform-phase5-193a9fc2-load-burst-50",
+              "runId": "fe10be1e-1526-4352-9bda-5f463b129214",
+              "status": 202,
+              "millis": 78.0
+            },
+            {
+              "idempotencyKey": "platform-phase5-193a9fc2-load-burst-60",
+              "runId": "5bfa56fc-42e8-4d2c-a4ee-b418ac0de4e0",
+              "status": 202,
+              "millis": 78.0
+            },
+            {
+              "idempotencyKey": "platform-phase5-193a9fc2-load-burst-70",
+              "runId": "9e331f59-a585-4546-b775-9a184ea6acea",
+              "status": 202,
+              "millis": 62.0
+            },
+            {
+              "idempotencyKey": "platform-phase5-193a9fc2-load-burst-80",
+              "runId": "39d6e509-e695-4c2b-bc2e-1ec3d86945dc",
+              "status": 202,
+              "millis": 78.0
+            },
+            {
+              "idempotencyKey": "platform-phase5-193a9fc2-load-burst-90",
+              "runId": "29644b2e-815a-43fc-a97a-56d9f11e87ba",
+              "status": 202,
+              "millis": 62.0
+            }
+          ],
+          "completedPostRuns": [
+            {
+              "runId": "8a16ebf6-5df0-4086-9a5e-a9bb61cd669e",
+              "dispatchCount": 1
+            },
+            {
+              "runId": "ac7d4ab6-bb83-4c5d-afea-b31e51be407c",
+              "dispatchCount": 1
+            },
+            {
+              "runId": "49637418-b74b-40f5-98f1-9e936c85eff4",
+              "dispatchCount": 1
+            },
+            {
+              "runId": "c4d42803-91b9-4e45-9cc9-9282faae50b5",
+              "dispatchCount": 1
+            },
+            {
+              "runId": "1b141388-bf4d-4e1b-8c2b-6ebc5ad16014",
+              "dispatchCount": 1
+            },
+            {
+              "runId": "fe10be1e-1526-4352-9bda-5f463b129214",
+              "dispatchCount": 1
+            },
+            {
+              "runId": "5bfa56fc-42e8-4d2c-a4ee-b418ac0de4e0",
+              "dispatchCount": 1
+            },
+            {
+              "runId": "9e331f59-a585-4546-b775-9a184ea6acea",
+              "dispatchCount": 1
+            },
+            {
+              "runId": "39d6e509-e695-4c2b-bc2e-1ec3d86945dc",
+              "dispatchCount": 1
+            },
+            {
+              "runId": "29644b2e-815a-43fc-a97a-56d9f11e87ba",
+              "dispatchCount": 1
+            }
+          ],
+          "duplicateDispatches": 0
+        },
+        "idleQueue": {
+          "sampleCount": 20,
+          "source": "HTTP Run.createdAt and MySQL durable LEASE_CLAIMED.at; public events intentionally omit lease details",
+          "definition": "first lease claim minus Run creation; excludes tool/model generation and completion time",
+          "p95Millis": 238.546,
+          "maxMillis": 262.353,
+          "targetP95Millis": 2000,
+          "samples": [
+            {
+              "runId": "a7f58cb6-062b-45f8-b03c-3d55f0b3d955",
+              "createdAt": "2026-09-20T04:45:35.142160700Z",
+              "firstClaimAt": "2026-09-20T04:45:35.369Z",
+              "queueMillis": 226.84
+            },
+            {
+              "runId": "77182479-052e-4f12-927b-31c51d8d6182",
+              "createdAt": "2026-09-20T04:45:36.841961200Z",
+              "firstClaimAt": "2026-09-20T04:45:36.907Z",
+              "queueMillis": 65.039
+            },
+            {
+              "runId": "9f74381e-b52d-492e-adae-4ca4bc9080bd",
+              "createdAt": "2026-09-20T04:45:38.318513400Z",
+              "firstClaimAt": "2026-09-20T04:45:38.393Z",
+              "queueMillis": 74.487
+            },
+            {
+              "runId": "119c8326-813c-4c44-868a-5a0d3e92c71f",
+              "createdAt": "2026-09-20T04:45:39.937647200Z",
+              "firstClaimAt": "2026-09-20T04:45:40.200Z",
+              "queueMillis": 262.353
+            },
+            {
+              "runId": "c4d047c0-98f1-445f-be8d-099fa01c28d2",
+              "createdAt": "2026-09-20T04:45:41.658010300Z",
+              "firstClaimAt": "2026-09-20T04:45:41.724Z",
+              "queueMillis": 65.99
+            },
+            {
+              "runId": "00c0e78a-e5fc-43a0-8a1c-246fe56da84a",
+              "createdAt": "2026-09-20T04:45:43.410027500Z",
+              "firstClaimAt": "2026-09-20T04:45:43.537Z",
+              "queueMillis": 126.973
+            },
+            {
+              "runId": "b38ea990-cdd7-4f86-94ff-35503ade8c35",
+              "createdAt": "2026-09-20T04:45:44.796343400Z",
+              "firstClaimAt": "2026-09-20T04:45:44.946Z",
+              "queueMillis": 149.657
+            },
+            {
+              "runId": "4b5f5497-bb27-4e29-b425-79f9512b5b8c",
+              "createdAt": "2026-09-20T04:45:46.444121300Z",
+              "firstClaimAt": "2026-09-20T04:45:46.498Z",
+              "queueMillis": 53.879
+            },
+            {
+              "runId": "5416e914-68d3-4bab-b101-e0e50f088c89",
+              "createdAt": "2026-09-20T04:45:47.729454Z",
+              "firstClaimAt": "2026-09-20T04:45:47.968Z",
+              "queueMillis": 238.546
+            },
+            {
+              "runId": "5ff672cc-c308-45e2-806f-5ab09df649fb",
+              "createdAt": "2026-09-20T04:45:49.300765500Z",
+              "firstClaimAt": "2026-09-20T04:45:49.456Z",
+              "queueMillis": 155.235
+            },
+            {
+              "runId": "6604ec4c-e020-40e3-afda-c1e37ee22054",
+              "createdAt": "2026-09-20T04:45:50.551089100Z",
+              "firstClaimAt": "2026-09-20T04:45:50.704Z",
+              "queueMillis": 152.911
+            },
+            {
+              "runId": "5a61b73d-a913-44e9-b282-5b578890dd6f",
+              "createdAt": "2026-09-20T04:45:51.787039600Z",
+              "firstClaimAt": "2026-09-20T04:45:51.941Z",
+              "queueMillis": 153.961
+            },
+            {
+              "runId": "fedee2c2-3563-487a-8374-8211727a14c4",
+              "createdAt": "2026-09-20T04:45:53.177911700Z",
+              "firstClaimAt": "2026-09-20T04:45:53.273Z",
+              "queueMillis": 95.089
+            },
+            {
+              "runId": "ba71842c-5f1c-42f1-a8a0-049ce7a7956c",
+              "createdAt": "2026-09-20T04:45:54.537050800Z",
+              "firstClaimAt": "2026-09-20T04:45:54.625Z",
+              "queueMillis": 87.95
+            },
+            {
+              "runId": "b2c6d772-0d1e-4958-ab86-7b1e00652877",
+              "createdAt": "2026-09-20T04:45:55.979781500Z",
+              "firstClaimAt": "2026-09-20T04:45:56.078Z",
+              "queueMillis": 98.219
+            },
+            {
+              "runId": "11c6eb49-cf87-4c62-8c9e-ec500e0b4d99",
+              "createdAt": "2026-09-20T04:45:57.342753300Z",
+              "firstClaimAt": "2026-09-20T04:45:57.409Z",
+              "queueMillis": 66.247
+            },
+            {
+              "runId": "6f8b71f0-9314-412b-b588-958e9932ed04",
+              "createdAt": "2026-09-20T04:45:58.736296700Z",
+              "firstClaimAt": "2026-09-20T04:45:58.930Z",
+              "queueMillis": 193.704
+            },
+            {
+              "runId": "708f7269-1d0d-449b-bf5f-4bae2bf48b6f",
+              "createdAt": "2026-09-20T04:46:00.269160600Z",
+              "firstClaimAt": "2026-09-20T04:46:00.434Z",
+              "queueMillis": 164.84
+            },
+            {
+              "runId": "9ca571e6-05b7-47b7-80e3-f2281cdb49d7",
+              "createdAt": "2026-09-20T04:46:01.595263400Z",
+              "firstClaimAt": "2026-09-20T04:46:01.663Z",
+              "queueMillis": 67.737
+            },
+            {
+              "runId": "3e89cabf-dec5-4c03-a4e2-f77751516b99",
+              "createdAt": "2026-09-20T04:46:02.942699700Z",
+              "firstClaimAt": "2026-09-20T04:46:03.055Z",
+              "queueMillis": 112.301
+            }
+          ]
+        },
+        "queryPlan": [
+          "1\tSIMPLE\tharness_run_index\tNULL\trange\tharness_wait_due_idx\tharness_wait_due_idx\t9\tNULL\t1\t100.00\tUsing where; Using index",
+          "1\tSIMPLE\ti\tNULL\trange\tPRIMARY,harness_active_idx\tharness_active_idx\t130\tNULL\t6\t100.00\tUsing where; Using index",
+          "1\tSIMPLE\tp\tNULL\teq_ref\tPRIMARY,platform_owner_idx\tPRIMARY\t514\tharness_phase5_execution.i.run_id\t1\t50.00\tUsing where"
+        ]
+      },
+      "finishedAt": "2026-09-20T04:46:04.537648+00:00"
+    },
+    {
+      "name": "sustained_local_observation",
+      "status": "PASSED",
+      "startedAt": "2026-09-20T04:46:04.550330+00:00",
+      "evidence": {
+        "requestedSeconds": 60,
+        "elapsedSeconds": 60.0,
+        "requests": 600,
+        "observedRequestsPerSecond": 10.0,
+        "errors": 0,
+        "p95Millis": 125.0,
+        "completed24Hours": false
+      },
+      "finishedAt": "2026-09-20T04:47:04.580258+00:00"
+    },
+    {
+      "name": "abrupt_worker_loss_unknown_without_replay",
+      "status": "PASSED",
+      "startedAt": "2026-09-20T04:47:04.590414+00:00",
+      "evidence": {
+        "runId": "01f54011-de7b-4405-83e6-b8accb1ab22a",
+        "status": "NEEDS_ATTENTION",
+        "dispatches": 1,
+        "unknownPermitRetained": true,
+        "replacementWorker": true
+      },
+      "finishedAt": "2026-09-20T04:48:45.837880+00:00"
+    },
+    {
+      "name": "approved_write_lost_response_no_duplicate",
+      "status": "PASSED",
+      "startedAt": "2026-09-20T04:48:45.842002+00:00",
+      "evidence": {
+        "runId": "1a8e0f97-7d85-4e5b-a44f-965ff6e5de04",
+        "status": "NEEDS_ATTENTION",
+        "syntheticExternalEffects": 1,
+        "dispatches": 1,
+        "unknownRetained": true
+      },
+      "finishedAt": "2026-09-20T04:48:48.837168+00:00"
+    },
+    {
+      "name": "mysql_operations_retention_metrics",
+      "status": "PASSED",
+      "startedAt": "2026-09-20T04:48:48.845163+00:00",
+      "evidence": {
+        "metricsAuthentication": "missing/wrong rejected; dedicated token accepted",
+        "overviewScope": "PROJECT",
+        "overviewP95Millis": 266.0,
+        "overviewSampleCount": 20,
+        "historicalCompletedRunsVisible": 100063,
+        "durableAlertAcknowledgementAndReceipt": true,
+        "localInboxAcknowledgement": true,
+        "syntheticArchivedRun": "c207cd22-d812-4b4b-9359-4c49754f3e83",
+        "backdatedSyntheticRunCount": 1,
+        "planContainedOnlyTargetRun": true,
+        "archivedRuns": 1,
+        "deletedTraces": 1,
+        "encryptedArchiveContainsNoPlaintextMarker": true,
+        "executionRevisionAndUsagePreserved": true,
+        "creationAndApplyIdempotencyPreserved": true,
+        "totalFixtureDispatchesForArchivedRun": 1,
+        "unrelatedHistoricalRowsCleaned": 0
+      },
+      "finishedAt": "2026-09-20T04:48:56.852237+00:00"
+    }
+  ],
+  "processes": [
+    {
+      "label": "A",
+      "pid": 42600,
+      "startedAt": "2026-09-20T04:42:47.664320+00:00",
+      "stoppedAt": "2026-09-20T04:47:05.261366+00:00",
+      "termination": "owned child abrupt kill"
+    },
+    {
+      "label": "B",
+      "pid": 33988,
+      "startedAt": "2026-09-20T04:42:55.490970+00:00",
+      "stoppedAt": "2026-09-20T04:47:04.629511+00:00",
+      "termination": "owned child abrupt kill"
+    },
+    {
+      "label": "B",
+      "pid": 47084,
+      "startedAt": "2026-09-20T04:47:07.366662+00:00",
+      "stoppedAt": "2026-09-20T04:48:56.966206+00:00",
+      "termination": "owned child abrupt kill"
+    },
+    {
+      "label": "A",
+      "pid": 21512,
+      "startedAt": "2026-09-20T04:48:38.067884+00:00",
+      "stoppedAt": "2026-09-20T04:48:56.895773+00:00",
+      "termination": "owned child abrupt kill"
+    }
+  ],
+  "jarSha256": "f3a81f7b4411831b0e1f19db96d106f40b4facc3607f657ce73a2d25b4788236",
+  "boundaries": {
+    "syntheticFixture": true,
+    "externalModelCalls": 0,
+    "externalWriteCalls": 0,
+    "historicalRowsAreSynthetic": true,
+    "linuxObservation": false
+  },
+  "migration": "explicit offline CLI applied",
+  "selectedChecks": [
+    "two_workers_shared_concurrency",
+    "ten_tasks_five_models_two_projects",
+    "calendar_reservation_and_real_fixture_usage",
+    "100k_history_and_10rps_api",
+    "sustained_local_observation",
+    "abrupt_worker_loss_unknown_without_replay",
+    "approved_write_lost_response_no_duplicate",
+    "mysql_operations_retention_metrics"
+  ],
+  "scope": "all execution checks",
+  "mixedLoadEvidence": {
+    "sustained": {
+      "requests": 200,
+      "offeredRequestsPerSecond": 10,
+      "durationSeconds": 19.985,
+      "getRequests": 180,
+      "postRequests": 20,
+      "readWriteRatio": "90:10",
+      "errors": 0,
+      "p95Millis": 125.0,
+      "getP95Millis": 125.0,
+      "postP95Millis": 156.0,
+      "maxMillis": 172.0,
+      "postCommands": [
+        {
+          "idempotencyKey": "platform-phase5-193a9fc2-load-sustained-0",
+          "runId": "b461cc2a-e213-4baf-869b-265822d74007",
+          "status": 202,
+          "millis": 172.0
+        },
+        {
+          "idempotencyKey": "platform-phase5-193a9fc2-load-sustained-10",
+          "runId": "72ca21f0-0a5a-4dea-8884-b1e7893aeffd",
+          "status": 202,
+          "millis": 78.0
+        },
+        {
+          "idempotencyKey": "platform-phase5-193a9fc2-load-sustained-20",
+          "runId": "813a3399-17e4-4fd1-979a-4080707a2678",
+          "status": 202,
+          "millis": 78.0
+        },
+        {
+          "idempotencyKey": "platform-phase5-193a9fc2-load-sustained-30",
+          "runId": "0bfdca82-d06a-4990-a66e-7312edacff25",
+          "status": 202,
+          "millis": 94.0
+        },
+        {
+          "idempotencyKey": "platform-phase5-193a9fc2-load-sustained-40",
+          "runId": "54c4ec57-089b-41a3-92a5-2614765d9411",
+          "status": 202,
+          "millis": 78.0
+        },
+        {
+          "idempotencyKey": "platform-phase5-193a9fc2-load-sustained-50",
+          "runId": "ce88c74e-c582-4ebb-a031-b6aeedd13533",
+          "status": 202,
+          "millis": 62.0
+        },
+        {
+          "idempotencyKey": "platform-phase5-193a9fc2-load-sustained-60",
+          "runId": "38012fc9-f843-448f-962b-a498aec1deae",
+          "status": 202,
+          "millis": 78.0
+        },
+        {
+          "idempotencyKey": "platform-phase5-193a9fc2-load-sustained-70",
+          "runId": "d4b76ab8-0567-4fdc-8a0f-68dbe9f71a7e",
+          "status": 202,
+          "millis": 156.0
+        },
+        {
+          "idempotencyKey": "platform-phase5-193a9fc2-load-sustained-80",
+          "runId": "5c59ee71-a4d1-4743-a132-93d5ced7bc68",
+          "status": 202,
+          "millis": 94.0
+        },
+        {
+          "idempotencyKey": "platform-phase5-193a9fc2-load-sustained-90",
+          "runId": "b508ee79-ef07-40d6-a931-722c5f9a59e3",
+          "status": 202,
+          "millis": 125.0
+        },
+        {
+          "idempotencyKey": "platform-phase5-193a9fc2-load-sustained-100",
+          "runId": "76cad351-b307-468c-b265-05490af90caf",
+          "status": 202,
+          "millis": 125.0
+        },
+        {
+          "idempotencyKey": "platform-phase5-193a9fc2-load-sustained-110",
+          "runId": "88e62e66-4a79-480f-ade0-6233c3e753f8",
+          "status": 202,
+          "millis": 94.0
+        },
+        {
+          "idempotencyKey": "platform-phase5-193a9fc2-load-sustained-120",
+          "runId": "36318fb4-237b-4cce-8020-c05788802109",
+          "status": 202,
+          "millis": 141.0
+        },
+        {
+          "idempotencyKey": "platform-phase5-193a9fc2-load-sustained-130",
+          "runId": "7a99ef9a-4c8d-48ae-b470-35f55903b46e",
+          "status": 202,
+          "millis": 78.0
+        },
+        {
+          "idempotencyKey": "platform-phase5-193a9fc2-load-sustained-140",
+          "runId": "0cb38f50-10a1-4aa6-a381-205977785b40",
+          "status": 202,
+          "millis": 94.0
+        },
+        {
+          "idempotencyKey": "platform-phase5-193a9fc2-load-sustained-150",
+          "runId": "f2adc9e0-bbdc-4702-a491-a23398b6b881",
+          "status": 202,
+          "millis": 94.0
+        },
+        {
+          "idempotencyKey": "platform-phase5-193a9fc2-load-sustained-160",
+          "runId": "d6e38f5b-ab1e-4e75-8b51-54f82c303b21",
+          "status": 202,
+          "millis": 94.0
+        },
+        {
+          "idempotencyKey": "platform-phase5-193a9fc2-load-sustained-170",
+          "runId": "452e592c-78be-484b-b237-1249a52ad0bf",
+          "status": 202,
+          "millis": 63.0
+        },
+        {
+          "idempotencyKey": "platform-phase5-193a9fc2-load-sustained-180",
+          "runId": "ebcf2892-0bff-4228-a877-6ee2bbb04907",
+          "status": 202,
+          "millis": 125.0
+        },
+        {
+          "idempotencyKey": "platform-phase5-193a9fc2-load-sustained-190",
+          "runId": "afe9a038-652f-4fbb-bf0e-346a9903bed4",
+          "status": 202,
+          "millis": 110.0
+        }
+      ],
+      "completedPostRuns": [
+        {
+          "runId": "b461cc2a-e213-4baf-869b-265822d74007",
+          "dispatchCount": 1
+        },
+        {
+          "runId": "72ca21f0-0a5a-4dea-8884-b1e7893aeffd",
+          "dispatchCount": 1
+        },
+        {
+          "runId": "813a3399-17e4-4fd1-979a-4080707a2678",
+          "dispatchCount": 1
+        },
+        {
+          "runId": "0bfdca82-d06a-4990-a66e-7312edacff25",
+          "dispatchCount": 1
+        },
+        {
+          "runId": "54c4ec57-089b-41a3-92a5-2614765d9411",
+          "dispatchCount": 1
+        },
+        {
+          "runId": "ce88c74e-c582-4ebb-a031-b6aeedd13533",
+          "dispatchCount": 1
+        },
+        {
+          "runId": "38012fc9-f843-448f-962b-a498aec1deae",
+          "dispatchCount": 1
+        },
+        {
+          "runId": "d4b76ab8-0567-4fdc-8a0f-68dbe9f71a7e",
+          "dispatchCount": 1
+        },
+        {
+          "runId": "5c59ee71-a4d1-4743-a132-93d5ced7bc68",
+          "dispatchCount": 1
+        },
+        {
+          "runId": "b508ee79-ef07-40d6-a931-722c5f9a59e3",
+          "dispatchCount": 1
+        },
+        {
+          "runId": "76cad351-b307-468c-b265-05490af90caf",
+          "dispatchCount": 1
+        },
+        {
+          "runId": "88e62e66-4a79-480f-ade0-6233c3e753f8",
+          "dispatchCount": 1
+        },
+        {
+          "runId": "36318fb4-237b-4cce-8020-c05788802109",
+          "dispatchCount": 1
+        },
+        {
+          "runId": "7a99ef9a-4c8d-48ae-b470-35f55903b46e",
+          "dispatchCount": 1
+        },
+        {
+          "runId": "0cb38f50-10a1-4aa6-a381-205977785b40",
+          "dispatchCount": 1
+        },
+        {
+          "runId": "f2adc9e0-bbdc-4702-a491-a23398b6b881",
+          "dispatchCount": 1
+        },
+        {
+          "runId": "d6e38f5b-ab1e-4e75-8b51-54f82c303b21",
+          "dispatchCount": 1
+        },
+        {
+          "runId": "452e592c-78be-484b-b237-1249a52ad0bf",
+          "dispatchCount": 1
+        },
+        {
+          "runId": "ebcf2892-0bff-4228-a877-6ee2bbb04907",
+          "dispatchCount": 1
+        },
+        {
+          "runId": "afe9a038-652f-4fbb-bf0e-346a9903bed4",
+          "dispatchCount": 1
+        }
+      ],
+      "duplicateDispatches": 0
+    },
+    "burst": {
+      "requests": 100,
+      "offeredRequestsPerSecond": 20,
+      "durationSeconds": 5.031,
+      "getRequests": 90,
+      "postRequests": 10,
+      "readWriteRatio": "90:10",
+      "errors": 0,
+      "p95Millis": 94.0,
+      "getP95Millis": 94.0,
+      "postP95Millis": 109.0,
+      "maxMillis": 109.0,
+      "postCommands": [
+        {
+          "idempotencyKey": "platform-phase5-193a9fc2-load-burst-0",
+          "runId": "8a16ebf6-5df0-4086-9a5e-a9bb61cd669e",
+          "status": 202,
+          "millis": 78.0
+        },
+        {
+          "idempotencyKey": "platform-phase5-193a9fc2-load-burst-10",
+          "runId": "ac7d4ab6-bb83-4c5d-afea-b31e51be407c",
+          "status": 202,
+          "millis": 78.0
+        },
+        {
+          "idempotencyKey": "platform-phase5-193a9fc2-load-burst-20",
+          "runId": "49637418-b74b-40f5-98f1-9e936c85eff4",
+          "status": 202,
+          "millis": 93.0
+        },
+        {
+          "idempotencyKey": "platform-phase5-193a9fc2-load-burst-30",
+          "runId": "c4d42803-91b9-4e45-9cc9-9282faae50b5",
+          "status": 202,
+          "millis": 78.0
+        },
+        {
+          "idempotencyKey": "platform-phase5-193a9fc2-load-burst-40",
+          "runId": "1b141388-bf4d-4e1b-8c2b-6ebc5ad16014",
+          "status": 202,
+          "millis": 109.0
+        },
+        {
+          "idempotencyKey": "platform-phase5-193a9fc2-load-burst-50",
+          "runId": "fe10be1e-1526-4352-9bda-5f463b129214",
+          "status": 202,
+          "millis": 78.0
+        },
+        {
+          "idempotencyKey": "platform-phase5-193a9fc2-load-burst-60",
+          "runId": "5bfa56fc-42e8-4d2c-a4ee-b418ac0de4e0",
+          "status": 202,
+          "millis": 78.0
+        },
+        {
+          "idempotencyKey": "platform-phase5-193a9fc2-load-burst-70",
+          "runId": "9e331f59-a585-4546-b775-9a184ea6acea",
+          "status": 202,
+          "millis": 62.0
+        },
+        {
+          "idempotencyKey": "platform-phase5-193a9fc2-load-burst-80",
+          "runId": "39d6e509-e695-4c2b-bc2e-1ec3d86945dc",
+          "status": 202,
+          "millis": 78.0
+        },
+        {
+          "idempotencyKey": "platform-phase5-193a9fc2-load-burst-90",
+          "runId": "29644b2e-815a-43fc-a97a-56d9f11e87ba",
+          "status": 202,
+          "millis": 62.0
+        }
+      ],
+      "completedPostRuns": [
+        {
+          "runId": "8a16ebf6-5df0-4086-9a5e-a9bb61cd669e",
+          "dispatchCount": 1
+        },
+        {
+          "runId": "ac7d4ab6-bb83-4c5d-afea-b31e51be407c",
+          "dispatchCount": 1
+        },
+        {
+          "runId": "49637418-b74b-40f5-98f1-9e936c85eff4",
+          "dispatchCount": 1
+        },
+        {
+          "runId": "c4d42803-91b9-4e45-9cc9-9282faae50b5",
+          "dispatchCount": 1
+        },
+        {
+          "runId": "1b141388-bf4d-4e1b-8c2b-6ebc5ad16014",
+          "dispatchCount": 1
+        },
+        {
+          "runId": "fe10be1e-1526-4352-9bda-5f463b129214",
+          "dispatchCount": 1
+        },
+        {
+          "runId": "5bfa56fc-42e8-4d2c-a4ee-b418ac0de4e0",
+          "dispatchCount": 1
+        },
+        {
+          "runId": "9e331f59-a585-4546-b775-9a184ea6acea",
+          "dispatchCount": 1
+        },
+        {
+          "runId": "39d6e509-e695-4c2b-bc2e-1ec3d86945dc",
+          "dispatchCount": 1
+        },
+        {
+          "runId": "29644b2e-815a-43fc-a97a-56d9f11e87ba",
+          "dispatchCount": 1
+        }
+      ],
+      "duplicateDispatches": 0
+    }
+  },
+  "idleQueueEvidence": {
+    "sampleCount": 20,
+    "source": "HTTP Run.createdAt and MySQL durable LEASE_CLAIMED.at; public events intentionally omit lease details",
+    "definition": "first lease claim minus Run creation; excludes tool/model generation and completion time",
+    "p95Millis": 238.546,
+    "maxMillis": 262.353,
+    "targetP95Millis": 2000,
+    "samples": [
+      {
+        "runId": "a7f58cb6-062b-45f8-b03c-3d55f0b3d955",
+        "createdAt": "2026-09-20T04:45:35.142160700Z",
+        "firstClaimAt": "2026-09-20T04:45:35.369Z",
+        "queueMillis": 226.84
+      },
+      {
+        "runId": "77182479-052e-4f12-927b-31c51d8d6182",
+        "createdAt": "2026-09-20T04:45:36.841961200Z",
+        "firstClaimAt": "2026-09-20T04:45:36.907Z",
+        "queueMillis": 65.039
+      },
+      {
+        "runId": "9f74381e-b52d-492e-adae-4ca4bc9080bd",
+        "createdAt": "2026-09-20T04:45:38.318513400Z",
+        "firstClaimAt": "2026-09-20T04:45:38.393Z",
+        "queueMillis": 74.487
+      },
+      {
+        "runId": "119c8326-813c-4c44-868a-5a0d3e92c71f",
+        "createdAt": "2026-09-20T04:45:39.937647200Z",
+        "firstClaimAt": "2026-09-20T04:45:40.200Z",
+        "queueMillis": 262.353
+      },
+      {
+        "runId": "c4d047c0-98f1-445f-be8d-099fa01c28d2",
+        "createdAt": "2026-09-20T04:45:41.658010300Z",
+        "firstClaimAt": "2026-09-20T04:45:41.724Z",
+        "queueMillis": 65.99
+      },
+      {
+        "runId": "00c0e78a-e5fc-43a0-8a1c-246fe56da84a",
+        "createdAt": "2026-09-20T04:45:43.410027500Z",
+        "firstClaimAt": "2026-09-20T04:45:43.537Z",
+        "queueMillis": 126.973
+      },
+      {
+        "runId": "b38ea990-cdd7-4f86-94ff-35503ade8c35",
+        "createdAt": "2026-09-20T04:45:44.796343400Z",
+        "firstClaimAt": "2026-09-20T04:45:44.946Z",
+        "queueMillis": 149.657
+      },
+      {
+        "runId": "4b5f5497-bb27-4e29-b425-79f9512b5b8c",
+        "createdAt": "2026-09-20T04:45:46.444121300Z",
+        "firstClaimAt": "2026-09-20T04:45:46.498Z",
+        "queueMillis": 53.879
+      },
+      {
+        "runId": "5416e914-68d3-4bab-b101-e0e50f088c89",
+        "createdAt": "2026-09-20T04:45:47.729454Z",
+        "firstClaimAt": "2026-09-20T04:45:47.968Z",
+        "queueMillis": 238.546
+      },
+      {
+        "runId": "5ff672cc-c308-45e2-806f-5ab09df649fb",
+        "createdAt": "2026-09-20T04:45:49.300765500Z",
+        "firstClaimAt": "2026-09-20T04:45:49.456Z",
+        "queueMillis": 155.235
+      },
+      {
+        "runId": "6604ec4c-e020-40e3-afda-c1e37ee22054",
+        "createdAt": "2026-09-20T04:45:50.551089100Z",
+        "firstClaimAt": "2026-09-20T04:45:50.704Z",
+        "queueMillis": 152.911
+      },
+      {
+        "runId": "5a61b73d-a913-44e9-b282-5b578890dd6f",
+        "createdAt": "2026-09-20T04:45:51.787039600Z",
+        "firstClaimAt": "2026-09-20T04:45:51.941Z",
+        "queueMillis": 153.961
+      },
+      {
+        "runId": "fedee2c2-3563-487a-8374-8211727a14c4",
+        "createdAt": "2026-09-20T04:45:53.177911700Z",
+        "firstClaimAt": "2026-09-20T04:45:53.273Z",
+        "queueMillis": 95.089
+      },
+      {
+        "runId": "ba71842c-5f1c-42f1-a8a0-049ce7a7956c",
+        "createdAt": "2026-09-20T04:45:54.537050800Z",
+        "firstClaimAt": "2026-09-20T04:45:54.625Z",
+        "queueMillis": 87.95
+      },
+      {
+        "runId": "b2c6d772-0d1e-4958-ab86-7b1e00652877",
+        "createdAt": "2026-09-20T04:45:55.979781500Z",
+        "firstClaimAt": "2026-09-20T04:45:56.078Z",
+        "queueMillis": 98.219
+      },
+      {
+        "runId": "11c6eb49-cf87-4c62-8c9e-ec500e0b4d99",
+        "createdAt": "2026-09-20T04:45:57.342753300Z",
+        "firstClaimAt": "2026-09-20T04:45:57.409Z",
+        "queueMillis": 66.247
+      },
+      {
+        "runId": "6f8b71f0-9314-412b-b588-958e9932ed04",
+        "createdAt": "2026-09-20T04:45:58.736296700Z",
+        "firstClaimAt": "2026-09-20T04:45:58.930Z",
+        "queueMillis": 193.704
+      },
+      {
+        "runId": "708f7269-1d0d-449b-bf5f-4bae2bf48b6f",
+        "createdAt": "2026-09-20T04:46:00.269160600Z",
+        "firstClaimAt": "2026-09-20T04:46:00.434Z",
+        "queueMillis": 164.84
+      },
+      {
+        "runId": "9ca571e6-05b7-47b7-80e3-f2281cdb49d7",
+        "createdAt": "2026-09-20T04:46:01.595263400Z",
+        "firstClaimAt": "2026-09-20T04:46:01.663Z",
+        "queueMillis": 67.737
+      },
+      {
+        "runId": "3e89cabf-dec5-4c03-a4e2-f77751516b99",
+        "createdAt": "2026-09-20T04:46:02.942699700Z",
+        "firstClaimAt": "2026-09-20T04:46:03.055Z",
+        "queueMillis": 112.301
+      }
+    ]
+  },
+  "soakProgress": {
+    "requestedSeconds": 60,
+    "elapsedSeconds": 59.969,
+    "requests": 600,
+    "errors": 0
+  },
+  "soakEvidence": {
+    "requestedSeconds": 60,
+    "elapsedSeconds": 60.0,
+    "requests": 600,
+    "observedRequestsPerSecond": 10.0,
+    "errors": 0,
+    "p95Millis": 125.0,
+    "completed24Hours": false
+  },
+  "operationsLatencyEvidence": {
+    "samples": 20,
+    "p95Millis": 266.0,
+    "maxMillis": 297.0,
+    "targetP95Millis": 500
+  },
+  "finishedAt": "2026-09-20T04:48:57.198610+00:00"
+}

@@ -1,0 +1,20 @@
+# Separate, isolated recovery instance. There is intentionally no API or worker service.
+name: harness-recovery
+services:
+  recovery-db:
+    image: mysql:8.4.6
+    environment:
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/recovery-db-password
+      MYSQL_ROOT_HOST: '%'
+    command: [--bind-address=0.0.0.0, --skip-log-bin, --event-scheduler=OFF]
+    ports: ["127.0.0.1:13306:3306"]
+    volumes:
+      - recovery-data:/var/lib/mysql
+      - ./private/recovery-db-password:/run/secrets/recovery-db-password:ro
+    networks: [recovery]
+    security_opt: [no-new-privileges:true]
+networks:
+  recovery:
+    internal: true
+volumes:
+  recovery-data:

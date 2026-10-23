@@ -1,0 +1,63 @@
+diff --git a/ops-auth-service/src/main/java/com/opsagent/auth/HarnessIdentityService.java b/ops-auth-service/src/main/java/com/opsagent/auth/HarnessIdentityService.java
+--- a/ops-auth-service/src/main/java/com/opsagent/auth/HarnessIdentityService.java
++++ b/ops-auth-service/src/main/java/com/opsagent/auth/HarnessIdentityService.java
+@@ -42,6 +42,10 @@
+                     "runs:control",
+                     "runs:output:read",
+                     "runs:admin",
++                    "catalog:read",
++                    "catalog:write",
++                    "catalog:validate",
++                    "catalog:publish",
+                     "approvals:read",
+                     "approvals:decide",
+                     "approvals:review",
+diff --git a/ops-auth-service/src/test/java/com/opsagent/auth/HarnessIdentityServiceTest.java b/ops-auth-service/src/test/java/com/opsagent/auth/HarnessIdentityServiceTest.java
+--- a/ops-auth-service/src/test/java/com/opsagent/auth/HarnessIdentityServiceTest.java
++++ b/ops-auth-service/src/test/java/com/opsagent/auth/HarnessIdentityServiceTest.java
+@@ -97,4 +97,45 @@
+                         jdbc.queryForObject(
+                                 "SELECT COUNT(*) FROM ops_harness_delegation", Integer.class))
+                 .isEqualTo(1);
++    }
++
++    @Test
++    void catalogPermissionsRequireAnExplicitGrantAndUnknownPermissionsStillFailClosed() {
++        assertThat(service.introspect("Bearer " + APP, "ops-dev", login).permissions())
++                .doesNotContain("catalog:read", "catalog:write", "catalog:validate", "catalog:publish");
++        jdbc.update(
++                "UPDATE ops_harness_grant SET permissions_json=?",
++                "[\"runs:admin\",\"catalog:read\",\"catalog:write\",\"catalog:validate\",\"catalog:publish\"]");
++        assertThat(service.introspect("Bearer " + APP, "ops-dev", login).permissions())
++                .containsExactly(
++                        "runs:admin", "catalog:read", "catalog:write", "catalog:validate", "catalog:publish");
++        assertThatThrownBy(() -> service.introspect("Bearer " + APP, "other", login))
++                .hasMessageContaining("GRANT_DENIED");
++        jdbc.update(
++                "UPDATE ops_harness_grant SET permissions_json=?",
++                "[\"catalog:read\",\"catalog:root\"]");
++        assertThatThrownBy(() -> service.introspect("Bearer " + APP, "ops-dev", login))
++                .hasMessageContaining("GRANT_INVALID");
++    }
++
++    @Test
++    void catalogDelegationCannotGainLaterPermissionsAndObservesCurrentRevocation() {
++        jdbc.update(
++                "UPDATE ops_harness_grant SET permissions_json=?", "[\"catalog:read\"]");
++        var bound =
++                service.delegate(
++                        "Bearer " + APP,
++                        "ops-dev",
++                        login,
++                        "catalog-run",
++                        Instant.now().plusSeconds(600));
++        jdbc.update(
++                "UPDATE ops_harness_grant SET permissions_json=?",
++                "[\"catalog:read\",\"catalog:write\",\"catalog:validate\",\"catalog:publish\"]");
++        assertThat(service.current("Bearer " + APP, bound.delegationId(), "catalog-run").permissions())
++                .containsExactly("catalog:read");
++        jdbc.update(
++                "UPDATE ops_harness_grant SET permissions_json=?", "[\"catalog:write\"]");
++        assertThat(service.current("Bearer " + APP, bound.delegationId(), "catalog-run").permissions())
++                .isEmpty();
+     }

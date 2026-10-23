@@ -1,0 +1,65 @@
+{
+  "restoredDatabase": "harness_restore_eaec3ce865914929",
+  "schemaVersion": 1,
+  "restoredWorkersStarted": false,
+  "boundary": "Logical backup restored into a fresh isolated schema; no external action replay, production RPO/RTO, or identity database restore claimed",
+  "sourceDatabaseOverwritten": false,
+  "privateBackupRetained": true,
+  "backupSha256": "9ca5a61e4110783215c8ec60f48227651a323548e49e51bc541895f686872f81",
+  "mysqlVersion": "8.0.46",
+  "checks": [
+    {
+      "sha256": "e5e1da914339a75bad152b1c126539ecab2e0faefde67150d70ba709f7f386a7",
+      "exactMatch": true,
+      "tableGroup": "schema"
+    },
+    {
+      "sha256": "c08e6cc81a725914266e2d1a5a7cfc44e76bb1ed8bb17268a95f52ebc47bfdf8",
+      "exactMatch": true,
+      "tableGroup": "runs"
+    },
+    {
+      "sha256": "fdf30ae3431b27e7dfcc57bc6f3602bda9f380ae542374b50503d9e9f1f863c1",
+      "exactMatch": true,
+      "tableGroup": "events"
+    },
+    {
+      "sha256": "e44ee0031563c6e87b68a297fb8e165563e0a23523b946634604dfdd6c339150",
+      "exactMatch": true,
+      "tableGroup": "owners"
+    },
+    {
+      "sha256": "8960e7472141fcb08bbe0e253953324497364288f9a49c44e1a426fe8dd26f85",
+      "exactMatch": true,
+      "tableGroup": "commands"
+    },
+    {
+      "sha256": "0fa7d1c9d968d4b94316b16157e5bbcf11e80bacb539cce743bfba692ff3f62f",
+      "exactMatch": true,
+      "tableGroup": "audit"
+    },
+    {
+      "sha256": "ae922c67b523c89690e2ea0a259d2a7a7cd0632220a479bba9c45dd3e868d682",
+      "exactMatch": true,
+      "tableGroup": "evidence"
+    },
+    {
+      "sha256": "41ac9f1bb30edaf4e9e83942396462a30ecdc6f683cade408d2ac38a61a12d0a",
+      "exactMatch": true,
+      "tableGroup": "releases"
+    },
+    {
+      "sha256": "d3d48adab21893bd9a610db6a458fe93e82bad170658b014563fa642cbfa66ec",
+      "exactMatch": true,
+      "tableGroup": "scopes"
+    },
+    {
+      "sha256": "a6dec208ed2a0f989f842fac29bc57f81f73c5e9a46ca07caf3bfd3d2813eaea",
+      "exactMatch": true,
+      "tableGroup": "slots"
+    }
+  ],
+  "sourceDatabase": "harness_platform_phase2",
+  "at": "2026-09-18T05:22:30.8526944Z",
+  "status": "PASSED"
+}

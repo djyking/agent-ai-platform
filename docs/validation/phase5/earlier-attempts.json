@@ -1,0 +1,212 @@
+{
+  "scope": "Earlier attempts retained for transparency; not final release acceptance",
+  "attempts": [
+    {
+      "status": "FAILED",
+      "startedAt": "2026-09-20T03:48:34.494561+00:00",
+      "finishedAt": "2026-09-20T03:48:57.229958+00:00",
+      "jarSha256": "dbe6d866e385fab6226f345c5aca4abb20ccb63b6dc54defdaefb1d8509ff3d9",
+      "failureCode": "CREATE_HTTP_404",
+      "attempt": "report-01",
+      "checks": [
+        {
+          "name": "two_workers_shared_concurrency",
+          "status": "PASSED"
+        },
+        {
+          "name": "ten_tasks_five_models_two_projects",
+          "status": "FAILED",
+          "failureCode": "CREATE_HTTP_404"
+        }
+      ],
+      "mixedLoad": {}
+    },
+    {
+      "status": "FAILED",
+      "startedAt": "2026-09-20T03:53:05.825032+00:00",
+      "finishedAt": "2026-09-20T03:56:45.324610+00:00",
+      "jarSha256": "dbe6d866e385fab6226f345c5aca4abb20ccb63b6dc54defdaefb1d8509ff3d9",
+      "failureCode": "TimeoutExpired",
+      "attempt": "report-02",
+      "checks": [
+        {
+          "name": "two_workers_shared_concurrency",
+          "status": "PASSED"
+        },
+        {
+          "name": "ten_tasks_five_models_two_projects",
+          "status": "PASSED"
+        },
+        {
+          "name": "calendar_reservation_and_real_fixture_usage",
+          "status": "PASSED"
+        },
+        {
+          "name": "100k_history_and_10rps_api",
+          "status": "FAILED",
+          "failureCode": "TimeoutExpired"
+        }
+      ],
+      "mixedLoad": {}
+    },
+    {
+      "status": "FAILED",
+      "startedAt": "2026-09-20T03:59:24.189209+00:00",
+      "finishedAt": "2026-09-20T04:01:05.497146+00:00",
+      "jarSha256": "34816c9be70de8dfec3c656bcf6afba2f44d79a429061af19b1f09e631609c52",
+      "failureCode": "SYNTHETIC_HISTORY_COUNT_MISMATCH",
+      "attempt": "report-03",
+      "checks": [
+        {
+          "name": "two_workers_shared_concurrency",
+          "status": "PASSED"
+        },
+        {
+          "name": "ten_tasks_five_models_two_projects",
+          "status": "PASSED"
+        },
+        {
+          "name": "calendar_reservation_and_real_fixture_usage",
+          "status": "PASSED"
+        },
+        {
+          "name": "100k_history_and_10rps_api",
+          "status": "FAILED",
+          "failureCode": "SYNTHETIC_HISTORY_COUNT_MISMATCH"
+        }
+      ],
+      "mixedLoad": {}
+    },
+    {
+      "status": "FAILED",
+      "startedAt": "2026-09-20T04:04:25.230693+00:00",
+      "finishedAt": "2026-09-20T04:09:06.997753+00:00",
+      "jarSha256": "34816c9be70de8dfec3c656bcf6afba2f44d79a429061af19b1f09e631609c52",
+      "failureCode": "UNKNOWN_PERMIT_NOT_RETAINED",
+      "attempt": "report-04",
+      "checks": [
+        {
+          "name": "two_workers_shared_concurrency",
+          "status": "PASSED"
+        },
+        {
+          "name": "ten_tasks_five_models_two_projects",
+          "status": "PASSED"
+        },
+        {
+          "name": "calendar_reservation_and_real_fixture_usage",
+          "status": "PASSED"
+        },
+        {
+          "name": "100k_history_and_10rps_api",
+          "status": "PASSED"
+        },
+        {
+          "name": "sustained_local_observation",
+          "status": "PASSED"
+        },
+        {
+          "name": "abrupt_worker_loss_unknown_without_replay",
+          "status": "FAILED",
+          "failureCode": "UNKNOWN_PERMIT_NOT_RETAINED"
+        }
+      ],
+      "mixedLoad": {
+        "sustained": {
+          "requests": 200,
+          "offeredRequestsPerSecond": 10,
+          "durationSeconds": 19.984,
+          "getRequests": 180,
+          "postRequests": 20,
+          "readWriteRatio": "90:10",
+          "errors": 0,
+          "p95Millis": 110.0,
+          "getP95Millis": 110.0,
+          "postP95Millis": 343.0,
+          "maxMillis": 625.0,
+          "duplicateDispatches": 0
+        },
+        "burst": {
+          "requests": 100,
+          "offeredRequestsPerSecond": 20,
+          "durationSeconds": 5.015,
+          "getRequests": 90,
+          "postRequests": 10,
+          "readWriteRatio": "90:10",
+          "errors": 0,
+          "p95Millis": 94.0,
+          "getP95Millis": 94.0,
+          "postP95Millis": 93.0,
+          "maxMillis": 125.0,
+          "duplicateDispatches": 0
+        }
+      }
+    },
+    {
+      "status": "FAILED",
+      "startedAt": "2026-09-20T04:10:51.356302+00:00",
+      "finishedAt": "2026-09-20T04:12:25.453520+00:00",
+      "jarSha256": "34816c9be70de8dfec3c656bcf6afba2f44d79a429061af19b1f09e631609c52",
+      "failureCode": "MIXED_SUSTAINED_API_P95_ABOVE_500MS",
+      "attempt": "report-05",
+      "checks": [
+        {
+          "name": "two_workers_shared_concurrency",
+          "status": "PASSED"
+        },
+        {
+          "name": "ten_tasks_five_models_two_projects",
+          "status": "PASSED"
+        },
+        {
+          "name": "calendar_reservation_and_real_fixture_usage",
+          "status": "PASSED"
+        },
+        {
+          "name": "100k_history_and_10rps_api",
+          "status": "FAILED",
+          "failureCode": "MIXED_SUSTAINED_API_P95_ABOVE_500MS"
+        }
+      ],
+      "mixedLoad": {
+        "sustained": {
+          "requests": 200,
+          "offeredRequestsPerSecond": 10,
+          "durationSeconds": 19.969,
+          "getRequests": 180,
+          "postRequests": 20,
+          "readWriteRatio": "90:10",
+          "errors": 0,
+          "p95Millis": 125.0,
+          "getP95Millis": 110.0,
+          "postP95Millis": 657.0,
+          "maxMillis": 1047.0,
+          "duplicateDispatches": 0
+        }
+      }
+    },
+    {
+      "status": "PASSED",
+      "startedAt": "2026-09-20T04:14:28.182832+00:00",
+      "finishedAt": "2026-09-20T04:16:35.246999+00:00",
+      "jarSha256": "34816c9be70de8dfec3c656bcf6afba2f44d79a429061af19b1f09e631609c52",
+      "scope": "selected checks only",
+      "attempt": "report-fault-06",
+      "checks": [
+        {
+          "name": "abrupt_worker_loss_unknown_without_replay",
+          "status": "PASSED"
+        },
+        {
+          "name": "approved_write_lost_response_no_duplicate",
+          "status": "PASSED"
+        },
+        {
+          "name": "mysql_operations_retention_metrics",
+          "status": "PASSED"
+        }
+      ],
+      "mixedLoad": {}
+    }
+  ]
+}

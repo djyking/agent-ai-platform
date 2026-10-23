@@ -1,0 +1,75 @@
+{
+  "format": "harness-ai-minimal-inputs-v2",
+  "baseComposeSha256": "REPLACE_WITH_SHA256_OF_TARGET_NORMALIZED_PRIVATE_COMPOSE",
+  "runtimeDirectory": "/opt/harness/phase6",
+  "network": {
+    "name": "harness-runtime",
+    "subnet": "172.30.82.0/24",
+    "edgeAddress": "172.30.82.10",
+    "observedSubnets": ["172.18.0.0/16"]
+  },
+  "vectorMode": "preserve",
+  "configurationReview": {
+    "baseComposeSha256": "REPLACE_WITH_SAME_SHA256_OF_TARGET_NORMALIZED_PRIVATE_COMPOSE",
+    "evidenceSha256": "REPLACE_WITH_SHA256_OF_TARGET_CONFIGURATION_REVIEW_EVIDENCE",
+    "effectiveVectorEnabled": null,
+    "services": {
+      "ops-auth-app": {
+        "sourcesReviewed": false,
+        "launchOptionsReviewed": false,
+        "dynamicConfiguration": "UNREVIEWED",
+        "launchProfile": "UNREVIEWED"
+      },
+      "ops-ticket-app": {
+        "sourcesReviewed": false,
+        "launchOptionsReviewed": false,
+        "dynamicConfiguration": "UNREVIEWED",
+        "launchProfile": "UNREVIEWED"
+      },
+      "ops-knowledge-app": {
+        "sourcesReviewed": false,
+        "launchOptionsReviewed": false,
+        "dynamicConfiguration": "UNREVIEWED",
+        "launchProfile": "UNREVIEWED"
+      },
+      "ops-rag-app": {
+        "sourcesReviewed": false,
+        "launchOptionsReviewed": false,
+        "dynamicConfiguration": "UNREVIEWED",
+        "launchProfile": "UNREVIEWED"
+      },
+      "ops-agent-app": {
+        "sourcesReviewed": false,
+        "launchOptionsReviewed": false,
+        "dynamicConfiguration": "UNREVIEWED",
+        "launchProfile": "UNREVIEWED"
+      },
+      "ops-platform-app": {
+        "sourcesReviewed": false,
+        "launchOptionsReviewed": false,
+        "dynamicConfiguration": "UNREVIEWED",
+        "launchProfile": "UNREVIEWED"
+      },
+      "ops-gateway-app": {
+        "sourcesReviewed": false,
+        "launchOptionsReviewed": false,
+        "dynamicConfiguration": "UNREVIEWED",
+        "launchProfile": "UNREVIEWED"
+      }
+    }
+  },
+  "trustStoreType": "JKS",
+  "images": {
+    "platform": "REPLACE_WITH_ACCEPTED_IMAGE_DIGEST",
+    "support": "REPLACE_WITH_ACCEPTED_IMAGE_DIGEST",
+    "internalTls": "REPLACE_WITH_PINNED_NGINX_IMAGE_DIGEST",
+    "ops-auth-app": "REPLACE_WITH_ACCEPTED_IMAGE_DIGEST",
+    "ops-ticket-app": "REPLACE_WITH_ACCEPTED_IMAGE_DIGEST",
+    "ops-knowledge-app": "REPLACE_WITH_ACCEPTED_IMAGE_DIGEST",
+    "ops-rag-app": "REPLACE_WITH_ACCEPTED_IMAGE_DIGEST",
+    "ops-agent-app": "REPLACE_WITH_ACCEPTED_IMAGE_DIGEST",
+    "ops-platform-app": "REPLACE_WITH_ACCEPTED_IMAGE_DIGEST",
+    "ops-gateway-app": "REPLACE_WITH_ACCEPTED_IMAGE_DIGEST",
+    "ops-web-app": "REPLACE_WITH_ACCEPTED_IMAGE_DIGEST"
+  }
+}

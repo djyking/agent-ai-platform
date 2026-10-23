@@ -1,0 +1,1196 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-18T05:21:10.477748+00:00",
+  "environment": "localWindows",
+  "platform": {
+    "os.name": "Windows 11",
+    "os.arch": "amd64",
+    "java.version": "17.0.19",
+    "java.vendor": "Oracle Corporation"
+  },
+  "build": {
+    "reportedCommand": "mvnw.cmd clean verify -B -ntp",
+    "status": "BUILD_SUCCESS",
+    "finishedAt": "2026-09-18T13:19:27+08:00",
+    "logPath": ".work/phase12-final-verify.log",
+    "logSha256": "a7be1de4d423564cc7429e64f4dcf7cd69cdbb1d516fd1c29f227e1aaaf0b3a0",
+    "reactorPomProjects": 1,
+    "jarModules": 9,
+    "testTotals": {
+      "tests": 198,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "allXmlCountsMatchBuildLog": true,
+    "testSourcesWithoutSurefireReport": [],
+    "scope": "Maven reactor build and local test evidence only; no claim of external-service acceptance, remote CI, publication, deployment, or Linux/macOS execution."
+  },
+  "source": {
+    "baselineHead": "f48fbae6bb8f0901c360215e1a8448d44900185b",
+    "dirty": true,
+    "dirtyFiles": [
+      {
+        "status": " M",
+        "path": ".github/workflows/verify.yml",
+        "sha256": "58c0f96cc94ebfd8f02b9bb80d33887c718f609eeb19b2731e8d3f156f80ae7a"
+      },
+      {
+        "status": " M",
+        "path": "README.md",
+        "sha256": "cc257646f80fff13994e68691229b827ceb04180ec1b53d042375a873d5e645f"
+      },
+      {
+        "status": " M",
+        "path": "docs/agent-platform-roadmap.md",
+        "sha256": "effd9dad9473927afae1bc9a1c327d76dcb185923a460a3c124b5757cb03f9c5"
+      },
+      {
+        "status": " M",
+        "path": "docs/api/README.md",
+        "sha256": "15a7209191382223cae30c1c84d0f436e74aad8a4212e5f7777d74786afe2a18"
+      },
+      {
+        "status": " M",
+        "path": "docs/api/openapi.json",
+        "sha256": "1b68b6f678cacd2013dfa5f65ff59064faf039024d6d1415f182015a3c623e12"
+      },
+      {
+        "status": " M",
+        "path": "docs/api/validate_contract.py",
+        "sha256": "dcdb11e828a65d2e406b607fbcd05ee46fb1d553441fef5f490689af26e81273"
+      },
+      {
+        "status": " M",
+        "path": "docs/phase1-progress.md",
+        "sha256": "e7f84c93346b793d869f3873332e51631e991ac30fcdefd44a6108ff3fdafed5"
+      },
+      {
+        "status": " M",
+        "path": "docs/phase2-api-design.md",
+        "sha256": "61094adb58d616700901f5555b15123d237e0da21b54fff673f2300965304e53"
+      },
+      {
+        "status": " M",
+        "path": "docs/sdk-versioning.md",
+        "sha256": "ec9909addf30a4950a8dcdebca46678245502cb8f47e5635f7ad4cb8f80b8faa"
+      },
+      {
+        "status": " M",
+        "path": "harness-core/src/main/java/io/github/djyking/harness/core/Harness.java",
+        "sha256": "2fbb4c75dd775313a34b3cf1d0f75ced2b516ac05905dec1c1e07d74615e6dc5"
+      },
+      {
+        "status": " M",
+        "path": "harness-core/src/main/java/io/github/djyking/harness/core/InMemoryRunStore.java",
+        "sha256": "bac30ec3935b3be54e3da5f1643d7bd096529a9df9dc43114f1115c0f9c9cfd7"
+      },
+      {
+        "status": " M",
+        "path": "harness-core/src/main/java/io/github/djyking/harness/core/RunStore.java",
+        "sha256": "969ada86d6173dac550fcaeda04de879f36c9d91fcdc9be5ff8d766d39bbe550"
+      },
+      {
+        "status": " M",
+        "path": "harness-core/src/main/java/io/github/djyking/harness/core/StateGuards.java",
+        "sha256": "e68c2996d254003c41140fc5d9a857e58f139fced5814028cf5479cd5a7920a1"
+      },
+      {
+        "status": " M",
+        "path": "harness-evals/README.md",
+        "sha256": "9a693d446e2b5eba59e989323ba8c9fa2d09ae1a3e780e32823d316295cf07df"
+      },
+      {
+        "status": " M",
+        "path": "harness-integrations-opsagent/README.md",
+        "sha256": "f03dede66b8442af7b3e0e50385de7922c1b9469c8ee8daf07fb3639385edd1d"
+      },
+      {
+        "status": " M",
+        "path": "harness-storage-jdbc/src/main/java/io/github/djyking/harness/storage/jdbc/JdbcRunStore.java",
+        "sha256": "6667d6be1ba796e3355afcf6014b8f483e5589f5d70a46eb3448f72ddd1c742b"
+      },
+      {
+        "status": " M",
+        "path": "harness-validation/README.md",
+        "sha256": "2a84ae9690c87586ba9610b3e61be29c52279fb131ca947699b772e20968b3fc"
+      },
+      {
+        "status": " M",
+        "path": "harness-validation/pom.xml",
+        "sha256": "2be3d1ec33f24b003dc1ee6826d79af4ebede24853e329f0140dcf67c6dfc7fb"
+      },
+      {
+        "status": " M",
+        "path": "harness-validation/src/main/java/io/github/djyking/harness/validation/LiveSettings.java",
+        "sha256": "c79415df7d0b223078fbdd8c8b532e39477c67733d7d470c53de7a22022f38c7"
+      },
+      {
+        "status": " M",
+        "path": "harness-validation/src/main/java/io/github/djyking/harness/validation/ValidationMain.java",
+        "sha256": "aaaaf1f43cf52d0485ae4a7431a50eb7367d86e26ff5c8a27d8cdd3a666c375c"
+      },
+      {
+        "status": " M",
+        "path": "pom.xml",
+        "sha256": "c3d9e6cec49f29075fa044f7d81d7eee231ee6439421c162c5079fcf91e0ef12"
+      },
+      {
+        "status": " M",
+        "path": "validation/opsagent-isolated/README.md",
+        "sha256": "0df5d041df4870a02d894b3bbf0618ad1eebf8ba2f0ef6e6691befec84cd89ee"
+      },
+      {
+        "status": " M",
+        "path": "validation/opsagent-isolated/finalize.py",
+        "sha256": "f3afa6242d642e62c4c26fa8fc10249ee55c14b9fa61f237d8c3ce4613ec387e"
+      },
+      {
+        "status": " M",
+        "path": "validation/opsagent-isolated/prepare.py",
+        "sha256": "3f8e8eb1e4930832e2b0414ef014259448ddfe2a81ce0c2d31e5ad7782b99ce4"
+      },
+      {
+        "status": " M",
+        "path": "validation/opsagent-isolated/run.ps1",
+        "sha256": "0d423ad61139fb777b7d1b564aed902a19a7009487e4571134279217b539e7c8"
+      },
+      {
+        "status": " M",
+        "path": "validation/opsagent-isolated/test-module/pom.xml",
+        "sha256": "17f14249d39077edf1a5475df8c6be7c40cb66a4353684a13bed39f64b75f188"
+      },
+      {
+        "status": " M",
+        "path": "validation/opsagent-isolated/test-module/src/test/java/com/opsagent/isolation/LocalMvcServer.java",
+        "sha256": "e3b1998d75ca5ee413a8c220075859c2b152e6f01bcc9a7897f74cb3828a6363"
+      },
+      {
+        "status": " M",
+        "path": "validation/opsagent-isolated/test-module/src/test/java/com/opsagent/knowledge/IsolatedKnowledgeHost.java",
+        "sha256": "ac3a77c2cb1fef57e9ca146adb1fcbc7b760fb35bc2aa50a52cc1fa4ae504709"
+      },
+      {
+        "status": " M",
+        "path": "validation/opsagent-isolated/test-module/src/test/java/com/opsagent/rag/IsolatedRagHost.java",
+        "sha256": "f670bb1e48303359be63ff9d857704a84ecc48ecf00337012d46e40256467ad7"
+      },
+      {
+        "status": "??",
+        "path": "deploy/platform/V001__platform.sql",
+        "sha256": "4e28cfe9722c0309b8649bd8f5aa2d2ea2e29082b410f42bb0f5f92d82292c04"
+      },
+      {
+        "status": "??",
+        "path": "deploy/platform/backup.ps1",
+        "sha256": "a3059dd4191b27e27ddbd7935e5d32484aaef7fd5788a0ab5ddb6cb1df0659a8"
+      },
+      {
+        "status": "??",
+        "path": "deploy/platform/deployment.example.json",
+        "sha256": "711062e66169953f2adb2c8df5570a8f4c0c7f76da4a5a9f758c5a8f077e0380"
+      },
+      {
+        "status": "??",
+        "path": "deploy/platform/restore-proof.ps1",
+        "sha256": "ced7c1caa9d404ba5e120dac1345fa0a8b0b5c5afc977fd1a3b3b74e67a810d4"
+      },
+      {
+        "status": "??",
+        "path": "deploy/platform/start.ps1",
+        "sha256": "43efee586116f695b98d9fe5b3eb110282eb4f6ce04caac5c5ae45106f0bd3c9"
+      },
+      {
+        "status": "??",
+        "path": "docs/phase12-implementation.md",
+        "sha256": "4c55f4021fb3fe75c7da2b0ee41a33e27bf1a628a25fbd9713bbe176427ceb13"
+      },
+      {
+        "status": "??",
+        "path": "docs/platform-operations.md",
+        "sha256": "d440b417dcf8eb937eebd1cdb242626c8547c111c5ff346d9df79bad700803f5"
+      },
+      {
+        "status": "??",
+        "path": "docs/status-and-next-plan-20260918.md",
+        "sha256": "a19086967d39ecb40ec62c52a5141d0c6006b871ef5267d79c21ffc480e06fc8"
+      },
+      {
+        "status": "??",
+        "path": "docs/validation/20260918/assessment.json",
+        "sha256": "165c104eb6d2b97425a94daa9a27c0621aebcec00884bd5663a7bd35771d6138"
+      },
+      {
+        "status": "??",
+        "path": "docs/validation/20260918/cancellation-race.json",
+        "sha256": "8c68ae4a73161cf4c6b3c318046d077a9cff9a88f12b6bd773365c5f09a099f5"
+      },
+      {
+        "status": "??",
+        "path": "docs/validation/20260918/engineering-report.json",
+        "sha256": "061c964ce03ff30916e7e387b64ebfcb09ebebabab5d5190bfcb7e53b5d4285a"
+      },
+      {
+        "status": "??",
+        "path": "docs/validation/20260918/github-write-acceptance.json",
+        "sha256": "5789e4c626c4719ff8988d412d1fee8949ac61be93612d706e0b90ec153ecda4"
+      },
+      {
+        "status": "??",
+        "path": "docs/validation/20260918/github-write-discover.json",
+        "sha256": "dee0a6ec14d24ef93c774d41584a5f9b83a2c60fe5e9989da418e6ca7f9f4ccd"
+      },
+      {
+        "status": "??",
+        "path": "docs/validation/20260918/github-write-summary.md",
+        "sha256": "e937d91a003a9e3b6bf40cb81286e3cca51b473fd1f3dc300d1b49ac252c5d96"
+      },
+      {
+        "status": "??",
+        "path": "docs/validation/20260918/live-quality-plan-v1.json",
+        "sha256": "1fa45cead3acf7d28e7577028d899e06170ff9ed1729339f9cee5df66af386bb"
+      },
+      {
+        "status": "??",
+        "path": "docs/validation/20260918/live-quality-summary.md",
+        "sha256": "a522bf222a538c18901fd01f9784e45be2030d3dba6915f99d45ca65e3278067"
+      },
+      {
+        "status": "??",
+        "path": "docs/validation/20260918/live-quality-v1.json",
+        "sha256": "9d6f488adbb6cd0136cefcc71bcfd7a2bacacf81af5b37027f5b93674c87c137"
+      },
+      {
+        "status": "??",
+        "path": "docs/validation/20260918/opsagent-isolated-report.json",
+        "sha256": "346889a658799c1ff42672ba16017706d904563b4f761cdde7292c4bbbaa98d3"
+      },
+      {
+        "status": "??",
+        "path": "docs/validation/20260918/opsagent-local-mysql-acceptance.json",
+        "sha256": "62a5b0396f6642c149d162c446da5d4538dd1d9e0f17627a2fe86c986634c8d7"
+      },
+      {
+        "status": "??",
+        "path": "docs/validation/20260918/opsagent-phase12-files.json",
+        "sha256": "6feff706f5fc8bdf6f0caeb14b853f5ee0b3db44dc8abb559e9435e28707d8b7"
+      },
+      {
+        "status": "??",
+        "path": "docs/validation/20260918/opsagent-phase12.patch",
+        "sha256": "14d8ef24282c2bd8ef08592492b7cae5e4a3ca06dc3e917f3f36ae926b2cf98c"
+      },
+      {
+        "status": "??",
+        "path": "docs/validation/20260918/opsagent-targeted-verify.json",
+        "sha256": "1c454657d93cb6696e26230265b04c19625f89656daa2d93c4a94de22a237695"
+      },
+      {
+        "status": "??",
+        "path": "docs/validation/20260918/platform-20260918-deploy-smoke-r2-report.json",
+        "sha256": "bde3bc0195de74cc7fb1c3ff81a3f67733559493bfd4575afe17d5c285d1f641"
+      },
+      {
+        "status": "??",
+        "path": "docs/validation/20260918/platform-20260918-deploy-smoke-r3-report.json",
+        "sha256": "ec0601119e7e4001d94a84edb9deebedec51b7999c23be0d87ab20afd3fe5df3"
+      },
+      {
+        "status": "??",
+        "path": "docs/validation/20260918/platform-20260918-deploy-smoke-r4-report.json",
+        "sha256": "997625a9c46cf4c37842783a862f5ba0a587ffab4ec6beff2a29f109774bc328"
+      },
+      {
+        "status": "??",
+        "path": "docs/validation/20260918/platform-20260918-independent-r6-report.json",
+        "sha256": "8b9d2d2dccef0e0b309da628aae94ffd9f3ccb496330ddc622d5e0d68f33c214"
+      },
+      {
+        "status": "??",
+        "path": "docs/validation/20260918/platform-20260918-process-r5-report.json",
+        "sha256": "7a5e184f2faff22fd032715e8b1d6a88c0533cdfa24711c0b89c7e8d7d8c10cb"
+      },
+      {
+        "status": "??",
+        "path": "docs/validation/20260918/platform-20260918-process-r7-report.json",
+        "sha256": "9de5ddb9ab98aa1b6202cde5b03a30a97745d7a54771998898613c6bfd2c3b8a"
+      },
+      {
+        "status": "??",
+        "path": "docs/validation/20260918/platform-development-scene.json",
+        "sha256": "d3bba77814f2ac1608f2eedbb9636e68650932459fc6a4e0873d952b41d74ef0"
+      },
+      {
+        "status": "??",
+        "path": "harness-core/src/test/java/io/github/djyking/harness/core/HarnessControlConcurrencyTest.java",
+        "sha256": "4c72827cba2ee276276b8217e57449f16bb3bc06f59ecf4f13f15971bb97958c"
+      },
+      {
+        "status": "??",
+        "path": "harness-evals/src/main/java/io/github/djyking/harness/evals/QualityBaseline.java",
+        "sha256": "d44a258449d73e0f1a4fd49fe2b16584739e6be0d6cedd84b93286b51eaffc21"
+      },
+      {
+        "status": "??",
+        "path": "harness-evals/src/main/resources/datasets/quality-synthetic-v1.json",
+        "sha256": "659b92ceb5dfc1f0ef25592597b74962c1574f2b0570cc4d838e38ed5597e5d6"
+      },
+      {
+        "status": "??",
+        "path": "harness-evals/src/test/java/io/github/djyking/harness/evals/QualityBaselineTest.java",
+        "sha256": "cbcc412700f446f1a161d88b4bb13146470455fcecb1105d606b612ad01d8b98"
+      },
+      {
+        "status": "??",
+        "path": "harness-integrations-opsagent/src/main/java/io/github/djyking/harness/integrations/opsagent/OpsAgentIdentityClient.java",
+        "sha256": "67fcdabb844f72fd61f7faf0be66241f7b88eb4e3f02cde81d33054bae3cbdc3"
+      },
+      {
+        "status": "??",
+        "path": "harness-integrations-opsagent/src/main/java/io/github/djyking/harness/integrations/opsagent/OpsAgentProjectionClient.java",
+        "sha256": "8fbf5cda4b2a2d4813c0071a705c210a6318b22b8db1e886b622a570c2fff300"
+      },
+      {
+        "status": "??",
+        "path": "harness-integrations-opsagent/src/test/java/io/github/djyking/harness/integrations/opsagent/OpsAgentIdentityClientTest.java",
+        "sha256": "176d4d4fa1aa9330089d58c8968c41817e9f54b01a33e792930301809826a802"
+      },
+      {
+        "status": "??",
+        "path": "harness-integrations-opsagent/src/test/java/io/github/djyking/harness/integrations/opsagent/OpsAgentProjectionClientTest.java",
+        "sha256": "2fd25df3d7fb02d39678bcf7a406bdfc82c365c7c937192d8c0a06d98bf68005"
+      },
+      {
+        "status": "??",
+        "path": "harness-platform-service/README.md",
+        "sha256": "15eb0d39f96e2bc2ffcb6611a0ab183d78151d8f0e580b80702c935c82cc0df7"
+      },
+      {
+        "status": "??",
+        "path": "harness-platform-service/pom.xml",
+        "sha256": "e7b50dc75c4945c957f80aa92a93200f4e5e71252841ff42c5917646ddcbdba5"
+      },
+      {
+        "status": "??",
+        "path": "harness-platform-service/src/main/java/io/github/djyking/harness/platform/ApiErrors.java",
+        "sha256": "41a4279a8704b1defabf5ae1cc53d59d72104dbf80000608f5eba0297acc315e"
+      },
+      {
+        "status": "??",
+        "path": "harness-platform-service/src/main/java/io/github/djyking/harness/platform/ApiFailure.java",
+        "sha256": "13248d931ee2e56a3e36a0e538d48ec859f2329ccb21d7246eddd2058cc8b961"
+      },
+      {
+        "status": "??",
+        "path": "harness-platform-service/src/main/java/io/github/djyking/harness/platform/ApiJson.java",
+        "sha256": "7586a718cf13b2178ba34f4c9a8e6e10f85861ae24a3314192a66e0fc75568cb"
+      },
+      {
+        "status": "??",
+        "path": "harness-platform-service/src/main/java/io/github/djyking/harness/platform/Deployment.java",
+        "sha256": "f88e518fe2d39107109b9e194a2e8b974cb85ddeb78a3b3701b223116c0c1713"
+      },
+      {
+        "status": "??",
+        "path": "harness-platform-service/src/main/java/io/github/djyking/harness/platform/EvidenceImport.java",
+        "sha256": "142a039fad5f7b9c388a22c69462b0d96fdfdc6727f3b0f5c53ccef40064ed6b"
+      },
+      {
+        "status": "??",
+        "path": "harness-platform-service/src/main/java/io/github/djyking/harness/platform/IdentityProvider.java",
+        "sha256": "bec31d0f870cebee91c55f6ecd98407f647df611a2b793ea6aa82b8258cff743"
+      },
+      {
+        "status": "??",
+        "path": "harness-platform-service/src/main/java/io/github/djyking/harness/platform/OpsAgentIdentityProvider.java",
+        "sha256": "228a4c05fc3025e8ac37561bef686ba96e617e58c1540db440b30339e2643b0d"
+      },
+      {
+        "status": "??",
+        "path": "harness-platform-service/src/main/java/io/github/djyking/harness/platform/PlatformApplication.java",
+        "sha256": "6f62165b2be341b2752e92935d4761dc90e0867efc98fa7c7b853a3906f193db"
+      },
+      {
+        "status": "??",
+        "path": "harness-platform-service/src/main/java/io/github/djyking/harness/platform/PlatformController.java",
+        "sha256": "e4eaa2d865f81684c020793d70a2d16b5068c6a968898e365146ff630cca66ee"
+      },
+      {
+        "status": "??",
+        "path": "harness-platform-service/src/main/java/io/github/djyking/harness/platform/PlatformRepository.java",
+        "sha256": "46bafa3d7b4ac634a8af8271d8c974c041d6ae1013ecf5f4e2c2c241ee069b65"
+      },
+      {
+        "status": "??",
+        "path": "harness-platform-service/src/main/java/io/github/djyking/harness/platform/PlatformRuntime.java",
+        "sha256": "6b0972826ef631c2cf557f2bf71ec58049d687bbd78263ddfd56fb10c11d9ba5"
+      },
+      {
+        "status": "??",
+        "path": "harness-platform-service/src/main/java/io/github/djyking/harness/platform/PlatformService.java",
+        "sha256": "224385b82af68ff1715e416c8767948d92504df83abdea4eb9b637ecd15321c8"
+      },
+      {
+        "status": "??",
+        "path": "harness-platform-service/src/main/java/io/github/djyking/harness/platform/PlatformWorker.java",
+        "sha256": "aead202fe40bea4f477790b100d8c567c45922a16195f48b4add838576ef48c3"
+      },
+      {
+        "status": "??",
+        "path": "harness-platform-service/src/main/java/io/github/djyking/harness/platform/RuntimeAccess.java",
+        "sha256": "dc0bf320d3a94278406efa54a50280bcaa30d3f99a7565f36f3d57ad485e85b3"
+      },
+      {
+        "status": "??",
+        "path": "harness-platform-service/src/main/java/io/github/djyking/harness/platform/SecretProvider.java",
+        "sha256": "259cdc907eec161ea9b2108eae84533697ded7adb7c39baa2bc70a48072306cb"
+      },
+      {
+        "status": "??",
+        "path": "harness-platform-service/src/main/java/io/github/djyking/harness/platform/SignedTokens.java",
+        "sha256": "18d385000df8833d161e327b923e67352ef2176835df23209db99713ff8a6873"
+      },
+      {
+        "status": "??",
+        "path": "harness-platform-service/src/main/resources/application.properties",
+        "sha256": "2009a1a0dc09d805afcbca24461e0f6c442ed3ecfaf74a951f6c5ee98178e7b5"
+      },
+      {
+        "status": "??",
+        "path": "harness-platform-service/src/test/java/io/github/djyking/harness/platform/PlatformEvidenceImportTest.java",
+        "sha256": "b3312278b7d854bf29421dfc895c5075fef995e27105ef251978b19f17ee7c37"
+      },
+      {
+        "status": "??",
+        "path": "harness-platform-service/src/test/java/io/github/djyking/harness/platform/PlatformFoundationTest.java",
+        "sha256": "6dfa403450e3f75be0f640531b32b28dcd80bb4a18b40e23a7ae8c7a298cbc27"
+      },
+      {
+        "status": "??",
+        "path": "harness-platform-service/src/test/java/io/github/djyking/harness/platform/PlatformHttpTest.java",
+        "sha256": "5bdf6211de4f1bf180abe4251ad99c7d9c8f09e55026eb1055f6e6fe71e53f72"
+      },
+      {
+        "status": "??",
+        "path": "harness-platform-service/src/test/java/io/github/djyking/harness/platform/PlatformProtectedOutputTest.java",
+        "sha256": "bb1154f3efdabbfe18887138b95f1f658e1a0103002118eb7374201d1122bd3e"
+      },
+      {
+        "status": "??",
+        "path": "harness-platform-service/src/test/java/io/github/djyking/harness/platform/PlatformServiceTest.java",
+        "sha256": "b4bf8f2944a25663d4606e95be52fdd7fe6f969cf36b463f78ea15a2271a4865"
+      },
+      {
+        "status": "??",
+        "path": "harness-platform-service/src/test/java/io/github/djyking/harness/platform/PlatformTestSupport.java",
+        "sha256": "0ea9ca188b0bb393da515d44552f343cdaf32edda73d3fff1bac384c94baeef5"
+      },
+      {
+        "status": "??",
+        "path": "harness-platform-service/src/test/java/io/github/djyking/harness/platform/PlatformWorkerTest.java",
+        "sha256": "455e32ab369c13f061a05d022edc4916b067807f8c613906d84544fac5cb2e0d"
+      },
+      {
+        "status": "??",
+        "path": "harness-storage-jdbc/src/test/java/io/github/djyking/harness/storage/jdbc/JdbcHostTransactionTest.java",
+        "sha256": "a195824572868884a23e50d0d6202571ccdec9a7e0329f12ebd7364518fc51d3"
+      },
+      {
+        "status": "??",
+        "path": "harness-validation/run-github-write.ps1",
+        "sha256": "0a7da423f29c9ee1c807730b03f9e14f5302c5cb1d47abb19d02a3b48d452ca1"
+      },
+      {
+        "status": "??",
+        "path": "harness-validation/src/main/java/io/github/djyking/harness/validation/GitHubWriteAcceptance.java",
+        "sha256": "a2cbf1038293a5cb733afbb0fa39350624fc8ccf172663170ab3eba3b2c105cc"
+      },
+      {
+        "status": "??",
+        "path": "harness-validation/src/main/java/io/github/djyking/harness/validation/LiveQualityAcceptance.java",
+        "sha256": "61e6e1ff411d477cbb15f23114f46790cf0e07122b560d04108dd3e281d0cfbf"
+      },
+      {
+        "status": "??",
+        "path": "harness-validation/src/test/java/io/github/djyking/harness/validation/GitHubWriteAcceptanceTest.java",
+        "sha256": "b413792d7ab1c1a46bb7a8aca901efe1bff993d58386f2a6bd82faf222ced6a8"
+      },
+      {
+        "status": "??",
+        "path": "harness-validation/src/test/java/io/github/djyking/harness/validation/LiveQualityAcceptanceTest.java",
+        "sha256": "244a3d2b2e256afcbfddf4c934a76b4be60351aa4885c56ac997f351347cd8ba"
+      },
+      {
+        "status": "??",
+        "path": "validation/opsagent-isolated/__pycache__/finalize.cpython-312.pyc",
+        "sha256": "c76b4c6b100cfd7e849b2410e80e105842bb511739bf275a68762a7287c0c3b3"
+      },
+      {
+        "status": "??",
+        "path": "validation/opsagent-isolated/__pycache__/local-acceptance.cpython-312.pyc",
+        "sha256": "c4ee720344436de2de1b8569a12e7d02479f13127ff00a02af8de802648728a6"
+      },
+      {
+        "status": "??",
+        "path": "validation/opsagent-isolated/__pycache__/prepare.cpython-312.pyc",
+        "sha256": "a3da063342cc205ea67ca2a82bb7981bdb6a51e8948efcc4011b807379e42418"
+      },
+      {
+        "status": "??",
+        "path": "validation/opsagent-isolated/local-acceptance.py",
+        "sha256": "19bd9ccc5354462b553ca2a864b33e7dbb319d2caeae103c318b1660a06eb620"
+      },
+      {
+        "status": "??",
+        "path": "validation/opsagent-isolated/start-bridge.ps1",
+        "sha256": "09bb9011d4ec012034de3bbeca38cfa6646602f77f4e0e58077409960686ff73"
+      },
+      {
+        "status": "??",
+        "path": "validation/opsagent-isolated/test-module/src/test/java/com/opsagent/auth/IsolatedSqlAuthHost.java",
+        "sha256": "594e79b68f2d1488d483047079ab5208fcb99315f7c629644774f2928bc0aac1"
+      },
+      {
+        "status": "??",
+        "path": "validation/opsagent-isolated/test-module/src/test/java/com/opsagent/isolation/IsolatedBridgeMain.java",
+        "sha256": "b048d197e5cfff5e1c20cf0a59dd3e1ceb3ba85b4b940254b7cfb2718cec9afb"
+      },
+      {
+        "status": "??",
+        "path": "validation/opsagent-isolated/test-module/src/test/java/com/opsagent/isolation/IsolatedIdentityBridgeTest.java",
+        "sha256": "78662dad194105a9ff87c80e19c46ffaea463f579d1ef99ddc7f054139a92c6c"
+      },
+      {
+        "status": "??",
+        "path": "validation/platform/.gitignore",
+        "sha256": "32dae3052f331ee34d628ef535709b301259a45df7c7522c4d35dcf49873f00b"
+      },
+      {
+        "status": "??",
+        "path": "validation/platform/README.md",
+        "sha256": "1c007e14788e9217588b514bc2c2dd70aca33459c41baee2aeeaac713f89b164"
+      },
+      {
+        "status": "??",
+        "path": "validation/platform/config.schema.json",
+        "sha256": "640e657fc19302695f061e9e8eef65e825f5bc7fbc2b51435cd3177cddc73e0f"
+      },
+      {
+        "status": "??",
+        "path": "validation/platform/process_acceptance.py",
+        "sha256": "421f8b8d7144042fab968300b83e36b1be1b243323e05cccd389acbbcd8f62b8"
+      },
+      {
+        "status": "??",
+        "path": "validation/platform/read-dpapi.ps1",
+        "sha256": "5faac901953ec4855ba5d31dedf54da43e7f02bcf49b8d200f95f90a558cd052"
+      },
+      {
+        "status": "??",
+        "path": "validation/platform/wire_fixture.py",
+        "sha256": "7d27bb0ffcb2f4e9ea4ef7bcbbf924fc1b647a22a79e3f6755b6ec362bf106a2"
+      }
+    ],
+    "dirtySnapshotExcludesThisGeneratedManifest": true,
+    "snapshotNotice": "Dirty-file hashes describe collection time, including docs/evidence that may be newer than the build. They do not turn an uncommitted working tree into a commit.",
+    "builtInputFingerprintSha256": "3fae5b6cae9dee67a93abed4eb3b26d18691176c157af90c0759b5e6b1685479"
+  },
+  "modules": [
+    {
+      "module": "harness-core",
+      "reactorStatus": "SUCCESS",
+      "cleanObserved": true,
+      "testReports": [
+        {
+          "class": "io.github.djyking.harness.core.ApprovalDispatchTest",
+          "path": "harness-core/target/surefire-reports/TEST-io.github.djyking.harness.core.ApprovalDispatchTest.xml",
+          "sha256": "fdd98456b445fc7768395d0735e2f3a0bb0aa947012e23e265b03970b726f4b7",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.56
+        },
+        {
+          "class": "io.github.djyking.harness.core.BudgetTerminalControlTest",
+          "path": "harness-core/target/surefire-reports/TEST-io.github.djyking.harness.core.BudgetTerminalControlTest.xml",
+          "sha256": "40fd7fd05f89f132e9124b64baef0d40835e14d17c2c0b0626dbc687b2b81e62",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.123
+        },
+        {
+          "class": "io.github.djyking.harness.core.HarnessControlConcurrencyTest",
+          "path": "harness-core/target/surefire-reports/TEST-io.github.djyking.harness.core.HarnessControlConcurrencyTest.xml",
+          "sha256": "7ab158c28f9bab1a2c38d25407831751fed4438ad08cab4f751ffec873626f7a",
+          "tests": 11,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.144
+        },
+        {
+          "class": "io.github.djyking.harness.core.HarnessRuntimeTest",
+          "path": "harness-core/target/surefire-reports/TEST-io.github.djyking.harness.core.HarnessRuntimeTest.xml",
+          "sha256": "e9f02da74d819961adf713d290cfc355010f39b24a01377575fe02ce77f7174a",
+          "tests": 16,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.327
+        },
+        {
+          "class": "io.github.djyking.harness.core.InMemoryRunStoreTest",
+          "path": "harness-core/target/surefire-reports/TEST-io.github.djyking.harness.core.InMemoryRunStoreTest.xml",
+          "sha256": "166c36e5f95b3fada36c291f357cfbb294bc068ceb52dac201f2e048d72ecfa4",
+          "tests": 12,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.08
+        },
+        {
+          "class": "io.github.djyking.harness.core.ModelRouterTest",
+          "path": "harness-core/target/surefire-reports/TEST-io.github.djyking.harness.core.ModelRouterTest.xml",
+          "sha256": "ead26707575414e645feb0c6668d5a270ff994a205d6bc17f5f1a6c6e237cb4c",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.014
+        },
+        {
+          "class": "io.github.djyking.harness.core.ToolContractTest",
+          "path": "harness-core/target/surefire-reports/TEST-io.github.djyking.harness.core.ToolContractTest.xml",
+          "sha256": "271dd7dc7132523ac49c0893cc59c725fa1340f7246223b8cc0248d1b636a477",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.044
+        },
+        {
+          "class": "io.github.djyking.harness.core.UnknownRetryControlTest",
+          "path": "harness-core/target/surefire-reports/TEST-io.github.djyking.harness.core.UnknownRetryControlTest.xml",
+          "sha256": "5d022920657c615096f9e4610110c82da7d260024a74c3b4607e115490ba60f9",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.047
+        }
+      ],
+      "testTotals": {
+        "tests": 57,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "jars": [
+        {
+          "path": "harness-core/target/harness-core-0.1.0-SNAPSHOT.jar",
+          "sizeBytes": 98883,
+          "sha256": "02fbdb3fb73ab336e9e3865996e995a43a38c43127d819325ad26ff71e30b064",
+          "lastModifiedUtc": "2026-09-18T05:17:26.030699+00:00"
+        }
+      ],
+      "sourceFilesNewerThanArtifact": []
+    },
+    {
+      "module": "harness-storage-jdbc",
+      "reactorStatus": "SUCCESS",
+      "cleanObserved": true,
+      "testReports": [
+        {
+          "class": "io.github.djyking.harness.storage.jdbc.HarnessSqlRecoveryTest",
+          "path": "harness-storage-jdbc/target/surefire-reports/TEST-io.github.djyking.harness.storage.jdbc.HarnessSqlRecoveryTest.xml",
+          "sha256": "5e95d533537d5d687ddf9cef79fa3f23d333ae8959611097d89a53813c31f22d",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.852
+        },
+        {
+          "class": "io.github.djyking.harness.storage.jdbc.JdbcDialectTest",
+          "path": "harness-storage-jdbc/target/surefire-reports/TEST-io.github.djyking.harness.storage.jdbc.JdbcDialectTest.xml",
+          "sha256": "b1fcb2ca4e29c9ee00be68cd63cb3ace7b7dd0c633bcf0be605831d048a94a17",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.061
+        },
+        {
+          "class": "io.github.djyking.harness.storage.jdbc.JdbcHostTransactionTest",
+          "path": "harness-storage-jdbc/target/surefire-reports/TEST-io.github.djyking.harness.storage.jdbc.JdbcHostTransactionTest.xml",
+          "sha256": "45337d48594b3207faba73be3cad3a1246703838808ca730ddfe52604364a8ad",
+          "tests": 7,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.111
+        },
+        {
+          "class": "io.github.djyking.harness.storage.jdbc.JdbcRunStoreTest",
+          "path": "harness-storage-jdbc/target/surefire-reports/TEST-io.github.djyking.harness.storage.jdbc.JdbcRunStoreTest.xml",
+          "sha256": "16d6ccd572407ecb84e7cd956e9c6dce9feec387b7aac3a23d21b32760e5b91b",
+          "tests": 18,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.983
+        }
+      ],
+      "testTotals": {
+        "tests": 31,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "jars": [
+        {
+          "path": "harness-storage-jdbc/target/harness-storage-jdbc-0.1.0-SNAPSHOT.jar",
+          "sizeBytes": 19361,
+          "sha256": "2889e03ddfc17c9e4e5ec42b34908735a0f5167d4ab0e543ee99d9c781e280ff",
+          "lastModifiedUtc": "2026-09-18T05:17:31.928148+00:00"
+        }
+      ],
+      "sourceFilesNewerThanArtifact": []
+    },
+    {
+      "module": "harness-adapters",
+      "reactorStatus": "SUCCESS",
+      "cleanObserved": true,
+      "testReports": [
+        {
+          "class": "io.github.djyking.harness.adapters.mcp.McpConnectionTest",
+          "path": "harness-adapters/target/surefire-reports/TEST-io.github.djyking.harness.adapters.mcp.McpConnectionTest.xml",
+          "sha256": "ec0e5b8b6927d4c394752b4960976485b09964554cc83442533dfcfa5f1112b4",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 1.38
+        },
+        {
+          "class": "io.github.djyking.harness.adapters.mcp.McpHarnessIntegrationTest",
+          "path": "harness-adapters/target/surefire-reports/TEST-io.github.djyking.harness.adapters.mcp.McpHarnessIntegrationTest.xml",
+          "sha256": "6e02f37d16ecc5dd7b06206dec2348063ddd6af72729a8ddea7a3447b2e293bf",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.333
+        },
+        {
+          "class": "io.github.djyking.harness.adapters.mcp.McpToolAdapterTest",
+          "path": "harness-adapters/target/surefire-reports/TEST-io.github.djyking.harness.adapters.mcp.McpToolAdapterTest.xml",
+          "sha256": "4deb2ef6fbd3a9d394426767816047c7de280f2c3cbd62503091bc6f4a665683",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.61
+        },
+        {
+          "class": "io.github.djyking.harness.adapters.model.DeepSeekChatModelTest",
+          "path": "harness-adapters/target/surefire-reports/TEST-io.github.djyking.harness.adapters.model.DeepSeekChatModelTest.xml",
+          "sha256": "7c9b96b048e441ee043dfa054532c172e6b74cca13ad0cf08d8fed94363ccb47",
+          "tests": 6,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.31
+        },
+        {
+          "class": "io.github.djyking.harness.adapters.telemetry.OpenTelemetryTelemetryTest",
+          "path": "harness-adapters/target/surefire-reports/TEST-io.github.djyking.harness.adapters.telemetry.OpenTelemetryTelemetryTest.xml",
+          "sha256": "f6aa8b7d8d7ad164c9333b1bdfa4eac0449057d0f0c36ef7f819a7e2cac51a0a",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.015
+        }
+      ],
+      "testTotals": {
+        "tests": 17,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "jars": [
+        {
+          "path": "harness-adapters/target/harness-adapters-0.1.0-SNAPSHOT.jar",
+          "sizeBytes": 35413,
+          "sha256": "8ec8fc68ebaba0c37bda1404360122daf8008df6b77f2d4ff880cb6c308525ce",
+          "lastModifiedUtc": "2026-09-18T05:17:39.938295+00:00"
+        }
+      ],
+      "sourceFilesNewerThanArtifact": []
+    },
+    {
+      "module": "harness-capabilities",
+      "reactorStatus": "SUCCESS",
+      "cleanObserved": true,
+      "testReports": [
+        {
+          "class": "io.github.djyking.harness.capabilities.prompt.PromptTemplateTest",
+          "path": "harness-capabilities/target/surefire-reports/TEST-io.github.djyking.harness.capabilities.prompt.PromptTemplateTest.xml",
+          "sha256": "d0c1d5448ec66a06f0606742d46d8d2e6cdd64a1a477b8b4175a2f600733c5f2",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.354
+        },
+        {
+          "class": "io.github.djyking.harness.capabilities.rag.RagToolTest",
+          "path": "harness-capabilities/target/surefire-reports/TEST-io.github.djyking.harness.capabilities.rag.RagToolTest.xml",
+          "sha256": "525a502bb335d84071ec17cc39eb89f1aa5930833e4202f45a9c89c488ac3dc0",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.052
+        },
+        {
+          "class": "io.github.djyking.harness.capabilities.rag.RetrievalTest",
+          "path": "harness-capabilities/target/surefire-reports/TEST-io.github.djyking.harness.capabilities.rag.RetrievalTest.xml",
+          "sha256": "9a65a0eea7ac8ecadf18a89eecc60ce05bd6acd416f5d8ac067ae206a49ed7aa",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.009
+        },
+        {
+          "class": "io.github.djyking.harness.capabilities.workflow.WorkflowHarnessTest",
+          "path": "harness-capabilities/target/surefire-reports/TEST-io.github.djyking.harness.capabilities.workflow.WorkflowHarnessTest.xml",
+          "sha256": "415df3f44abf50bc057f3ce62e21a1a9616bd6c4d7088db05e49fb421f0933d3",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.347
+        },
+        {
+          "class": "io.github.djyking.harness.capabilities.workflow.WorkflowProgramTest",
+          "path": "harness-capabilities/target/surefire-reports/TEST-io.github.djyking.harness.capabilities.workflow.WorkflowProgramTest.xml",
+          "sha256": "7bf5555a86a87d6ffad20662c8ab272f4b67f562eb64c0c5f366b70494e5560c",
+          "tests": 6,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.039
+        }
+      ],
+      "testTotals": {
+        "tests": 18,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "jars": [
+        {
+          "path": "harness-capabilities/target/harness-capabilities-0.1.0-SNAPSHOT.jar",
+          "sizeBytes": 50129,
+          "sha256": "206e533473e88784a44af4533cccdbde707f62344a00af59a7d47b22683a1970",
+          "lastModifiedUtc": "2026-09-18T05:17:44.451199+00:00"
+        }
+      ],
+      "sourceFilesNewerThanArtifact": []
+    },
+    {
+      "module": "harness-examples",
+      "reactorStatus": "SUCCESS",
+      "cleanObserved": true,
+      "testReports": [
+        {
+          "class": "io.github.djyking.harness.examples.ExamplesTest",
+          "path": "harness-examples/target/surefire-reports/TEST-io.github.djyking.harness.examples.ExamplesTest.xml",
+          "sha256": "f9e6dde0c03ef80b531e4ebd4c3e6d37142741facef4f355a1163e3511bfa1bc",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 16.379
+        }
+      ],
+      "testTotals": {
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "jars": [
+        {
+          "path": "harness-examples/target/harness-examples-0.1.0-SNAPSHOT.jar",
+          "sizeBytes": 16800,
+          "sha256": "374ee77ead26bc682cd0f1cd274e79ecedede0ca89565a8fccc653543388c0d4",
+          "lastModifiedUtc": "2026-09-18T05:18:03.334183+00:00"
+        }
+      ],
+      "sourceFilesNewerThanArtifact": []
+    },
+    {
+      "module": "harness-integrations-opsagent",
+      "reactorStatus": "SUCCESS",
+      "cleanObserved": true,
+      "testReports": [
+        {
+          "class": "io.github.djyking.harness.integrations.opsagent.OpsAgentIdentityClientTest",
+          "path": "harness-integrations-opsagent/target/surefire-reports/TEST-io.github.djyking.harness.integrations.opsagent.OpsAgentIdentityClientTest.xml",
+          "sha256": "3fa8eaa91a42ff2d1be62aecbfdfa1018a26a2d8b60a5dd7a099d8a5f4b4ba13",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.525
+        },
+        {
+          "class": "io.github.djyking.harness.integrations.opsagent.OpsAgentProjectionClientTest",
+          "path": "harness-integrations-opsagent/target/surefire-reports/TEST-io.github.djyking.harness.integrations.opsagent.OpsAgentProjectionClientTest.xml",
+          "sha256": "1707d50b6789baf6d2db58de8d4f8364e6bf2e3ee0f97f8b6d77d3ba63705e99",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.03
+        },
+        {
+          "class": "io.github.djyking.harness.integrations.opsagent.OpsAgentRagToolTest",
+          "path": "harness-integrations-opsagent/target/surefire-reports/TEST-io.github.djyking.harness.integrations.opsagent.OpsAgentRagToolTest.xml",
+          "sha256": "92f06c738bf428be77b87fd895a2f8a9abf1d2062ec685c136da2316aba22ef6",
+          "tests": 11,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 1.412
+        }
+      ],
+      "testTotals": {
+        "tests": 16,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "jars": [
+        {
+          "path": "harness-integrations-opsagent/target/harness-integrations-opsagent-0.1.0-SNAPSHOT.jar",
+          "sizeBytes": 24984,
+          "sha256": "a025997c0ad0c5bd8fc61f31a51b0b45516d2a53f3abae85199ba8be91129bc8",
+          "lastModifiedUtc": "2026-09-18T05:18:22.701161+00:00"
+        }
+      ],
+      "sourceFilesNewerThanArtifact": []
+    },
+    {
+      "module": "harness-evals",
+      "reactorStatus": "SUCCESS",
+      "cleanObserved": true,
+      "testReports": [
+        {
+          "class": "io.github.djyking.harness.evals.BaselineRunnerTest",
+          "path": "harness-evals/target/surefire-reports/TEST-io.github.djyking.harness.evals.BaselineRunnerTest.xml",
+          "sha256": "1b42f623bb8b8fa91365454ad359c6090e938540195324d20071c5150e018b61",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 35.256
+        },
+        {
+          "class": "io.github.djyking.harness.evals.QualityBaselineTest",
+          "path": "harness-evals/target/surefire-reports/TEST-io.github.djyking.harness.evals.QualityBaselineTest.xml",
+          "sha256": "4ead7d755aa75e7fd3e01570fdafaa488824961eb8177b586dc50337f4d866e0",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.062
+        },
+        {
+          "class": "io.github.djyking.harness.evals.RecordedExchangesTest",
+          "path": "harness-evals/target/surefire-reports/TEST-io.github.djyking.harness.evals.RecordedExchangesTest.xml",
+          "sha256": "9ae86af9178589fd3dbaf32643f726cc83931caac1dfc4a800a54492bfcc1c54",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.07
+        }
+      ],
+      "testTotals": {
+        "tests": 11,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "jars": [
+        {
+          "path": "harness-evals/target/harness-evals-0.1.0-SNAPSHOT.jar",
+          "sizeBytes": 47636,
+          "sha256": "9dace346caa43c8ae3fc829e7a96dd5b588089ee96e0c5f6606c912d40cfa7d1",
+          "lastModifiedUtc": "2026-09-18T05:19:00.435022+00:00"
+        }
+      ],
+      "sourceFilesNewerThanArtifact": []
+    },
+    {
+      "module": "harness-validation",
+      "reactorStatus": "SUCCESS",
+      "cleanObserved": true,
+      "testReports": [
+        {
+          "class": "io.github.djyking.harness.validation.GitHubWriteAcceptanceTest",
+          "path": "harness-validation/target/surefire-reports/TEST-io.github.djyking.harness.validation.GitHubWriteAcceptanceTest.xml",
+          "sha256": "234d33b199584c65ed62fb1839de7fa51d470e079e9305f7f587a5e9a57ac705",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.587
+        },
+        {
+          "class": "io.github.djyking.harness.validation.LiveQualityAcceptanceTest",
+          "path": "harness-validation/target/surefire-reports/TEST-io.github.djyking.harness.validation.LiveQualityAcceptanceTest.xml",
+          "sha256": "b6ef5c3e44943929cc8ad2db8de2186d812dfb86f710e42c7473e79be8d2fa88",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.09
+        },
+        {
+          "class": "io.github.djyking.harness.validation.ValidationTest",
+          "path": "harness-validation/target/surefire-reports/TEST-io.github.djyking.harness.validation.ValidationTest.xml",
+          "sha256": "328c317d8e519344bb75ead57a721e9ddfc8d3a5f75efce979a3a140be6841ed",
+          "tests": 6,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 0.77
+        }
+      ],
+      "testTotals": {
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "jars": [
+        {
+          "path": "harness-validation/target/harness-validation-0.1.0-SNAPSHOT.jar",
+          "sizeBytes": 54135,
+          "sha256": "2ba32a1b1ed3f5027e31d5d90fdc1841a70499e89c18b340287876e629316d5e",
+          "lastModifiedUtc": "2026-09-18T05:19:04.579454+00:00"
+        }
+      ],
+      "sourceFilesNewerThanArtifact": []
+    },
+    {
+      "module": "harness-platform-service",
+      "reactorStatus": "SUCCESS",
+      "cleanObserved": true,
+      "testReports": [
+        {
+          "class": "io.github.djyking.harness.platform.PlatformEvidenceImportTest",
+          "path": "harness-platform-service/target/surefire-reports/TEST-io.github.djyking.harness.platform.PlatformEvidenceImportTest.xml",
+          "sha256": "2d9dd20f1b15e93141f49a0f2587d174a4fc3b427b1e4b308885e28ede359982",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 4.128
+        },
+        {
+          "class": "io.github.djyking.harness.platform.PlatformFoundationTest",
+          "path": "harness-platform-service/target/surefire-reports/TEST-io.github.djyking.harness.platform.PlatformFoundationTest.xml",
+          "sha256": "74e960faf4bffa3ecd6f7e5b093f66d2371b7594d9dcae315f43898a44c2a141",
+          "tests": 7,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 3.015
+        },
+        {
+          "class": "io.github.djyking.harness.platform.PlatformHttpTest",
+          "path": "harness-platform-service/target/surefire-reports/TEST-io.github.djyking.harness.platform.PlatformHttpTest.xml",
+          "sha256": "2cba16f2c8322df9c3e75a0fde661fbf72aa5e8437a0e74952b64b922d851102",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 1.795
+        },
+        {
+          "class": "io.github.djyking.harness.platform.PlatformProtectedOutputTest",
+          "path": "harness-platform-service/target/surefire-reports/TEST-io.github.djyking.harness.platform.PlatformProtectedOutputTest.xml",
+          "sha256": "fbd094661f0a86c07cbe1a2259440670b0a6c1a6b44ba17f2a57be71d686cd94",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 1.234
+        },
+        {
+          "class": "io.github.djyking.harness.platform.PlatformServiceTest",
+          "path": "harness-platform-service/target/surefire-reports/TEST-io.github.djyking.harness.platform.PlatformServiceTest.xml",
+          "sha256": "5d85796d243a33ec880f252d1af73b520a30238cd1605a09ab7ba1542ce32fab",
+          "tests": 13,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 3.224
+        },
+        {
+          "class": "io.github.djyking.harness.platform.PlatformWorkerTest",
+          "path": "harness-platform-service/target/surefire-reports/TEST-io.github.djyking.harness.platform.PlatformWorkerTest.xml",
+          "sha256": "20d4087d084d77456f321013fac794a254c9d9e787583c41d67e2a04cb4b9a99",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "seconds": 1.861
+        }
+      ],
+      "testTotals": {
+        "tests": 31,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "jars": [
+        {
+          "path": "harness-platform-service/target/harness-platform-service-0.1.0-SNAPSHOT.jar",
+          "sizeBytes": 31109706,
+          "sha256": "e1b5eccd9275f1caf3473f930d7ccbbf6d31fb3b125c1c228af17d2f129871f6",
+          "lastModifiedUtc": "2026-09-18T05:19:27.054325+00:00"
+        }
+      ],
+      "sourceFilesNewerThanArtifact": []
+    }
+  ],
+  "secretReview": {
+    "scope": "Git tracked and non-ignored untracked files; private ignored contents were not copied or disclosed.",
+    "filesScanned": 218,
+    "highConfidencePatternHits": [],
+    "privateOrGeneratedCandidatePaths": [
+      "validation/opsagent-isolated/__pycache__/finalize.cpython-312.pyc",
+      "validation/opsagent-isolated/__pycache__/local-acceptance.cpython-312.pyc",
+      "validation/opsagent-isolated/__pycache__/prepare.cpython-312.pyc"
+    ],
+    "credentialAssignmentReview": "The sole earlier assignment-pattern hit was code assembling a private MySQL option file from configuration, not a credential literal.",
+    "limitations": "Pattern scanning and focused review are not a guarantee of absence; reports contain paths/types only, never candidate secret values.",
+    "generatedFilesResolution": "Root .gitignore excludes __pycache__/ and *.pyc before staging; the listed generated candidates are not part of delivery."
+  },
+  "relatedDeterministicEvidence": "docs/validation/20260918/cancellation-race.json",
+  "excludedClaims": [
+    "No result from another agent message or live acceptance report is incorporated as a passed check.",
+    "Only the nine current reactor module reports and artifact bytes referenced above determine these build counts/hashes."
+  ]
+}

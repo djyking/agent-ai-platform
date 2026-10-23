@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "sourceRepository": "opsagent",
+  "sourceHead": "f79a76b924f74d6d9f24dbc3f35ce01111811ef8",
+  "scope": "Only the ten new files implemented for Harness phase 1 and phase 2; existing unrelated dirty files excluded",
+  "patch": "opsagent-phase12.patch",
+  "patchSha256": "14d8ef24282c2bd8ef08592492b7cae5e4a3ca06dc3e917f3f36ae926b2cf98c",
+  "files": [
+    {
+      "path": "ops-auth-service/src/main/java/com/opsagent/auth/HarnessIdentityController.java",
+      "change": "new-file",
+      "sourceSha256": "583cf30a3f3f2afed4f0aa19cfcbef4e2a827c6a5cdd3d7b31e36ac5c3977e44",
+      "normalizedLfSha256": "583cf30a3f3f2afed4f0aa19cfcbef4e2a827c6a5cdd3d7b31e36ac5c3977e44"
+    },
+    {
+      "path": "ops-auth-service/src/main/java/com/opsagent/auth/HarnessIdentityService.java",
+      "change": "new-file",
+      "sourceSha256": "763c14e0598a3bb0437c60628e402e0c1ed2f950c1eecbfafdd019b8ab15084b",
+      "normalizedLfSha256": "763c14e0598a3bb0437c60628e402e0c1ed2f950c1eecbfafdd019b8ab15084b"
+    },
+    {
+      "path": "ops-auth-service/src/main/resources/harness-identity-schema.sql",
+      "change": "new-file",
+      "sourceSha256": "3153985e61b895c9a088a5c35577d2d93e99f302b2ac88702bd8983efb96e370",
+      "normalizedLfSha256": "3153985e61b895c9a088a5c35577d2d93e99f302b2ac88702bd8983efb96e370"
+    },
+    {
+      "path": "ops-auth-service/src/test/java/com/opsagent/auth/HarnessIdentityServiceTest.java",
+      "change": "new-file",
+      "sourceSha256": "0ceea02340fb10e9c7fbd07c717efa009ad0bfc332a42457fd69e6f20a0d8c1d",
+      "normalizedLfSha256": "0ceea02340fb10e9c7fbd07c717efa009ad0bfc332a42457fd69e6f20a0d8c1d"
+    },
+    {
+      "path": "ops-knowledge-service/src/main/java/com/opsagent/knowledge/KnowledgeCitationAccessController.java",
+      "change": "new-file",
+      "sourceSha256": "f399bef6ff6044f04b5424f12483ce8b29c9ef32f2e9bdb2e8306af9c2983966",
+      "normalizedLfSha256": "f399bef6ff6044f04b5424f12483ce8b29c9ef32f2e9bdb2e8306af9c2983966"
+    },
+    {
+      "path": "ops-rag-service/src/main/java/com/opsagent/rag/HarnessCitationAccessController.java",
+      "change": "new-file",
+      "sourceSha256": "f53a19a73e62a506b81e2a69cd827af666e98f985a9ec09f3074dde9add63181",
+      "normalizedLfSha256": "f53a19a73e62a506b81e2a69cd827af666e98f985a9ec09f3074dde9add63181"
+    },
+    {
+      "path": "ops-rag-service/src/main/java/com/opsagent/rag/HarnessRequestRoutes.java",
+      "change": "new-file",
+      "sourceSha256": "d99977ada3d58e3f60363a3488a2952c4b4ec3c5d88b25747438409c0b9591d2",
+      "normalizedLfSha256": "d99977ada3d58e3f60363a3488a2952c4b4ec3c5d88b25747438409c0b9591d2"
+    },
+    {
+      "path": "ops-rag-service/src/main/java/com/opsagent/rag/HarnessSearchController.java",
+      "change": "new-file",
+      "sourceSha256": "3726f85fba50ad0d6931195a1c6b5d92700113af31f01319ac6e69133ab2ea8f",
+      "normalizedLfSha256": "3726f85fba50ad0d6931195a1c6b5d92700113af31f01319ac6e69133ab2ea8f"
+    },
+    {
+      "path": "ops-rag-service/src/main/resources/harness-route-schema.sql",
+      "change": "new-file",
+      "sourceSha256": "9f21d612feee0955ed730b0a94275e34935104fb872bb51b213a516746d2d84b",
+      "normalizedLfSha256": "9f21d612feee0955ed730b0a94275e34935104fb872bb51b213a516746d2d84b"
+    },
+    {
+      "path": "ops-rag-service/src/test/java/com/opsagent/rag/HarnessRequestRoutesTest.java",
+      "change": "new-file",
+      "sourceSha256": "02b318481696470b719ab98a7d9148611a0a3c22d3279dcf0df311cd042a1401",
+      "normalizedLfSha256": "02b318481696470b719ab98a7d9148611a0a3c22d3279dcf0df311cd042a1401"
+    }
+  ]
+}

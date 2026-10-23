@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "at": "2026-09-18T05:21:06.641595+00:00",
+  "validationKind": "local-mysql-platform-opsagent-http-acceptance",
+  "synthetic": true,
+  "status": "PASSED",
+  "cases": [
+    {
+      "name": "existing_signed_jwt_real_auth_mapper_mysql_identity",
+      "status": "passed"
+    },
+    {
+      "name": "public_business_ingress_legacy_real_authorized_retrieval",
+      "status": "passed"
+    },
+    {
+      "name": "public_business_ingress_harness_real_sql_run_retrieval_and_protected_output",
+      "status": "passed"
+    },
+    {
+      "name": "same_business_request_one_run_input_conflict_and_cross_subject_404",
+      "status": "passed"
+    },
+    {
+      "name": "current_domain_acl_revocation_hides_stored_output_and_changes_etag",
+      "status": "passed"
+    },
+    {
+      "name": "stored_citation_version_change_denies_entire_output",
+      "status": "passed"
+    },
+    {
+      "name": "current_project_grant_revocation_denies_api_identity",
+      "status": "passed"
+    },
+    {
+      "name": "sql_route_owner_and_original_release_survive_switch_and_rag_restart",
+      "status": "passed"
+    },
+    {
+      "name": "harness_dependency_failure_does_not_create_legacy_delegation_or_fallback",
+      "status": "passed"
+    },
+    {
+      "name": "second_development_docs_scenario_uses_same_platform_api",
+      "status": "passed"
+    },
+    {
+      "name": "expired_run_delegation_keeps_historical_protected_output_omitted",
+      "status": "passed"
+    }
+  ],
+  "runIds": [
+    "88c3b44b-6fcd-472e-a526-dcf1e42a3068",
+    "4848e2a9-166d-41cd-8c70-feb9d7e6d0d3"
+  ],
+  "mysqlBacked": true,
+  "realPlatformProcess": true,
+  "realPublicBusinessIngress": true,
+  "realAuthMapperAndDomainAcl": true,
+  "modelGeneration": false,
+  "originalProductionBootConfiguration": false,
+  "limitations": [
+    "Selected original domain classes in manual local MVC hosts; original boot/Nacos/ES/MQ not loaded",
+    "Synthetic SQL users/documents; model/limiter/index dependencies remain explicit unused or disabled mocks",
+    "Development-docs tool is a configured deterministic fixture; production model quality/capacity not covered"
+  ],
+  "finalNewRequestOwner": "LEGACY",
+  "platformJarSha256": "e1b5eccd9275f1caf3473f930d7ccbbf6d31fb3b125c1c228af17d2f129871f6",
+  "opsHostSourceManifestSha256": "46fa3be0644089496c0f85e54ccf443cca405780d405bc7f137f7a2ca7773120",
+  "sourceVersionNote": "HTTP acceptance host preceded a later canConvertToInt hardening in HarnessSearchController; final exact source is separately covered by the 16-case isolated report and targeted verify. The platform JAR is the final 2026-09-18 13:19 verified candidate."
+}

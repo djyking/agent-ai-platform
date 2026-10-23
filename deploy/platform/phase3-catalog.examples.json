@@ -1,0 +1,206 @@
+{
+  "projectId": "support-pilot",
+  "resources": [
+    {
+      "type": "ModelProfile",
+      "id": "support-model",
+      "body": {
+        "name": "受信客服模型",
+        "spec": {
+          "trustedProfile": "trusted-support-deepseek",
+          "maxOutputTokens": 256,
+          "timeoutMillis": 12000
+        },
+        "regressionCases": []
+      }
+    },
+    {
+      "type": "Prompt",
+      "id": "support-prompt",
+      "body": {
+        "name": "客服问答提示",
+        "spec": {
+          "id": "support-prompt",
+          "version": "1",
+          "system": "仅对合成客服问题作答，不执行退款或订单写入。",
+          "user": "客户问题：{{question}}",
+          "variables": {
+            "question": "STRING"
+          }
+        },
+        "regressionCases": []
+      }
+    },
+    {
+      "type": "ToolConnection",
+      "id": "support-faq-tool",
+      "body": {
+        "name": "合成FAQ检索",
+        "spec": {
+          "toolKey": "support:faq"
+        },
+        "regressionCases": []
+      }
+    },
+    {
+      "type": "ToolPolicy",
+      "id": "support-read-policy",
+      "body": {
+        "name": "客服只读能力",
+        "spec": {
+          "toolConnections": [
+            {
+              "id": "support-faq-tool",
+              "version": 1
+            }
+          ],
+          "executionPermissions": [
+            "tool:support:faq"
+          ],
+          "approvers": [
+            "support-pilot/20"
+          ],
+          "reviewFields": [],
+          "publicOutput": true
+        },
+        "regressionCases": []
+      }
+    },
+    {
+      "type": "RetrievalProfile",
+      "id": "support-retrieval",
+      "body": {
+        "name": "客服FAQ检索配置",
+        "spec": {
+          "toolConnection": {
+            "id": "support-faq-tool",
+            "version": 1
+          }
+        },
+        "regressionCases": []
+      }
+    },
+    {
+      "type": "Workflow",
+      "id": "support-faq-flow",
+      "body": {
+        "name": "客服只读检索流程",
+        "spec": {
+          "definition": {
+            "id": "support-faq-flow",
+            "version": "1",
+            "start": "search",
+            "maxTransitions": 6,
+            "nodes": {
+              "search": {
+                "kind": "tool",
+                "toolName": "support:faq",
+                "argumentsJson": "{\"maxResults\":2}",
+                "argumentBindings": {
+                  "query": "question"
+                },
+                "output": "answer",
+                "next": "end"
+              },
+              "end": {
+                "kind": "end",
+                "output": "answer"
+              }
+            }
+          }
+        },
+        "regressionCases": []
+      }
+    },
+    {
+      "type": "RunPolicy",
+      "id": "support-limits",
+      "body": {
+        "name": "客服运行上限",
+        "spec": {
+          "maxTokens": 4000,
+          "maxModelCalls": 1,
+          "maxToolCalls": 2,
+          "maxSteps": 20,
+          "lifetimeSeconds": 1800
+        },
+        "regressionCases": []
+      }
+    },
+    {
+      "type": "Agent",
+      "id": "support-faq",
+      "body": {
+        "name": "客服FAQ助手",
+        "spec": {
+          "workflow": {
+            "id": "support-faq-flow",
+            "version": 1
+          },
+          "runPolicy": {
+            "id": "support-limits",
+            "version": 1
+          },
+          "toolPolicy": {
+            "id": "support-read-policy",
+            "version": 1
+          },
+          "retrievalProfile": {
+            "id": "support-retrieval",
+            "version": 1
+          },
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "question": {
+                "type": "string",
+                "title": "客户问题",
+                "minLength": 1,
+                "maxLength": 2000
+              }
+            },
+            "required": [
+              "question"
+            ],
+            "additionalProperties": false
+          },
+          "outputSchema": {
+            "type": "object"
+          },
+          "humanInputSchema": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        },
+        "regressionCases": [
+          {
+            "name": "frozen-order-question",
+            "inputs": {
+              "question": "订单什么时候发货？"
+            },
+            "toolResults": {
+              "search": {
+                "evidence": "合成客服资料示例",
+                "citations": []
+              }
+            },
+            "expectedToolArguments": {
+              "search": {
+                "maxResults": 2,
+                "query": "订单什么时候发货？"
+              }
+            },
+            "expectedToolKeys": [
+              "support:faq"
+            ],
+            "expectedOutput": {
+              "evidence": "合成客服资料示例",
+              "citations": []
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+[mysqld]
+# Existing MySQL service: review and merge; do not overwrite unrelated configuration.
+server-id=101
+log-bin=harness-bin
+binlog-format=ROW
+sync-binlog=1
+innodb-flush-log-at-trx-commit=1
+binlog-expire-logs-seconds=2592000
+require-secure-transport=ON
+# Rotation/archive every 5 minutes. Monitor free space; never purge an unarchived log.

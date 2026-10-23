@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "validationKind": "targeted-opsagent-module-verify",
+  "status": "PASSED",
+  "modules": [
+    "ops-auth-service",
+    "ops-rag-service",
+    "ops-knowledge-service"
+  ],
+  "includesCheckstyleAndPackaging": true,
+  "fullOpsAgentRepositoryVerified": false,
+  "command": "mvnw -pl ops-auth-service,ops-rag-service,ops-knowledge-service -am verify -B -ntp -Dtest=HarnessIdentityServiceTest,HarnessRequestRoutesTest,InternalActorLeaseTest,InternalActorAccessTest,InternalAgentSearchServiceTest -Dsurefire.failIfNoSpecifiedTests=false -DargLine=-javaagent:<local-byte-buddy-agent.jar>",
+  "cases": [
+    {
+      "class": "com.opsagent.auth.HarnessIdentityServiceTest",
+      "name": "currentUserRoleGrantAndDelegationRevocationFailClosed",
+      "status": "passed"
+    },
+    {
+      "class": "com.opsagent.auth.HarnessIdentityServiceTest",
+      "name": "existingLoginAndExplicitDatabaseGrantRequired",
+      "status": "passed"
+    },
+    {
+      "class": "com.opsagent.auth.HarnessIdentityServiceTest",
+      "name": "delegationSurvivesObjectReconstructionWithoutPersistedCredential",
+      "status": "passed"
+    },
+    {
+      "class": "com.opsagent.auth.HarnessIdentityServiceTest",
+      "name": "roleAndPermissionElevationCannotExpandExistingDelegation",
+      "status": "passed"
+    },
+    {
+      "class": "com.opsagent.auth.HarnessIdentityServiceTest",
+      "name": "runBindingCannotBeRetargetedOrUsedByAnotherApplication",
+      "status": "passed"
+    },
+    {
+      "class": "com.opsagent.rag.HarnessRequestRoutesTest",
+      "name": "sqlReopenKeepsOriginalOwnerAndRejectsChangedInputs",
+      "status": "passed"
+    },
+    {
+      "class": "com.opsagent.rag.HarnessRequestRoutesTest",
+      "name": "concurrentDifferentSwitchValuesChooseOnePersistentOwner",
+      "status": "passed"
+    },
+    {
+      "class": "com.opsagent.rag.InternalActorAccessTest",
+      "name": "shouldRevalidateRolesForEveryRequestAndRestorePreviousThreadContext",
+      "status": "passed"
+    },
+    {
+      "class": "com.opsagent.rag.InternalActorAccessTest",
+      "name": "shouldRejectAbsentExpiredOrMismatchedGuestLeaseAndNeverAcceptWrongAudience",
+      "status": "passed"
+    },
+    {
+      "class": "com.opsagent.rag.InternalAgentSearchServiceTest",
+      "name": "shouldPreserveDestinationSpecificCredentialWhenOriginalRequestHasAnotherAudience",
+      "status": "passed"
+    },
+    {
+      "class": "com.opsagent.rag.InternalAgentSearchServiceTest",
+      "name": "shouldRelayScopedAudienceAndRedactSecretsBeforeRankingAndEvidence",
+      "status": "passed"
+    },
+    {
+      "class": "com.opsagent.rag.InternalAgentSearchServiceTest",
+      "name": "shouldFailClosedWhenPermissionRetrievalFailsAndRejectMissingInternalAuthorization",
+      "status": "passed"
+    },
+    {
+      "class": "com.opsagent.auth.InternalActorLeaseTest",
+      "name": "internalActorLookupBindsAudienceAndExactActor",
+      "status": "passed"
+    },
+    {
+      "class": "com.opsagent.auth.InternalActorLeaseTest",
+      "name": "currentDatabaseRolesReplaceStaleRoleSnapshot",
+      "status": "passed"
+    },
+    {
+      "class": "com.opsagent.auth.InternalActorLeaseTest",
+      "name": "leaseMustExistRemainUnrevokedAndNotExpire",
+      "status": "passed"
+    }
+  ],
+  "passed": 15,
+  "logSha256": "bacb5b8782b6fa053395a2fb0c3ac02cb83e648ae5052edae1c312e9b4ff7662"
+}

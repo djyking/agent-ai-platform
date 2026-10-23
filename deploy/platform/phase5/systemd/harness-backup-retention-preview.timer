@@ -1,0 +1,8 @@
+[Unit]
+Description=Preview 30-day Harness backup retention (never deletes)
+[Timer]
+OnCalendar=weekly
+Persistent=true
+Unit=harness-backup@retention-preview.service
+[Install]
+WantedBy=timers.target

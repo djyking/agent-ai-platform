@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-09-18T05:15:28.543381+00:00",
+  "environment": "localWindows",
+  "verification": "PASS",
+  "baselineCommit": "f48fbae6bb8f0901c360215e1a8448d44900185b",
+  "method": "Compile only baseline Harness.java against identical current companion classes/dependencies; inject cancellation synchronously from telemetry.start after ATTEMPT_STARTED and before remote dispatch; compare with copied current compiled core classes. No Maven or remote effects.",
+  "baselineHarnessSourceSha256": "9ff90eda22d85d51b994a79c293e9e888cb739a5e3d63637a9f17e7c884d4efb",
+  "fixedHarnessSourceSha256": "2fbb4c75dd775313a34b3cf1d0f75ced2b516ac05905dec1c1e07d74615e6dc5",
+  "fixedHarnessClassSha256": "bb0be53246790a1739dd91c56b326c6860fe941e3e6388126aaace408045b25c",
+  "javaVersion": "17.0.19",
+  "reproducerSource": "import io.github.djyking.harness.core.*;\nimport io.github.djyking.harness.core.Contracts.*;\nimport io.github.djyking.harness.core.testing.ScriptedModel;\nimport java.time.*;\nimport java.util.*;\nimport java.util.concurrent.atomic.*;\npublic final class CancellationReproducer {\n  public static void main(String[] args) {\n    Actor actor=new Actor(\"proof-actor\",\"proof-project\",Set.of(\"*\"));\n    AtomicInteger calls=new AtomicInteger();\n    AtomicBoolean cancelled=new AtomicBoolean();\n    AtomicReference<Harness> owner=new AtomicReference<>();\n    AtomicReference<String> id=new AtomicReference<>();\n    ToolRegistry tools=new ToolRegistry();\n    tools.register(new ToolDescriptor(\"proof/tool\",\"proof_tool\",\"Synthetic local effect\",\"test\",\"proof\",\"1\",Json.object().put(\"type\",\"object\"),new ToolPolicy(false,false,false,1,5000,Set.of())),(tool,input,context)->{calls.incrementAndGet();return ToolResult.success(input);});\n    Telemetry telemetry=(context,operation,target)->{\n      if(cancelled.compareAndSet(false,true)) owner.get().cancel(id.get(),actor);\n      return Telemetry.noop().start(context,operation,target);\n    };\n    try(Harness harness=new Harness(new InMemoryRunStore(),new ScriptedModel(),tools,AccessPolicy.actorPermissions(),telemetry,Clock.systemUTC(),Duration.ofSeconds(30))) {\n      owner.set(harness);\n      harness.registerProgram(\"proof\",run->run.results.containsKey(\"call\")?new CompleteAction(run.results.get(\"call\").value()):new ToolAction(\"call\",\"proof\",\"proof/tool\",Json.object()));\n      RunState run=harness.start(new ProgramDefinition(\"proof\",\"1\",\"proof\",Json.object()),actor,List.of(\"proof/tool\"),Budget.defaults(),Duration.ofMinutes(2),\"proof-key\");\n      id.set(run.id);harness.tick(run.id);run=harness.tick(run.id);\n      String phase=run.pending==null?\"NONE\":run.pending.phase.name();\n      System.out.println(Json.write(Json.object().put(\"status\",run.status.name()).put(\"phase\",phase).put(\"calls\",calls.get()).put(\"cancelRequested\",run.cancelRequested).put(\"cancellationInjectedAfterBarrier\",cancelled.get())));\n      if(run.status!=RunStatus.CANCELLED||!phase.equals(\"PREPARED\")||calls.get()!=0||!cancelled.get())System.exit(1);\n    }\n  }\n}\n",
+  "compilationExitCodes": [
+    0,
+    0
+  ],
+  "results": {
+    "baseline": {
+      "exitCode": 1,
+      "stdout": "{\"status\":\"RUNNING\",\"phase\":\"IN_FLIGHT\",\"calls\":0,\"cancelRequested\":true,\"cancellationInjectedAfterBarrier\":true}",
+      "stderr": "SLF4J(W): No SLF4J providers were found.\nSLF4J(W): Defaulting to no-operation (NOP) logger implementation\nSLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.",
+      "observed": {
+        "status": "RUNNING",
+        "phase": "IN_FLIGHT",
+        "calls": 0,
+        "cancelRequested": true,
+        "cancellationInjectedAfterBarrier": true
+      }
+    },
+    "fixed": {
+      "exitCode": 0,
+      "stdout": "{\"status\":\"CANCELLED\",\"phase\":\"PREPARED\",\"calls\":0,\"cancelRequested\":true,\"cancellationInjectedAfterBarrier\":true}",
+      "stderr": "SLF4J(W): No SLF4J providers were found.\nSLF4J(W): Defaulting to no-operation (NOP) logger implementation\nSLF4J(W): See https://www.slf4j.org/codes.html#noProviders for further details.",
+      "observed": {
+        "status": "CANCELLED",
+        "phase": "PREPARED",
+        "calls": 0,
+        "cancelRequested": true,
+        "cancellationInjectedAfterBarrier": true
+      }
+    }
+  },
+  "limitations": [
+    "This isolates the Harness implementation; companion classes are current in both branches, not a full historical build.",
+    "Synchronous deterministic interleaving establishes zero-dispatch cancellation behavior, not a remote-service acceptance test."
+  ]
+}

@@ -1,0 +1,98 @@
+{
+  "suite": "phase5_https_proxy_acceptance",
+  "startedAt": "2026-09-20T04:42:17.512441+00:00",
+  "status": "PASS",
+  "topology": "loopback TLS reverse proxy -> real JVM native RemoteIpValve",
+  "scope": "synthetic local-test identity, no external model/tool calls",
+  "limitations": [
+    "nginx container and Linux host not executed",
+    "self-signed local SAN certificate, not public certificate issuance"
+  ],
+  "checks": [
+    {
+      "name": "tls_chain_hostname_and_local_identity",
+      "status": "PASS",
+      "httpStatus": 200,
+      "certificateVerification": true
+    },
+    {
+      "name": "missing_origin_rejected",
+      "status": "PASS",
+      "httpStatus": 403
+    },
+    {
+      "name": "foreign_origin_rejected",
+      "status": "PASS",
+      "httpStatus": 403
+    },
+    {
+      "name": "duplicate_origin_rejected",
+      "status": "PASS",
+      "httpStatus": 403
+    },
+    {
+      "name": "trusted_proxy_overwrites_client_forwarded_headers",
+      "status": "PASS",
+      "httpStatus": 200
+    },
+    {
+      "name": "one_session_cookie",
+      "status": "PASS"
+    },
+    {
+      "name": "secure_httponly_samesite_cookie",
+      "status": "PASS",
+      "secure": true,
+      "httpOnly": true,
+      "sameSite": "Strict",
+      "path": "/console"
+    },
+    {
+      "name": "csrf_token_delivered_in_authenticated_session",
+      "status": "PASS"
+    },
+    {
+      "name": "authorized_bff_project_read_over_https",
+      "status": "PASS",
+      "httpStatus": 200
+    },
+    {
+      "name": "missing_csrf_rejected",
+      "status": "PASS",
+      "httpStatus": 403
+    },
+    {
+      "name": "wrong_csrf_rejected",
+      "status": "PASS",
+      "httpStatus": 403
+    },
+    {
+      "name": "existing_session_login_requires_csrf",
+      "status": "PASS",
+      "httpStatus": 403
+    },
+    {
+      "name": "public_proxy_does_not_expose_internal_metrics",
+      "status": "PASS",
+      "httpStatus": 404
+    },
+    {
+      "name": "untrusted_loopback_peer_cannot_spoof_forwarded_origin",
+      "status": "PASS",
+      "httpStatus": 403,
+      "sourceAddress": "127.0.0.2"
+    },
+    {
+      "name": "valid_origin_csrf_logout_succeeds",
+      "status": "PASS",
+      "httpStatus": 200
+    },
+    {
+      "name": "logged_out_session_not_reusable",
+      "status": "PASS",
+      "httpStatus": 200
+    }
+  ],
+  "elapsedSeconds": 1.062,
+  "testedJarSha256": "f3a81f7b4411831b0e1f19db96d106f40b4facc3607f657ce73a2d25b4788236"
+}

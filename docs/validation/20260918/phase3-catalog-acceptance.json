@@ -1,0 +1,186 @@
+{
+  "schemaVersion": 1,
+  "kind": "local-phase3-catalog-http-acceptance",
+  "startedAt": "2026-09-18T06:45:04.098129+00:00",
+  "label": "20260918-064504-25ab8c",
+  "status": "passed",
+  "cases": [
+    {
+      "name": "eight_types_publish_with_cas_idempotency_and_frozen_gate",
+      "status": "passed",
+      "resourceTypes": [
+        "ModelProfile",
+        "Prompt",
+        "RetrievalProfile",
+        "RunPolicy",
+        "ToolConnection",
+        "ToolPolicy",
+        "Workflow",
+        "Agent"
+      ],
+      "validationMode": "FROZEN_REPLAY_NO_EXTERNAL_CALLS",
+      "caseCount": 1,
+      "resultDigest": "sha256:ad14c1ff21a8b0b5e153c2667d9a918bd621a6d4df60545f39e18330e20e1114"
+    },
+    {
+      "name": "unexpected_prompt_is_blocked_before_publication",
+      "status": "passed"
+    },
+    {
+      "name": "new_default_and_retirement_preserve_waiting_run_and_approval",
+      "status": "passed",
+      "originalReleaseRef": {
+        "agentId": "support-assistant",
+        "releaseId": "9ce71033-6e87-4463-8a23-a28103150cb1",
+        "digest": "sha256:2e3173ae19f852c0940b050413fa9f2400e43e4cf31e23325e7e763f47554519"
+      },
+      "currentReleaseRef": {
+        "agentId": "support-assistant",
+        "releaseId": "b9f7e475-61d3-42e4-b12e-694be8f4b755",
+        "digest": "sha256:20669c0222ccdc6287fce754e7d66e188b750217a06506d259d5c3de33ae09e1"
+      },
+      "approvalDigest": "sha256:76fff9e7234de3a47b10263aa562cc0d7955ab8f942bb1a25d46608bdb196514",
+      "deadlinePreserved": true,
+      "limitsPreserved": true
+    },
+    {
+      "name": "existing_waiting_run_completes_real_faq_and_model_once",
+      "status": "passed",
+      "runId": "3450a45d-13d1-4172-b06b-79314c02d857",
+      "releaseRef": {
+        "agentId": "support-assistant",
+        "releaseId": "9ce71033-6e87-4463-8a23-a28103150cb1",
+        "digest": "sha256:2e3173ae19f852c0940b050413fa9f2400e43e4cf31e23325e7e763f47554519"
+      },
+      "usage": {
+        "chargedTokens": 156,
+        "modelCalls": 1,
+        "toolCalls": 1,
+        "steps": 7,
+        "accounting": "CONSERVATIVE_LEDGER"
+      },
+      "outputDigest": "sha256:94d588f7251f6257a0fbfab3b8b51e4b4e0399bbcdbcc0cb10102a267145715b",
+      "traceCount": 2,
+      "traceOutcomes": [
+        "SUCCESS",
+        "SUCCESS"
+      ],
+      "runStatus": "COMPLETED"
+    },
+    {
+      "name": "directory_and_trace_enforce_project_application_subject_permissions",
+      "status": "passed"
+    },
+    {
+      "name": "explicit_revocation_stops_existing_run_before_tool_dispatch",
+      "status": "passed",
+      "runId": "7ab49e21-b66b-4186-922e-0e3a2f9ab3dc",
+      "usage": {
+        "chargedTokens": 0,
+        "modelCalls": 0,
+        "toolCalls": 0,
+        "steps": 3,
+        "accounting": "CONSERVATIVE_LEDGER"
+      },
+      "traceCount": 0,
+      "runStatus": "NEEDS_ATTENTION"
+    },
+    {
+      "name": "ops_catalog_release_executes_real_identity_and_protected_retrieval",
+      "status": "passed",
+      "runId": "824a1ddb-d2ca-4c2d-8a2b-81dbca91319b",
+      "releaseRef": {
+        "agentId": "ops-knowledge-agent",
+        "releaseId": "13274b27-e61a-4d42-9e38-dbd4d54a469d",
+        "digest": "sha256:0614e481b1398edd0f79cb7bc46b4dd93a3c358fb90bff37f1d8ef012cf0a6de"
+      },
+      "usage": {
+        "chargedTokens": 0,
+        "modelCalls": 0,
+        "toolCalls": 1,
+        "steps": 3,
+        "accounting": "CONSERVATIVE_LEDGER"
+      },
+      "citationCount": 2,
+      "outputDigest": "sha256:c7a7fce7bc20fd45d222c80cc86918f3600ff3cb6aeabf05ed08cdb14eecfc65",
+      "traceCount": 1,
+      "runStatus": "COMPLETED"
+    }
+  ],
+  "runs": {
+    "supportOriginal": "3450a45d-13d1-4172-b06b-79314c02d857",
+    "revocation": "7ab49e21-b66b-4186-922e-0e3a2f9ab3dc",
+    "ops": "824a1ddb-d2ca-4c2d-8a2b-81dbca91319b"
+  },
+  "releases": {
+    "support": {
+      "projectId": "support-pilot",
+      "agentId": "support-assistant",
+      "releaseRef": {
+        "agentId": "support-assistant",
+        "releaseId": "b9f7e475-61d3-42e4-b12e-694be8f4b755",
+        "digest": "sha256:20669c0222ccdc6287fce754e7d66e188b750217a06506d259d5c3de33ae09e1"
+      },
+      "version": 2,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "question"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "ops": {
+      "projectId": "ops-dev",
+      "agentId": "ops-knowledge-agent",
+      "version": 1,
+      "releaseRef": {
+        "agentId": "ops-knowledge-agent",
+        "releaseId": "13274b27-e61a-4d42-9e38-dbd4d54a469d",
+        "digest": "sha256:0614e481b1398edd0f79cb7bc46b4dd93a3c358fb90bff37f1d8ef012cf0a6de"
+      },
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "topK": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20
+          }
+        },
+        "required": [
+          "query",
+          "topK"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "scope": {
+    "mysqlBacked": true,
+    "existingIdentity": true,
+    "syntheticKnowledgeOnly": true,
+    "liveModelRunCountPlanned": 1,
+    "productionCutover": false,
+    "originalProductionBootConfiguration": false,
+    "databaseCleared": false,
+    "frozenReplayHasExternalEffects": false
+  },
+  "suppliedPlatformJarSha256": "dd9968039b2734658c081e65394ed7e1e4bcdc83e35b2c5e504f5a9c3503c3c5",
+  "httpRequests": 161,
+  "updatedAt": "2026-09-18T06:45:16.100691+00:00",
+  "passed": 7,
+  "completedAt": "2026-09-18T06:45:16.100691+00:00"
+}

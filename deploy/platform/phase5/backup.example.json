@@ -1,0 +1,18 @@
+{
+  "database": "harness_platform",
+  "dedicatedInstanceConfirmed": false,
+  "mysqlDefaults": "/etc/harness/backup.mysql.cnf",
+  "ageRecipients": "/etc/harness/backup.age-recipients",
+  "destination": "/var/backups/harness/encrypted",
+  "tmpfs": "/dev/shm/harness-backup",
+  "privateState": "/etc/harness/private-state",
+  "metricsDirectory": "/var/lib/harness/backup-metrics",
+  "retentionDays": 30,
+  "offsite": {
+    "host": "backup@REPLACE_WITH_INDEPENDENT_HOST",
+    "directory": "/srv/harness-backups",
+    "sshIdentity": "/etc/harness/backup.id_ed25519",
+    "sshKnownHosts": "/etc/harness/backup.known_hosts",
+    "confirmedIndependentHost": false
+  }
+}

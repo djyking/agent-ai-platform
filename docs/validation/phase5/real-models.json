@@ -1,0 +1,42 @@
+{
+  "scope": "real model compatibility through platform governance",
+  "models": [
+    {
+      "agent": "studio-model-anchor",
+      "runId": "c42af26d-58a5-43e5-a81d-682d5cf5ca72",
+      "status": "COMPLETED",
+      "elapsedSeconds": 3.312,
+      "usage": {
+        "chargedTokens": 71,
+        "modelCalls": 1,
+        "toolCalls": 0,
+        "steps": 3,
+        "accounting": "CONSERVATIVE_LEDGER"
+      },
+      "reasonCode": null,
+      "outputVisibility": "AVAILABLE",
+      "markerPresent": true,
+      "outputSha256": "3090b2b20fc0dbec5c4b42699cfda5bef85990b834aeadc108963e1fe20da5ba"
+    },
+    {
+      "agent": "studio-openai-anchor",
+      "runId": "f1426cb5-1184-4d03-8786-e11ebd141110",
+      "status": "COMPLETED",
+      "elapsedSeconds": 5.61,
+      "usage": {
+        "chargedTokens": 82,
+        "modelCalls": 1,
+        "toolCalls": 0,
+        "steps": 3,
+        "accounting": "CONSERVATIVE_LEDGER"
+      },
+      "reasonCode": null,
+      "outputVisibility": "AVAILABLE",
+      "markerPresent": true,
+      "outputSha256": "3090b2b20fc0dbec5c4b42699cfda5bef85990b834aeadc108963e1fe20da5ba"
+    }
+  ],
+  "automaticRetries": 0,
+  "status": "PASSED",
+  "testedJarSha256": "f3a81f7b4411831b0e1f19db96d106f40b4facc3607f657ce73a2d25b4788236"
+}

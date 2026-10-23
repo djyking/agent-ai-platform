@@ -1,0 +1,18 @@
+{
+  "status": "PASSED",
+  "scope": "isolated console schema1 to schema2 offline migration",
+  "components": {
+    "platform": 2,
+    "platform-run-projection": 1,
+    "run-index": 1,
+    "run-store": 1
+  },
+  "matchedOwnedProjections": 4,
+  "runtimeReady": true,
+  "runtimeAccount": "DML_ONLY",
+  "oldProcessStoppedBeforeMigration": true,
+  "heldPermitsBeforeMigration": 0,
+  "activeRunsBeforeMigration": 0,
+  "productionCutover": false,
+  "testedJarSha256": "f3a81f7b4411831b0e1f19db96d106f40b4facc3607f657ce73a2d25b4788236"
+}

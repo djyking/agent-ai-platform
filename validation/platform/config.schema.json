@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Private local platform process acceptance configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "workspace", "workDir", "runTag", "java", "jar", "sourceJar", "jarSha256", "project", "reviewerSubject", "ownerTokenField", "reviewerTokenField", "identityMetadataFile", "ports", "fixturePort", "mysql", "signingKeyDpapi", "manifest", "mysqlRestartHandshakeDirectory", "report"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "workspace": {"type": "string", "minLength": 1},
+    "workDir": {"type": "string", "minLength": 1},
+    "runTag": {"type": "string", "pattern": "^platform-[a-z0-9_-]{8,70}$"},
+    "java": {"type": "string", "minLength": 1},
+    "jar": {"type": "string", "minLength": 1},
+    "sourceJar": {"type": "string", "minLength": 1},
+    "jarSha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "project": {"const": "platform-acceptance"},
+    "reviewerSubject": {"const": "20"},
+    "ownerTokenField": {"const": "user10Token"},
+    "reviewerTokenField": {"const": "user20Token"},
+    "identityMetadataFile": {"type": "string", "minLength": 1},
+    "ports": {"type": "object", "additionalProperties": false, "required": ["A", "B"], "properties": {"A": {"const": 53958}, "B": {"const": 53959}}},
+    "fixturePort": {"const": 53957},
+    "mysql": {
+      "type": "object", "additionalProperties": false,
+      "required": ["client", "host", "port", "database", "user", "passwordDpapi"],
+      "properties": {
+        "client": {"type": "string", "minLength": 1},
+        "host": {"const": "127.0.0.1"},
+        "port": {"const": 53955},
+        "database": {"const": "harness_platform_phase2"},
+        "user": {"const": "harness_platform"},
+        "passwordDpapi": {"type": "string", "minLength": 1}
+      }
+    },
+    "signingKeyDpapi": {"type": "string", "minLength": 1},
+    "manifest": {"type": "string", "minLength": 1},
+    "mysqlRestartHandshakeDirectory": {"type": "string", "minLength": 1},
+    "report": {"type": "string", "minLength": 1}
+  }
+}

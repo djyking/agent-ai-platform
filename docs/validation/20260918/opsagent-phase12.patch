@@ -1,0 +1,1452 @@
+diff --git a/ops-auth-service/src/main/java/com/opsagent/auth/HarnessIdentityController.java b/ops-auth-service/src/main/java/com/opsagent/auth/HarnessIdentityController.java
+new file mode 100644
+--- /dev/null
++++ b/ops-auth-service/src/main/java/com/opsagent/auth/HarnessIdentityController.java
+@@ -0,0 +1,108 @@
++package com.opsagent.auth;
++
++import com.opsagent.common.core.ApiResponse;
++
++import jakarta.validation.Valid;
++import jakarta.validation.constraints.NotBlank;
++import jakarta.validation.constraints.NotNull;
++import jakarta.validation.constraints.Size;
++
++import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
++import org.springframework.http.ResponseEntity;
++import org.springframework.web.bind.annotation.*;
++
++import java.time.Instant;
++
++/**
++ * Application-authenticated bridge for existing login identities and bounded async delegation.
++ *
++ * @author heyu
++ * @since 2026/9/3
++ */
++@RestController
++@RequestMapping("/internal/harness")
++@ConditionalOnProperty(name = "ops.harness.identity.enabled", havingValue = "true")
++public class HarnessIdentityController {
++    private final HarnessIdentityService identities;
++
++    public HarnessIdentityController(HarnessIdentityService identities) {
++        this.identities = identities;
++    }
++
++    @PostMapping("/introspect")
++    public ResponseEntity<?> introspect(
++            @RequestHeader("Authorization") String authorization,
++            @Valid @RequestBody Introspect request) {
++        return response(
++                identities.introspect(authorization, request.projectId(), request.userToken()));
++    }
++
++    @PostMapping("/delegations")
++    public ResponseEntity<?> delegate(
++            @RequestHeader("Authorization") String authorization,
++            @Valid @RequestBody Delegate request) {
++        return response(
++                identities.delegate(
++                        authorization,
++                        request.projectId(),
++                        request.userToken(),
++                        request.runId(),
++                        request.deadline()));
++    }
++
++    @GetMapping("/delegations/{id}")
++    public ResponseEntity<?> current(
++            @RequestHeader("Authorization") String authorization,
++            @PathVariable String id,
++            @RequestParam String runId) {
++        return response(identities.current(authorization, id, runId));
++    }
++
++    @PostMapping("/delegations/{id}/token")
++    public ResponseEntity<?> token(
++            @RequestHeader("Authorization") String authorization,
++            @PathVariable String id,
++            @Valid @RequestBody Mint request) {
++        return response(identities.token(authorization, id, request.runId(), request.audience()));
++    }
++
++    private ResponseEntity<?> response(Object value) {
++        return ResponseEntity.ok()
++                .header("Cache-Control", "no-store")
++                .body(ApiResponse.success(value));
++    }
++
++    @ExceptionHandler(Exception.class)
++    public ResponseEntity<?> failure(Exception failure) {
++        int status =
++                failure instanceof com.opsagent.common.core.BusinessException business
++                        ? business.getErrorCode().code() / 100
++                        : 400;
++        if (status < 400 || status > 599) status = 503;
++        return ResponseEntity.status(status)
++                .header("Cache-Control", "no-store")
++                .body(ApiResponse.failure(status * 100, "HARNESS_IDENTITY_REQUEST_REJECTED"));
++    }
++
++    /**
++     * @author heyu
++     */
++    public record Introspect(
++            @NotBlank @Size(max = 64) String projectId,
++            @NotBlank @Size(max = 10000) String userToken) {}
++
++    /**
++     * @author heyu
++     */
++    public record Delegate(
++            @NotBlank @Size(max = 64) String projectId,
++            @NotBlank @Size(max = 10000) String userToken,
++            @NotBlank @Size(max = 128) String runId,
++            @NotNull Instant deadline) {}
++
++    /**
++     * @author heyu
++     */
++    public record Mint(
++            @NotBlank @Size(max = 128) String runId, @NotBlank @Size(max = 64) String audience) {}
++}
+diff --git a/ops-auth-service/src/main/java/com/opsagent/auth/HarnessIdentityService.java b/ops-auth-service/src/main/java/com/opsagent/auth/HarnessIdentityService.java
+new file mode 100644
+--- /dev/null
++++ b/ops-auth-service/src/main/java/com/opsagent/auth/HarnessIdentityService.java
+@@ -0,0 +1,349 @@
++package com.opsagent.auth;
++
++import com.fasterxml.jackson.core.type.TypeReference;
++import com.fasterxml.jackson.databind.ObjectMapper;
++import com.opsagent.common.core.BusinessException;
++import com.opsagent.common.core.ErrorCode;
++import com.opsagent.common.security.InternalActorTokens;
++import com.opsagent.common.security.JwtService;
++import com.opsagent.common.security.OpsPrincipal;
++
++import org.springframework.beans.factory.annotation.Value;
++import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
++import org.springframework.dao.DuplicateKeyException;
++import org.springframework.jdbc.core.JdbcTemplate;
++import org.springframework.stereotype.Service;
++
++import java.nio.charset.StandardCharsets;
++import java.security.MessageDigest;
++import java.time.Instant;
++import java.util.HexFormat;
++import java.util.List;
++import java.util.Set;
++import java.util.UUID;
++
++/**
++ * Existing OpsAgent identities delegated to explicitly granted Harness applications. Raw login
++ * tokens and application credentials are never stored in delegation records.
++ *
++ * @author heyu
++ * @since 2026/9/3
++ */
++@Service
++@ConditionalOnProperty(name = "ops.harness.identity.enabled", havingValue = "true")
++public class HarnessIdentityService {
++    private static final ObjectMapper JSON = new ObjectMapper();
++    private static final Set<String> PERMISSIONS =
++            Set.of(
++                    "runs:create",
++                    "runs:read",
++                    "runs:list",
++                    "runs:events:read",
++                    "runs:control",
++                    "runs:output:read",
++                    "runs:admin",
++                    "approvals:read",
++                    "approvals:decide",
++                    "approvals:review",
++                    "runs:reconcile:read",
++                    "runs:reconcile",
++                    "opsagent:rag:search",
++                    "model:invoke");
++    private final JdbcTemplate jdbc;
++    private final AuthService auth;
++    private final JwtService jwt;
++    private final InternalActorTokens tokens;
++
++    public HarnessIdentityService(
++            JdbcTemplate jdbc,
++            AuthService auth,
++            JwtService jwt,
++            @Value("${ops.agent.internal-secret:${OPS_AGENT_INTERNAL_SECRET:}}") String secret) {
++        this.jdbc = jdbc;
++        this.auth = auth;
++        this.jwt = jwt;
++        this.tokens = new InternalActorTokens(secret);
++    }
++
++    public IdentityView introspect(
++            String applicationAuthorization, String projectId, String userToken) {
++        String application = application(applicationAuthorization);
++        OpsPrincipal principal = login(userToken);
++        return identity(application, projectId, principal.userId(), principal.roles());
++    }
++
++    public DelegationView delegate(
++            String applicationAuthorization,
++            String projectId,
++            String userToken,
++            String runId,
++            Instant deadline) {
++        String application = application(applicationAuthorization);
++        OpsPrincipal principal = login(userToken);
++        IdentityView identity =
++                identity(application, projectId, principal.userId(), principal.roles());
++        if (runId == null
++                || !runId.matches("[A-Za-z0-9._:-]{1,128}")
++                || deadline == null
++                || !deadline.isAfter(Instant.now())
++                || deadline.isAfter(Instant.now().plusSeconds(86400))) {
++            throw denied(ErrorCode.VALIDATION, "HARNESS_DELEGATION_INVALID");
++        }
++        // Freeze only current roles covered by the authenticated login token.
++        List<String> ceiling = currentRoles(principal.userId(), principal.roles());
++        String id = UUID.randomUUID().toString();
++        long until = deadline.getEpochSecond();
++        try {
++            jdbc.update(
++                    "INSERT INTO ops_harness_delegation"
++                        + " (id,application_id,project_id,user_id,run_id,roles_json,"
++                        + "permissions_json,expires_at,revoked)"
++                        + " VALUES(?,?,?,?,?,?,?,?,0)",
++                    id,
++                    application,
++                    projectId,
++                    principal.userId(),
++                    runId,
++                    json(ceiling),
++                    json(identity.permissions()),
++                    until);
++        } catch (DuplicateKeyException conflict) {
++            Delegation existing = byRun(application, runId);
++            if (!existing.project().equals(projectId)
++                    || existing.user() != principal.userId()
++                    || existing.expiresAt() != until) {
++                throw denied(ErrorCode.CONFLICT, "HARNESS_DELEGATION_CONFLICT");
++            }
++            identity = identityFor(existing);
++            return new DelegationView(
++                    existing.id(),
++                    Instant.ofEpochSecond(existing.expiresAt()).toString(),
++                    identity);
++        }
++        return new DelegationView(id, Instant.ofEpochSecond(until).toString(), identity);
++    }
++
++    public IdentityView current(
++            String applicationAuthorization, String delegationId, String runId) {
++        return identityFor(delegation(applicationAuthorization, delegationId, runId));
++    }
++
++    public TokenView token(
++            String applicationAuthorization, String delegationId, String runId, String audience) {
++        if (!"rag".equals(audience)) throw denied(ErrorCode.FORBIDDEN, "HARNESS_AUDIENCE_DENIED");
++        Delegation delegation = delegation(applicationAuthorization, delegationId, runId);
++        IdentityView identity = identityFor(delegation);
++        if (!identity.permissions().contains("opsagent:rag:search")) {
++            throw denied(ErrorCode.FORBIDDEN, "HARNESS_RETRIEVAL_DENIED");
++        }
++        AuthService.ActorView actor = auth.actor(delegation.user());
++        List<String> roles = currentRoles(delegation.user(), strings(delegation.roles()));
++        Instant deadline = Instant.ofEpochSecond(delegation.expiresAt());
++        if (actor.expiresAt() != null && actor.expiresAt().isBefore(deadline))
++            deadline = actor.expiresAt();
++        String authorization =
++                "Bearer "
++                        + tokens.issue(
++                                "rag",
++                                new InternalActorTokens.Context(
++                                        actor.userId(),
++                                        actor.username(),
++                                        roles,
++                                        runId,
++                                        "",
++                                        deadline));
++        Instant expiry =
++                deadline.isBefore(Instant.now().plusSeconds(120))
++                        ? deadline
++                        : Instant.now().plusSeconds(120);
++        return new TokenView(authorization, expiry.toString());
++    }
++
++    private IdentityView identityFor(Delegation delegation) {
++        if (delegation.revoked() || delegation.expiresAt() <= Instant.now().getEpochSecond()) {
++            throw denied(ErrorCode.FORBIDDEN, "HARNESS_DELEGATION_EXPIRED_OR_REVOKED");
++        }
++        IdentityView current =
++                identity(
++                        delegation.application(),
++                        delegation.project(),
++                        delegation.user(),
++                        strings(delegation.roles()));
++        List<String> ceiling = strings(delegation.permissions());
++        return new IdentityView(
++                current.applicationId(),
++                current.projectId(),
++                current.subject(),
++                current.permissions().stream().filter(ceiling::contains).toList());
++    }
++
++    private Delegation delegation(String authorization, String id, String runId) {
++        String app = application(authorization);
++        if (id == null || !id.matches("[a-f0-9-]{36}") || runId == null) {
++            throw denied(ErrorCode.NOT_FOUND, "HARNESS_DELEGATION_NOT_FOUND");
++        }
++        List<Delegation> rows =
++                jdbc.query(
++                        "SELECT * FROM ops_harness_delegation"
++                                + " WHERE id=? AND application_id=? AND run_id=?",
++                        HarnessIdentityService::row,
++                        id,
++                        app,
++                        runId);
++        if (rows.size() != 1) throw denied(ErrorCode.NOT_FOUND, "HARNESS_DELEGATION_NOT_FOUND");
++        return rows.get(0);
++    }
++
++    private Delegation byRun(String app, String runId) {
++        List<Delegation> rows =
++                jdbc.query(
++                        "SELECT * FROM ops_harness_delegation"
++                                + " WHERE application_id=? AND run_id=?",
++                        HarnessIdentityService::row,
++                        app,
++                        runId);
++        if (rows.size() != 1) throw denied(ErrorCode.CONFLICT, "HARNESS_DELEGATION_CONFLICT");
++        return rows.get(0);
++    }
++
++    private static Delegation row(java.sql.ResultSet rs, int index) throws java.sql.SQLException {
++        return new Delegation(
++                rs.getString("id"),
++                rs.getString("application_id"),
++                rs.getString("project_id"),
++                rs.getLong("user_id"),
++                rs.getString("run_id"),
++                rs.getString("roles_json"),
++                rs.getString("permissions_json"),
++                rs.getLong("expires_at"),
++                rs.getBoolean("revoked"));
++    }
++
++    private String application(String authorization) {
++        if (authorization == null || !authorization.matches("Bearer [A-Za-z0-9._~+/=-]{32,512}")) {
++            throw denied(ErrorCode.UNAUTHENTICATED, "HARNESS_APPLICATION_REQUIRED");
++        }
++        List<String> apps =
++                jdbc.query(
++                        "SELECT application_id FROM ops_harness_application"
++                                + " WHERE credential_hash=? AND enabled=1",
++                        (rs, row) -> rs.getString(1),
++                        sha256(authorization.substring(7)));
++        if (apps.size() != 1)
++            throw denied(ErrorCode.UNAUTHENTICATED, "HARNESS_APPLICATION_INVALID");
++        return apps.get(0);
++    }
++
++    private OpsPrincipal login(String token) {
++        if (token == null || token.length() > 10000) {
++            throw denied(ErrorCode.UNAUTHENTICATED, "HARNESS_USER_TOKEN_INVALID");
++        }
++        try {
++            return jwt.parse(token);
++        } catch (RuntimeException invalid) {
++            throw denied(ErrorCode.UNAUTHENTICATED, "HARNESS_USER_TOKEN_INVALID");
++        }
++    }
++
++    private IdentityView identity(String app, String project, long user, List<String> ceiling) {
++        if (project == null || !project.matches("[A-Za-z0-9][A-Za-z0-9._-]{0,63}")) {
++            throw denied(ErrorCode.FORBIDDEN, "HARNESS_PROJECT_DENIED");
++        }
++        List<String> roles = currentRoles(user, ceiling);
++        List<Grant> grants =
++                jdbc.query(
++                        "SELECT required_role,permissions_json FROM ops_harness_grant WHERE"
++                                + " application_id=? AND project_id=? AND user_id=? AND enabled=1",
++                        (rs, row) -> new Grant(rs.getString(1), rs.getString(2)),
++                        app,
++                        project,
++                        user);
++        if (grants.size() != 1 || !roles.contains(grants.get(0).role())) {
++            throw denied(ErrorCode.FORBIDDEN, "HARNESS_GRANT_DENIED");
++        }
++        List<String> permissions = strings(grants.get(0).permissions());
++        if (permissions.isEmpty() || permissions.stream().anyMatch(permission ->
++                !PERMISSIONS.contains(permission)
++                        && !permission.matches("tool:[A-Za-z0-9][A-Za-z0-9._:/-]{0,199}"))) {
++            throw denied(ErrorCode.FORBIDDEN, "HARNESS_GRANT_INVALID");
++        }
++        return new IdentityView(app, project, Long.toString(user), permissions);
++    }
++
++    private List<String> currentRoles(long userId, List<String> ceiling) {
++        AuthService.ActorView current = auth.actor(userId);
++        if (!current.active() || current.revokedAt() != null) {
++            throw denied(ErrorCode.FORBIDDEN, "HARNESS_ACTOR_DISABLED");
++        }
++        List<String> roles =
++                current.roles().stream().filter(ceiling::contains).distinct().sorted().toList();
++        if (roles.isEmpty()) throw denied(ErrorCode.FORBIDDEN, "HARNESS_ROLES_REVOKED");
++        return roles;
++    }
++
++    private static List<String> strings(String json) {
++        try {
++            return List.copyOf(JSON.readValue(json, new TypeReference<List<String>>() {}));
++        } catch (Exception failure) {
++            throw denied(ErrorCode.FORBIDDEN, "HARNESS_GRANT_INVALID");
++        }
++    }
++
++    private static String json(Object value) {
++        try {
++            return JSON.writeValueAsString(value);
++        } catch (Exception failure) {
++            throw new IllegalArgumentException("HARNESS_IDENTITY_INVALID");
++        }
++    }
++
++    public static String sha256(String value) {
++        try {
++            return HexFormat.of()
++                    .formatHex(
++                            MessageDigest.getInstance("SHA-256")
++                                    .digest(value.getBytes(StandardCharsets.UTF_8)));
++        } catch (Exception failure) {
++            throw new IllegalStateException("SHA256_UNAVAILABLE");
++        }
++    }
++
++    private static BusinessException denied(ErrorCode code, String message) {
++        return new BusinessException(code, message);
++    }
++
++    /**
++     * @author heyu
++     */
++    public record IdentityView(
++            String applicationId, String projectId, String subject, List<String> permissions) {}
++
++    /**
++     * @author heyu
++     */
++    public record DelegationView(String delegationId, String expiresAt, IdentityView identity) {}
++
++    /**
++     * @author heyu
++     */
++    public record TokenView(String authorization, String expiresAt) {}
++
++    /**
++     * @author heyu
++     */
++    private record Grant(String role, String permissions) {}
++
++    /**
++     * @author heyu
++     */
++    private record Delegation(
++            String id,
++            String application,
++            String project,
++            long user,
++            String run,
++            String roles,
++            String permissions,
++            long expiresAt,
++            boolean revoked) {}
++}
+diff --git a/ops-auth-service/src/main/resources/harness-identity-schema.sql b/ops-auth-service/src/main/resources/harness-identity-schema.sql
+new file mode 100644
+--- /dev/null
++++ b/ops-auth-service/src/main/resources/harness-identity-schema.sql
+@@ -0,0 +1,27 @@
++-- Explicit migration for the optional Harness bridge. No user or credential seed data.
++CREATE TABLE IF NOT EXISTS ops_harness_application (
++  application_id VARCHAR(64) PRIMARY KEY,
++  credential_hash CHAR(64) NOT NULL UNIQUE,
++  enabled INT NOT NULL DEFAULT 0
++);
++CREATE TABLE IF NOT EXISTS ops_harness_grant (
++  application_id VARCHAR(64) NOT NULL,
++  project_id VARCHAR(64) NOT NULL,
++  user_id BIGINT NOT NULL,
++  required_role VARCHAR(64) NOT NULL,
++  permissions_json TEXT NOT NULL,
++  enabled INT NOT NULL DEFAULT 0,
++  PRIMARY KEY (application_id, project_id, user_id)
++);
++CREATE TABLE IF NOT EXISTS ops_harness_delegation (
++  id VARCHAR(36) PRIMARY KEY,
++  application_id VARCHAR(64) NOT NULL,
++  project_id VARCHAR(64) NOT NULL,
++  user_id BIGINT NOT NULL,
++  run_id VARCHAR(128) NOT NULL,
++  roles_json TEXT NOT NULL,
++  permissions_json TEXT NOT NULL,
++  expires_at BIGINT NOT NULL,
++  revoked INT NOT NULL DEFAULT 0,
++  UNIQUE (application_id, run_id)
++);
+diff --git a/ops-auth-service/src/test/java/com/opsagent/auth/HarnessIdentityServiceTest.java b/ops-auth-service/src/test/java/com/opsagent/auth/HarnessIdentityServiceTest.java
+new file mode 100644
+--- /dev/null
++++ b/ops-auth-service/src/test/java/com/opsagent/auth/HarnessIdentityServiceTest.java
+@@ -0,0 +1,199 @@
++package com.opsagent.auth;
++
++import static org.assertj.core.api.Assertions.*;
++import static org.mockito.Mockito.*;
++
++import com.opsagent.common.security.InternalActorTokens;
++import com.opsagent.common.security.JwtProperties;
++import com.opsagent.common.security.JwtService;
++
++import org.junit.jupiter.api.BeforeEach;
++import org.junit.jupiter.api.Test;
++import org.springframework.core.io.ClassPathResource;
++import org.springframework.jdbc.core.JdbcTemplate;
++import org.springframework.jdbc.datasource.DriverManagerDataSource;
++import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
++
++import java.time.Instant;
++import java.util.List;
++import java.util.UUID;
++
++/**
++ * Durable delegation binds trusted application, project, user and run with current revocation
++ * checks.
++ *
++ * @author heyu
++ * @since 2026/9/3
++ */
++class HarnessIdentityServiceTest {
++    private static final String APP = "synthetic-application-secret-at-least-thirty-two-characters";
++    private static final String INTERNAL =
++            "synthetic-internal-signing-key-at-least-thirty-two-characters";
++    private JdbcTemplate jdbc;
++    private AuthService auth;
++    private JwtService jwt;
++    private HarnessIdentityService service;
++    private String login;
++
++    @BeforeEach
++    void setUp() {
++        var ds =
++                new DriverManagerDataSource(
++                        "jdbc:h2:mem:identity-"
++                                + UUID.randomUUID()
++                                + ";MODE=MySQL;DB_CLOSE_DELAY=-1",
++                        "sa",
++                        "");
++        new ResourceDatabasePopulator(new ClassPathResource("harness-identity-schema.sql"))
++                .execute(ds);
++        jdbc = new JdbcTemplate(ds);
++        jdbc.update(
++                "INSERT INTO ops_harness_application VALUES(?,?,1)",
++                "pilot-app",
++                HarnessIdentityService.sha256(APP));
++        jdbc.update(
++                "INSERT INTO ops_harness_grant VALUES(?,?,?,'USER',?,1)",
++                "pilot-app",
++                "ops-dev",
++                10,
++                "[\"runs:create\",\"runs:read\",\"opsagent:rag:search\"]");
++        auth = mock(AuthService.class);
++        active(List.of("USER"));
++        JwtProperties properties = new JwtProperties();
++        properties.setSecret("synthetic-existing-login-signing-secret-at-least-thirty-two");
++        jwt = new JwtService(properties);
++        login = jwt.issue(10, "synthetic-user", List.of("USER")).token();
++        service = new HarnessIdentityService(jdbc, auth, jwt, INTERNAL);
++    }
++
++    @Test
++    void existingLoginAndExplicitDatabaseGrantRequired() {
++        var identity = service.introspect("Bearer " + APP, "ops-dev", login);
++        assertThat(identity.subject()).isEqualTo("10");
++        assertThat(identity.applicationId()).isEqualTo("pilot-app");
++        assertThatThrownBy(() -> service.introspect("Bearer wrong", "ops-dev", login))
++                .hasMessageContaining("APPLICATION");
++        assertThatThrownBy(() -> service.introspect("Bearer " + APP, "other", login))
++                .hasMessageContaining("GRANT_DENIED");
++        assertThatThrownBy(() -> service.introspect("Bearer " + APP, "ops-dev", "forged"))
++                .hasMessageContaining("USER_TOKEN_INVALID");
++    }
++
++    @Test
++    void delegationSurvivesObjectReconstructionWithoutPersistedCredential() {
++        Instant deadline = Instant.now().plusSeconds(600);
++        var first = service.delegate("Bearer " + APP, "ops-dev", login, "run-one", deadline);
++        service = new HarnessIdentityService(jdbc, auth, jwt, INTERNAL);
++        var replay = service.delegate("Bearer " + APP, "ops-dev", login, "run-one", deadline);
++        assertThat(replay.delegationId()).isEqualTo(first.delegationId());
++        String stored = jdbc.queryForList("SELECT * FROM ops_harness_delegation").toString();
++        assertThat(stored).doesNotContain(login, APP, INTERNAL);
++        var minted = service.token("Bearer " + APP, first.delegationId(), "run-one", "rag");
++        var actor = new InternalActorTokens(INTERNAL).verify(minted.authorization(), "rag");
++        assertThat(actor.userId()).isEqualTo(10);
++        assertThat(actor.runId()).isEqualTo("run-one");
++        assertThat(actor.roles()).containsExactly("USER");
++        assertThat(
++                        jdbc.queryForObject(
++                                "SELECT COUNT(*) FROM ops_harness_delegation", Integer.class))
++                .isEqualTo(1);
++    }
++
++    @Test
++    void runBindingCannotBeRetargetedOrUsedByAnotherApplication() {
++        Instant deadline = Instant.now().plusSeconds(600);
++        var bound = service.delegate("Bearer " + APP, "ops-dev", login, "run-one", deadline);
++        assertThatThrownBy(
++                        () ->
++                                service.token(
++                                        "Bearer " + APP, bound.delegationId(), "run-other", "rag"))
++                .hasMessageContaining("NOT_FOUND");
++        assertThatThrownBy(
++                        () ->
++                                service.token(
++                                        "Bearer " + APP, bound.delegationId(), "run-one", "auth"))
++                .hasMessageContaining("AUDIENCE");
++        assertThatThrownBy(
++                        () ->
++                                service.delegate(
++                                        "Bearer " + APP,
++                                        "ops-dev",
++                                        login,
++                                        "run-one",
++                                        deadline.plusSeconds(5)))
++                .hasMessageContaining("CONFLICT");
++        String other = "another-synthetic-application-credential-at-least-thirty-two";
++        jdbc.update(
++                "INSERT INTO ops_harness_application VALUES(?,?,1)",
++                "other",
++                HarnessIdentityService.sha256(other));
++        assertThatThrownBy(
++                        () -> service.current("Bearer " + other, bound.delegationId(), "run-one"))
++                .hasMessageContaining("NOT_FOUND");
++    }
++
++    @Test
++    void roleAndPermissionElevationCannotExpandExistingDelegation() {
++        var bound =
++                service.delegate(
++                        "Bearer " + APP,
++                        "ops-dev",
++                        login,
++                        "run-one",
++                        Instant.now().plusSeconds(600));
++        active(List.of("USER", "ADMIN"));
++        jdbc.update(
++                "UPDATE ops_harness_grant SET permissions_json=?",
++                "[\"runs:create\",\"runs:read\",\"runs:admin\",\"opsagent:rag:search\"]");
++        assertThat(service.current("Bearer " + APP, bound.delegationId(), "run-one").permissions())
++                .doesNotContain("runs:admin");
++        var actor =
++                new InternalActorTokens(INTERNAL)
++                        .verify(
++                                service.token(
++                                                "Bearer " + APP,
++                                                bound.delegationId(),
++                                                "run-one",
++                                                "rag")
++                                        .authorization(),
++                                "rag");
++        assertThat(actor.roles()).containsExactly("USER");
++        jdbc.update("UPDATE ops_harness_grant SET permissions_json='[\"runs:read\"]'");
++        assertThat(service.current("Bearer " + APP, bound.delegationId(), "run-one").permissions())
++                .containsExactly("runs:read");
++        assertThatThrownBy(
++                        () ->
++                                service.token(
++                                        "Bearer " + APP, bound.delegationId(), "run-one", "rag"))
++                .hasMessageContaining("RETRIEVAL_DENIED");
++    }
++
++    @Test
++    void currentUserRoleGrantAndDelegationRevocationFailClosed() {
++        var bound =
++                service.delegate(
++                        "Bearer " + APP,
++                        "ops-dev",
++                        login,
++                        "run-one",
++                        Instant.now().plusSeconds(600));
++        active(List.of("AUDITOR"));
++        assertThatThrownBy(() -> service.current("Bearer " + APP, bound.delegationId(), "run-one"))
++                .hasMessageContaining("ROLES_REVOKED");
++        active(List.of("USER"));
++        jdbc.update("UPDATE ops_harness_grant SET enabled=0");
++        assertThatThrownBy(() -> service.current("Bearer " + APP, bound.delegationId(), "run-one"))
++                .hasMessageContaining("GRANT_DENIED");
++        jdbc.update("UPDATE ops_harness_grant SET enabled=1");
++        jdbc.update("UPDATE ops_harness_delegation SET revoked=1");
++        assertThatThrownBy(() -> service.current("Bearer " + APP, bound.delegationId(), "run-one"))
++                .hasMessageContaining("EXPIRED_OR_REVOKED");
++    }
++
++    private void active(List<String> roles) {
++        when(auth.actor(10))
++                .thenReturn(
++                        new AuthService.ActorView(
++                                true, 10, "synthetic-user", roles, null, null, null));
++    }
++}
+diff --git a/ops-knowledge-service/src/main/java/com/opsagent/knowledge/KnowledgeCitationAccessController.java b/ops-knowledge-service/src/main/java/com/opsagent/knowledge/KnowledgeCitationAccessController.java
+new file mode 100644
+--- /dev/null
++++ b/ops-knowledge-service/src/main/java/com/opsagent/knowledge/KnowledgeCitationAccessController.java
+@@ -0,0 +1,90 @@
++package com.opsagent.knowledge;
++
++import com.opsagent.common.core.ApiResponse;
++import com.opsagent.common.security.InternalActorAccess;
++import com.opsagent.common.security.InternalActorTokens;
++
++import jakarta.validation.Valid;
++import jakarta.validation.constraints.Min;
++import jakarta.validation.constraints.NotNull;
++import jakarta.validation.constraints.Size;
++
++import org.springframework.beans.factory.annotation.Value;
++import org.springframework.jdbc.core.JdbcTemplate;
++import org.springframework.web.bind.annotation.PostMapping;
++import org.springframework.web.bind.annotation.RequestBody;
++import org.springframework.web.bind.annotation.RequestHeader;
++import org.springframework.web.bind.annotation.RestController;
++
++import java.util.List;
++
++/**
++ * Revalidates stored retrieval references against current domain ACLs without retrieving content.
++ *
++ * @author heyu
++ * @since 2026/9/3
++ */
++@RestController
++class KnowledgeCitationAccessController {
++    private final KnowledgeService service;
++    private final JdbcTemplate jdbc;
++    private final InternalActorAccess access;
++
++    KnowledgeCitationAccessController(
++            KnowledgeService service,
++            JdbcTemplate jdbc,
++            @Value("${OPS_AGENT_INTERNAL_SECRET:}") String secret,
++            @Value("${OPS_AUTH_INTERNAL_URL:${OPS_AGENT_AUTH_URL:http://ops-auth-service:8101}}")
++                    String authUrl) {
++        this.service = service;
++        this.jdbc = jdbc;
++        access = new InternalActorAccess(new InternalActorTokens(secret), authUrl);
++    }
++
++    @PostMapping("/internal/agent/validate-citations")
++    ApiResponse<Verdict> validate(
++            @RequestHeader(value = "Authorization", required = false) String authorization,
++            @Valid @RequestBody Request request) {
++        var actor = access.verify(authorization, "knowledge");
++        try (var scope = InternalActorAccess.open(actor)) {
++            try {
++                for (var citation : request.citations()) {
++                    var document = service.readableDocument(citation.documentId());
++                    if (!"PUBLISHED".equals(document.get("review_status"))
++                            || !(document.get("version") instanceof Number version)
++                            || version.intValue() != citation.version()) return denied();
++                    Integer count =
++                            jdbc.queryForObject(
++                                    "SELECT COUNT(*) FROM knowledge_chunk WHERE id=? AND"
++                                        + " document_id=?",
++                                    Integer.class,
++                                    citation.chunkId(),
++                                    citation.documentId());
++                    if (count == null || count != 1) return denied();
++                }
++                return ApiResponse.success(new Verdict(true));
++            } catch (RuntimeException denied) {
++                return denied();
++            }
++        }
++    }
++
++    private ApiResponse<Verdict> denied() {
++        return ApiResponse.success(new Verdict(false));
++    }
++
++    /**
++     * @author heyu @since 2026/9/3
++     */
++    record Citation(@Min(1) long documentId, @Min(1) long chunkId, @Min(1) int version) {}
++
++    /**
++     * @author heyu @since 2026/9/3
++     */
++    record Request(@NotNull @Size(min = 1, max = 100) List<@NotNull @Valid Citation> citations) {}
++
++    /**
++     * @author heyu @since 2026/9/3
++     */
++    record Verdict(boolean allowed) {}
++}
+diff --git a/ops-rag-service/src/main/java/com/opsagent/rag/HarnessCitationAccessController.java b/ops-rag-service/src/main/java/com/opsagent/rag/HarnessCitationAccessController.java
+new file mode 100644
+--- /dev/null
++++ b/ops-rag-service/src/main/java/com/opsagent/rag/HarnessCitationAccessController.java
+@@ -0,0 +1,117 @@
++package com.opsagent.rag;
++
++import com.fasterxml.jackson.databind.ObjectMapper;
++import com.opsagent.common.core.ApiResponse;
++import com.opsagent.common.security.InternalActorAccess;
++import com.opsagent.common.security.InternalActorTokens;
++
++import jakarta.validation.Valid;
++import jakarta.validation.constraints.Min;
++import jakarta.validation.constraints.NotNull;
++import jakarta.validation.constraints.Size;
++
++import org.springframework.beans.factory.annotation.Value;
++import org.springframework.web.bind.annotation.PostMapping;
++import org.springframework.web.bind.annotation.RequestBody;
++import org.springframework.web.bind.annotation.RequestHeader;
++import org.springframework.web.bind.annotation.RestController;
++
++import java.net.URI;
++import java.net.http.HttpClient;
++import java.net.http.HttpRequest;
++import java.net.http.HttpResponse;
++import java.time.Duration;
++import java.util.List;
++
++/**
++ * Checks stored citation visibility through Knowledge using the original restricted run identity.
++ *
++ * @author heyu
++ * @since 2026/9/3
++ */
++@RestController
++class HarnessCitationAccessController {
++    private final InternalActorTokens tokens;
++    private final InternalActorAccess access;
++    private final URI knowledge;
++    private final ObjectMapper json = new ObjectMapper();
++    private final HttpClient http =
++            HttpClient.newBuilder()
++                    .connectTimeout(Duration.ofSeconds(3))
++                    .followRedirects(HttpClient.Redirect.NEVER)
++                    .build();
++
++    HarnessCitationAccessController(
++            @Value("${OPS_AGENT_INTERNAL_SECRET:}") String secret,
++            @Value("${OPS_AUTH_INTERNAL_URL:${OPS_AGENT_AUTH_URL:http://ops-auth-service:8101}}")
++                    String authUrl,
++            @Value("${OPS_KNOWLEDGE_INTERNAL_URL:http://ops-knowledge-service:8103}")
++                    String knowledgeUrl) {
++        tokens = new InternalActorTokens(secret);
++        access = new InternalActorAccess(tokens, authUrl);
++        URI origin = URI.create(knowledgeUrl);
++        if (origin.getHost() == null
++                || origin.getUserInfo() != null
++                || origin.getQuery() != null
++                || origin.getFragment() != null
++                || !(origin.getPath().isEmpty() || "/".equals(origin.getPath()))
++                || !("http".equals(origin.getScheme()) || "https".equals(origin.getScheme())))
++            throw new IllegalArgumentException("Invalid internal Knowledge origin");
++        knowledge = origin.resolve("/internal/agent/validate-citations");
++    }
++
++    @PostMapping("/internal/rag/validate-citations")
++    ApiResponse<Verdict> validate(
++            @RequestHeader(value = "Authorization", required = false) String authorization,
++            @Valid @RequestBody Request request) {
++        var actor = access.verify(authorization, "rag");
++        try {
++            var outbound =
++                    HttpRequest.newBuilder(knowledge)
++                            .timeout(Duration.ofSeconds(5))
++                            .header("Authorization", "Bearer " + tokens.issue("knowledge", actor))
++                            .header("Content-Type", "application/json")
++                            .POST(
++                                    HttpRequest.BodyPublishers.ofByteArray(
++                                            json.writeValueAsBytes(request)))
++                            .build();
++            var response = http.send(outbound, HttpResponse.BodyHandlers.ofInputStream());
++            try (var body = response.body()) {
++                byte[] bytes = body.readNBytes(4097);
++                if (response.statusCode() != 200 || bytes.length > 4096) return denied();
++                var envelope = json.readTree(bytes);
++                boolean allowed =
++                        envelope.path("code").isIntegralNumber()
++                                && envelope.path("code").canConvertToInt()
++                                && envelope.path("code").asInt() == 0
++                                && envelope.path("data").path("allowed").isBoolean()
++                                && envelope.path("data").path("allowed").asBoolean();
++                return ApiResponse.success(new Verdict(allowed));
++            }
++        } catch (InterruptedException interrupted) {
++            Thread.currentThread().interrupt();
++            return denied();
++        } catch (Exception unavailable) {
++            return denied();
++        }
++    }
++
++    private ApiResponse<Verdict> denied() {
++        return ApiResponse.success(new Verdict(false));
++    }
++
++    /**
++     * @author heyu @since 2026/9/3
++     */
++    record Citation(@Min(1) long documentId, @Min(1) long chunkId, @Min(1) int version) {}
++
++    /**
++     * @author heyu @since 2026/9/3
++     */
++    record Request(@NotNull @Size(min = 1, max = 100) List<@NotNull @Valid Citation> citations) {}
++
++    /**
++     * @author heyu @since 2026/9/3
++     */
++    record Verdict(boolean allowed) {}
++}
+diff --git a/ops-rag-service/src/main/java/com/opsagent/rag/HarnessRequestRoutes.java b/ops-rag-service/src/main/java/com/opsagent/rag/HarnessRequestRoutes.java
+new file mode 100644
+--- /dev/null
++++ b/ops-rag-service/src/main/java/com/opsagent/rag/HarnessRequestRoutes.java
+@@ -0,0 +1,118 @@
++package com.opsagent.rag;
++
++import com.opsagent.common.core.BusinessException;
++import com.opsagent.common.core.ErrorCode;
++
++import org.springframework.dao.DuplicateKeyException;
++import org.springframework.jdbc.core.JdbcTemplate;
++
++import java.nio.charset.StandardCharsets;
++import java.security.MessageDigest;
++import java.util.HexFormat;
++import java.util.UUID;
++
++/**
++ * Durable single execution ownership for the read-only Harness search pilot. Switching the
++ * configured owner changes new requests only; failures never change an existing owner.
++ *
++ * @author heyu
++ * @since 2026/9/3
++ */
++public final class HarnessRequestRoutes {
++    private final JdbcTemplate jdbc;
++
++    public HarnessRequestRoutes(JdbcTemplate jdbc) {
++        this.jdbc = jdbc;
++    }
++
++    public Route assign(
++            String application,
++            String project,
++            String subject,
++            String requestId,
++            String inputDigest,
++            String newOwner) {
++        return assign(application, project, subject, requestId, inputDigest, newOwner, "{}");
++    }
++
++    public Route assign(
++            String application,
++            String project,
++            String subject,
++            String requestId,
++            String inputDigest,
++            String newOwner,
++            String dispatchJson) {
++        if (!java.util.Set.of("LEGACY", "HARNESS").contains(newOwner)) {
++            throw new IllegalArgumentException("HARNESS_ROUTE_OWNER_INVALID");
++        }
++        String key = hash(parts(application, project, subject, requestId));
++        String id = UUID.randomUUID().toString();
++        try {
++            jdbc.update(
++                    "INSERT INTO ops_harness_route"
++                        + " (request_key,id,input_digest,execution_owner,expires_at,dispatch_json)"
++                        + " VALUES(?,?,?,?,?,?)",
++                    key,
++                    id,
++                    inputDigest,
++                    newOwner,
++                    java.time.Instant.now().plusSeconds(3600).getEpochSecond(),
++                    dispatchJson);
++        } catch (DuplicateKeyException duplicate) {
++            // The unique request key is the arbitration point across threads, processes and
++            // restarts.
++        }
++        Route existing =
++                jdbc.queryForObject(
++                        "SELECT id,input_digest,execution_owner,dispatch_json FROM"
++                            + " ops_harness_route WHERE request_key=?",
++                        (rs, row) ->
++                                new Route(
++                                        rs.getString(1),
++                                        rs.getString(2),
++                                        rs.getString(3),
++                                        rs.getString(4)),
++                        key);
++        if (existing == null || !existing.inputDigest().equals(inputDigest)) {
++            throw new BusinessException(ErrorCode.CONFLICT, "HARNESS_REQUEST_INPUT_CONFLICT");
++        }
++        return existing;
++    }
++
++    public java.time.Instant deadline(String routeId) {
++        Long value =
++                jdbc.queryForObject(
++                        "SELECT expires_at FROM ops_harness_route WHERE id=?", Long.class, routeId);
++        if (value == null)
++            throw new BusinessException(ErrorCode.NOT_FOUND, "HARNESS_ROUTE_NOT_FOUND");
++        return java.time.Instant.ofEpochSecond(value);
++    }
++
++    public static String hash(String value) {
++        try {
++            return HexFormat.of()
++                    .formatHex(
++                            MessageDigest.getInstance("SHA-256")
++                                    .digest(value.getBytes(StandardCharsets.UTF_8)));
++        } catch (Exception failure) {
++            throw new IllegalStateException("SHA256_UNAVAILABLE");
++        }
++    }
++
++    private static String parts(String... values) {
++        StringBuilder text = new StringBuilder();
++        for (String value : values) {
++            if (value == null || value.isBlank() || value.length() > 128) {
++                throw new IllegalArgumentException("HARNESS_ROUTE_IDENTITY_INVALID");
++            }
++            text.append(value.length()).append(':').append(value);
++        }
++        return text.toString();
++    }
++
++    /**
++     * @author heyu
++     */
++    public record Route(String id, String inputDigest, String owner, String dispatchJson) {}
++}
+diff --git a/ops-rag-service/src/main/java/com/opsagent/rag/HarnessSearchController.java b/ops-rag-service/src/main/java/com/opsagent/rag/HarnessSearchController.java
+new file mode 100644
+--- /dev/null
++++ b/ops-rag-service/src/main/java/com/opsagent/rag/HarnessSearchController.java
+@@ -0,0 +1,293 @@
++package com.opsagent.rag;
++
++import com.fasterxml.jackson.databind.JsonNode;
++import com.fasterxml.jackson.databind.ObjectMapper;
++import com.opsagent.common.core.ApiResponse;
++import com.opsagent.common.core.BusinessException;
++import com.opsagent.common.core.ErrorCode;
++import com.opsagent.common.security.SecurityUsers;
++
++import jakarta.validation.Valid;
++import jakarta.validation.constraints.Max;
++import jakarta.validation.constraints.Min;
++import jakarta.validation.constraints.NotBlank;
++import jakarta.validation.constraints.Size;
++
++import org.springframework.beans.factory.annotation.Value;
++import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
++import org.springframework.http.ResponseEntity;
++import org.springframework.jdbc.core.JdbcTemplate;
++import org.springframework.web.bind.annotation.*;
++
++import java.net.URI;
++import java.net.http.HttpClient;
++import java.net.http.HttpRequest;
++import java.net.http.HttpResponse;
++import java.time.Duration;
++import java.time.Instant;
++import java.util.Map;
++import java.util.Set;
++
++/**
++ * Explicit read-only ingress using current login identities and durable request ownership. It does
++ * not replace the answer-producing /api/rag/ask endpoint or migrate ticket workflows.
++ *
++ * @author heyu
++ * @since 2026/9/3
++ */
++@RestController
++@ConditionalOnProperty(name = "ops.harness.search.enabled", havingValue = "true")
++public class HarnessSearchController {
++    private static final ObjectMapper JSON = new ObjectMapper();
++    private final HarnessRequestRoutes routes;
++    private final InternalAgentController legacy;
++    private final URI authOrigin;
++    private final URI platformOrigin;
++    private final String applicationAuthorization;
++    private final String project;
++    private final String newOwner;
++    private final String agentId;
++    private final String releaseId;
++    private final String releaseDigest;
++    private final HttpClient http =
++            HttpClient.newBuilder()
++                    .connectTimeout(Duration.ofSeconds(3))
++                    .followRedirects(HttpClient.Redirect.NEVER)
++                    .build();
++
++    public HarnessSearchController(
++            JdbcTemplate jdbc,
++            InternalAgentController legacy,
++            @Value("${ops.harness.auth-origin}") String authOrigin,
++            @Value("${ops.harness.platform-origin}") String platformOrigin,
++            @Value("${ops.harness.application-credential}") String applicationCredential,
++            @Value("${ops.harness.project}") String project,
++            @Value("${ops.harness.search.new-owner:LEGACY}") String newOwner,
++            @Value("${ops.harness.search.agent-id:ops-readonly}") String agentId,
++            @Value("${ops.harness.search.release-id:}") String releaseId,
++            @Value("${ops.harness.search.release-digest:}") String releaseDigest) {
++        this.routes = new HarnessRequestRoutes(jdbc);
++        this.legacy = legacy;
++        this.authOrigin = origin(authOrigin);
++        this.platformOrigin = origin(platformOrigin);
++        if (!applicationCredential.matches("[A-Za-z0-9._~+/=-]{32,512}")) {
++            throw new IllegalArgumentException("HARNESS_APPLICATION_CREDENTIAL_INVALID");
++        }
++        this.applicationAuthorization = "Bearer " + applicationCredential;
++        this.project = project;
++        this.newOwner = newOwner;
++        this.agentId = agentId;
++        this.releaseId = releaseId;
++        this.releaseDigest = releaseDigest;
++    }
++
++    @PostMapping("/api/rag/harness-search")
++    public ResponseEntity<?> search(
++            @RequestHeader("Authorization") String authorization,
++            @Valid @RequestBody Search request) {
++        if (!authorization.startsWith("Bearer ") || authorization.length() > 10000) {
++            throw new BusinessException(ErrorCode.UNAUTHENTICATED, "HARNESS_LOGIN_REQUIRED");
++        }
++        String userToken = authorization.substring(7);
++        JsonNode identity =
++                post(
++                        authOrigin.resolve("/internal/harness/introspect"),
++                        JSON.valueToTree(Map.of("projectId", project, "userToken", userToken)),
++                        null,
++                        null,
++                        true);
++        String subject = identity.path("subject").asText();
++        if (!subject.equals(Long.toString(SecurityUsers.current().userId()))
++                || !project.equals(identity.path("projectId").asText())) {
++            throw new BusinessException(ErrorCode.FORBIDDEN, "HARNESS_SUBJECT_MISMATCH");
++        }
++        JsonNode input =
++                JSON.createObjectNode().put("query", request.query()).put("topK", request.topK());
++        JsonNode configured =
++                JSON.valueToTree(
++                        Map.of(
++                                "releaseRef",
++                                Map.of(
++                                        "agentId",
++                                        agentId,
++                                        "releaseId",
++                                        releaseId,
++                                        "digest",
++                                        releaseDigest),
++                                "inputs",
++                                input));
++        HarnessRequestRoutes.Route route =
++                routes.assign(
++                        identity.path("applicationId").asText(),
++                        project,
++                        subject,
++                        request.requestId(),
++                        HarnessRequestRoutes.hash(input.toString()),
++                        newOwner,
++                        configured.toString());
++        if ("HARNESS".equals(route.owner())) {
++            JsonNode body = dispatch(route.dispatchJson());
++            JsonNode accepted =
++                    post(
++                            platformOrigin.resolve("/v1/projects/" + project + "/runs"),
++                            body,
++                            userToken,
++                            route.id(),
++                            false);
++            return ResponseEntity.accepted()
++                    .header("Cache-Control", "no-store")
++                    .body(
++                            ApiResponse.success(
++                                    Map.of(
++                                            "owner",
++                                            route.owner(),
++                                            "routeId",
++                                            route.id(),
++                                            "run",
++                                            accepted)));
++        }
++        // LEGACY is read-only: a retry may repeat authorized retrieval to avoid serving stale ACL
++        // results.
++        // The route remains LEGACY even if the platform switch changes or retrieval fails.
++        JsonNode delegated =
++                post(
++                        authOrigin.resolve("/internal/harness/delegations"),
++                        JSON.valueToTree(
++                                Map.of(
++                                        "projectId",
++                                        project,
++                                        "userToken",
++                                        userToken,
++                                        "runId",
++                                        "legacy-" + route.id(),
++                                        "deadline",
++                                        routeDeadline(route).toString())),
++                        null,
++                        null,
++                        true);
++        JsonNode minted =
++                post(
++                        authOrigin.resolve(
++                                "/internal/harness/delegations/"
++                                        + delegated.path("delegationId").asText()
++                                        + "/token"),
++                        JSON.valueToTree(
++                                Map.of("runId", "legacy-" + route.id(), "audience", "rag")),
++                        null,
++                        null,
++                        true);
++        var result =
++                legacy.search(
++                        minted.path("authorization").asText(),
++                        new InternalAgentDtos.SearchRequest(request.query(), request.topK()));
++        return ResponseEntity.ok()
++                .header("Cache-Control", "no-store")
++                .body(
++                        ApiResponse.success(
++                                Map.of(
++                                        "owner",
++                                        route.owner(),
++                                        "routeId",
++                                        route.id(),
++                                        "status",
++                                        "COMPLETED",
++                                        "result",
++                                        result.data())));
++    }
++
++    private Instant routeDeadline(HarnessRequestRoutes.Route route) {
++        // Persistent creation time is encoded nowhere in the route UUID: read it from the ledger.
++        return routes.deadline(route.id());
++    }
++
++    private JsonNode dispatch(String json) {
++        try {
++            return JSON.readTree(json);
++        } catch (Exception invalid) {
++            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "HARNESS_ROUTE_CORRUPT");
++        }
++    }
++
++    @ExceptionHandler(Exception.class)
++    public ResponseEntity<?> failure(Exception failure) {
++        int status =
++                failure instanceof BusinessException business
++                        ? business.getErrorCode().code() / 100
++                        : 400;
++        if (status < 400 || status > 599) status = 503;
++        return ResponseEntity.status(status)
++                .header("Cache-Control", "no-store")
++                .body(ApiResponse.failure(status * 100, "HARNESS_SEARCH_REQUEST_REJECTED"));
++    }
++
++    private JsonNode post(
++            URI endpoint, JsonNode body, String userToken, String key, boolean envelope) {
++        try {
++            HttpRequest.Builder request =
++                    HttpRequest.newBuilder(endpoint)
++                            .timeout(Duration.ofSeconds(20))
++                            .header("Authorization", applicationAuthorization)
++                            .header("Content-Type", "application/json");
++            if (userToken != null) request.header("X-Harness-User-Token", userToken);
++            if (key != null) request.header("Idempotency-Key", key);
++            HttpResponse<java.io.InputStream> response =
++                    http.send(
++                            request.POST(HttpRequest.BodyPublishers.ofString(body.toString()))
++                                    .build(),
++                            HttpResponse.BodyHandlers.ofInputStream());
++            byte[] bytes;
++            try (var stream = response.body()) {
++                bytes = stream.readNBytes(1024 * 1024 + 1);
++            }
++            if (bytes.length > 1024 * 1024
++                    || response.statusCode() < 200
++                    || response.statusCode() >= 300) {
++                throw new BusinessException(
++                        ErrorCode.MIDDLEWARE_UNAVAILABLE, "HARNESS_UPSTREAM_REJECTED");
++            }
++            JsonNode result = JSON.readTree(bytes);
++            if (envelope) {
++                if (!result.path("code").isIntegralNumber()
++                        || !result.path("code").canConvertToInt()
++                        || result.path("code").asInt() != 0) {
++                    throw new BusinessException(ErrorCode.FORBIDDEN, "HARNESS_IDENTITY_DENIED");
++                }
++                return result.path("data");
++            }
++            return result;
++        } catch (BusinessException failure) {
++            throw failure;
++        } catch (InterruptedException interrupted) {
++            Thread.currentThread().interrupt();
++            throw new BusinessException(
++                    ErrorCode.MIDDLEWARE_UNAVAILABLE, "HARNESS_UPSTREAM_UNAVAILABLE");
++        } catch (Exception unavailable) {
++            throw new BusinessException(
++                    ErrorCode.MIDDLEWARE_UNAVAILABLE, "HARNESS_UPSTREAM_UNAVAILABLE");
++        }
++    }
++
++    private static URI origin(String value) {
++        URI uri = URI.create(value);
++        if (uri.getHost() == null
++                || uri.getUserInfo() != null
++                || uri.getQuery() != null
++                || uri.getFragment() != null
++                || !(uri.getPath().isEmpty() || "/".equals(uri.getPath()))
++                || !("https".equals(uri.getScheme())
++                        || "http".equals(uri.getScheme())
++                                && Set.of("127.0.0.1", "localhost", "[::1]")
++                                        .contains(uri.getHost()))) {
++            throw new IllegalArgumentException("HARNESS_ORIGIN_INVALID");
++        }
++        return uri;
++    }
++
++    /**
++     * @author heyu
++     */
++    public record Search(
++            @NotBlank @Size(max = 128) String requestId,
++            @NotBlank @Size(max = 2000) String query,
++            @Min(1) @Max(20) int topK) {}
++}
+diff --git a/ops-rag-service/src/main/resources/harness-route-schema.sql b/ops-rag-service/src/main/resources/harness-route-schema.sql
+new file mode 100644
+--- /dev/null
++++ b/ops-rag-service/src/main/resources/harness-route-schema.sql
+@@ -0,0 +1,9 @@
++-- Explicit migration for optional authorized search ingress. Never removes or reassigns old routes.
++CREATE TABLE IF NOT EXISTS ops_harness_route (
++  request_key CHAR(64) PRIMARY KEY,
++  id VARCHAR(36) NOT NULL UNIQUE,
++  input_digest CHAR(64) NOT NULL,
++  execution_owner VARCHAR(16) NOT NULL,
++  expires_at BIGINT NOT NULL,
++  dispatch_json TEXT NOT NULL
++);
+diff --git a/ops-rag-service/src/test/java/com/opsagent/rag/HarnessRequestRoutesTest.java b/ops-rag-service/src/test/java/com/opsagent/rag/HarnessRequestRoutesTest.java
+new file mode 100644
+--- /dev/null
++++ b/ops-rag-service/src/test/java/com/opsagent/rag/HarnessRequestRoutesTest.java
+@@ -0,0 +1,92 @@
++package com.opsagent.rag;
++
++import static org.assertj.core.api.Assertions.*;
++
++import org.junit.jupiter.api.Test;
++import org.junit.jupiter.api.io.TempDir;
++import org.springframework.core.io.ClassPathResource;
++import org.springframework.jdbc.core.JdbcTemplate;
++import org.springframework.jdbc.datasource.DriverManagerDataSource;
++import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
++
++import java.nio.file.Path;
++import java.util.ArrayList;
++import java.util.List;
++import java.util.concurrent.Callable;
++import java.util.concurrent.Executors;
++
++/**
++ * Persistent request ownership remains stable after reopening SQL and concurrent switch changes.
++ *
++ * @author heyu
++ * @since 2026/9/3
++ */
++class HarnessRequestRoutesTest {
++    @TempDir Path directory;
++
++    @Test
++    void sqlReopenKeepsOriginalOwnerAndRejectsChangedInputs() {
++        var jdbc = database();
++        var routes = new HarnessRequestRoutes(jdbc);
++        var first =
++                routes.assign(
++                        "app", "project", "10", "req-1", "digest", "HARNESS", "original-release");
++        jdbc.execute("SHUTDOWN");
++        routes = new HarnessRequestRoutes(database());
++        assertThat(routes.assign("app", "project", "10", "req-1", "digest", "LEGACY"))
++                .isEqualTo(first);
++        assertThat(
++                        routes.assign(
++                                        "app",
++                                        "project",
++                                        "10",
++                                        "req-1",
++                                        "digest",
++                                        "HARNESS",
++                                        "new-release")
++                                .dispatchJson())
++                .isEqualTo("original-release");
++        assertThat(routes.assign("app", "project", "10", "req-2", "digest", "LEGACY").owner())
++                .isEqualTo("LEGACY");
++        var reopened = routes;
++        assertThatThrownBy(
++                        () -> reopened.assign("app", "project", "10", "req-1", "changed", "LEGACY"))
++                .hasMessageContaining("INPUT_CONFLICT");
++        assertThat(routes.assign("other", "project", "10", "req-1", "digest", "LEGACY").id())
++                .isNotEqualTo(first.id());
++    }
++
++    @Test
++    void concurrentDifferentSwitchValuesChooseOnePersistentOwner() throws Exception {
++        var jdbc = database();
++        var routes = new HarnessRequestRoutes(jdbc);
++        var pool = Executors.newFixedThreadPool(8);
++        try {
++            List<Callable<HarnessRequestRoutes.Route>> jobs = new ArrayList<>();
++            for (int i = 0; i < 24; i++) {
++                String owner = i % 2 == 0 ? "HARNESS" : "LEGACY";
++                jobs.add(() -> routes.assign("app", "project", "10", "same", "same-input", owner));
++            }
++            var futures = pool.invokeAll(jobs);
++            var first = futures.get(0).get();
++            for (var future : futures) assertThat(future.get()).isEqualTo(first);
++            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM ops_harness_route", Integer.class))
++                    .isEqualTo(1);
++        } finally {
++            pool.shutdownNow();
++        }
++    }
++
++    private JdbcTemplate database() {
++        var ds =
++                new DriverManagerDataSource(
++                        "jdbc:h2:file:"
++                                + directory.resolve("routes").toAbsolutePath()
++                                + ";MODE=MySQL",
++                        "sa",
++                        "");
++        new ResourceDatabasePopulator(new ClassPathResource("harness-route-schema.sql"))
++                .execute(ds);
++        return new JdbcTemplate(ds);
++    }
++}

@@ -1,0 +1,48 @@
+groups:
+  - name: harness-safety
+    rules:
+      - alert: HarnessInstanceUnavailable
+        expr: up{job="harness"} == 0
+        for: 1m
+        labels: {severity: critical}
+        annotations: {summary: 'Harness instance cannot be scraped'}
+      - alert: HarnessDatabaseUnavailable
+        expr: harness_database_ready == 0
+        for: 30s
+        labels: {severity: critical}
+        annotations: {summary: 'Harness database is not ready'}
+      - alert: HarnessUnknownRequiresReconciliation
+        expr: max by (project) (harness_unknown_provider_permits) > 0
+        for: 1m
+        labels: {severity: warning}
+        annotations: {summary: 'Unconfirmed external effects need manual reconciliation'}
+      - alert: HarnessWorkersUnavailable
+        expr: max by (project) (harness_workers_available) == 0
+        for: 1m
+        labels: {severity: critical}
+        annotations: {summary: 'No compatible worker heartbeat is available'}
+      - alert: HarnessQueueDelayed
+        expr: max by (project) (harness_queue_oldest_age_seconds) > 120
+        for: 5m
+        labels: {severity: warning}
+        annotations: {summary: 'Project queue has remained delayed'}
+      - alert: HarnessGovernanceAlert
+        expr: max by (project) (harness_alerts_firing) > 0
+        for: 1m
+        labels: {severity: warning}
+        annotations: {summary: 'Inspect authorized governance view for details'}
+      - alert: HarnessBackupUnverified
+        expr: absent(harness_backup_last_success_timestamp_seconds) or time() - harness_backup_last_success_timestamp_seconds > 90000
+        for: 5m
+        labels: {severity: critical}
+        annotations: {summary: 'No recent encrypted full backup evidence'}
+      - alert: HarnessBinlogArchiveStale
+        expr: absent(harness_binlog_last_success_timestamp_seconds) or time() - harness_binlog_last_success_timestamp_seconds > 900
+        for: 1m
+        labels: {severity: critical}
+        annotations: {summary: 'Encrypted binlog archive freshness exceeds the 15 minute target'}
+      - alert: HarnessOffsiteCopyUnverified
+        expr: absent(harness_backup_offsite_last_success_timestamp_seconds) or time() - harness_backup_offsite_last_success_timestamp_seconds > 900
+        for: 1m
+        labels: {severity: critical}
+        annotations: {summary: 'Offsite backup receipt is absent or stale; RPO is not proven'}

@@ -1,0 +1,496 @@
+{
+  "description": "Synthetic schema cases. Stateful validation additionally required by phase2-api-design.md.",
+  "cases": [
+    {
+      "name": "bounded published release creation",
+      "schema": "CreateRunRequest",
+      "valid": true,
+      "value": {
+        "releaseRef": {
+          "agentId": "ops-readonly",
+          "releaseId": "bc2d667e-dfd8-4c09-9a38-c083344a5da7",
+          "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "inputs": {
+          "question": "查询沙箱服务的状态"
+        },
+        "limits": {
+          "maxTokens": 20000,
+          "lifetimeSeconds": 600
+        },
+        "clientReference": "sandbox-check-20260915-01"
+      }
+    },
+    {
+      "name": "all JSON input primitives",
+      "schema": "CreateRunRequest",
+      "valid": true,
+      "value": {
+        "releaseRef": {
+          "agentId": "ops-readonly",
+          "releaseId": "bc2d667e-dfd8-4c09-9a38-c083344a5da7",
+          "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "inputs": {
+          "s": "text",
+          "n": 2.5,
+          "b": true,
+          "nil": null,
+          "array": [
+            1,
+            false,
+            "x"
+          ],
+          "nested": {
+            "key": "value"
+          }
+        },
+        "limits": {
+          "maxTokens": 20000,
+          "lifetimeSeconds": 600
+        },
+        "clientReference": "sandbox-check-20260915-01"
+      }
+    },
+    {
+      "name": "create rejects actor",
+      "schema": "CreateRunRequest",
+      "valid": false,
+      "value": {
+        "releaseRef": {
+          "agentId": "ops-readonly",
+          "releaseId": "bc2d667e-dfd8-4c09-9a38-c083344a5da7",
+          "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "inputs": {
+          "question": "查询沙箱服务的状态"
+        },
+        "limits": {
+          "maxTokens": 20000,
+          "lifetimeSeconds": 600
+        },
+        "clientReference": "sandbox-check-20260915-01",
+        "actor": "not allowed"
+      }
+    },
+    {
+      "name": "create rejects permissions",
+      "schema": "CreateRunRequest",
+      "valid": false,
+      "value": {
+        "releaseRef": {
+          "agentId": "ops-readonly",
+          "releaseId": "bc2d667e-dfd8-4c09-9a38-c083344a5da7",
+          "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "inputs": {
+          "question": "查询沙箱服务的状态"
+        },
+        "limits": {
+          "maxTokens": 20000,
+          "lifetimeSeconds": 600
+        },
+        "clientReference": "sandbox-check-20260915-01",
+        "permissions": "not allowed"
+      }
+    },
+    {
+      "name": "create rejects model",
+      "schema": "CreateRunRequest",
+      "valid": false,
+      "value": {
+        "releaseRef": {
+          "agentId": "ops-readonly",
+          "releaseId": "bc2d667e-dfd8-4c09-9a38-c083344a5da7",
+          "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "inputs": {
+          "question": "查询沙箱服务的状态"
+        },
+        "limits": {
+          "maxTokens": 20000,
+          "lifetimeSeconds": 600
+        },
+        "clientReference": "sandbox-check-20260915-01",
+        "model": "not allowed"
+      }
+    },
+    {
+      "name": "create rejects tools",
+      "schema": "CreateRunRequest",
+      "valid": false,
+      "value": {
+        "releaseRef": {
+          "agentId": "ops-readonly",
+          "releaseId": "bc2d667e-dfd8-4c09-9a38-c083344a5da7",
+          "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "inputs": {
+          "question": "查询沙箱服务的状态"
+        },
+        "limits": {
+          "maxTokens": 20000,
+          "lifetimeSeconds": 600
+        },
+        "clientReference": "sandbox-check-20260915-01",
+        "tools": "not allowed"
+      }
+    },
+    {
+      "name": "create rejects endpoint",
+      "schema": "CreateRunRequest",
+      "valid": false,
+      "value": {
+        "releaseRef": {
+          "agentId": "ops-readonly",
+          "releaseId": "bc2d667e-dfd8-4c09-9a38-c083344a5da7",
+          "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "inputs": {
+          "question": "查询沙箱服务的状态"
+        },
+        "limits": {
+          "maxTokens": 20000,
+          "lifetimeSeconds": 600
+        },
+        "clientReference": "sandbox-check-20260915-01",
+        "endpoint": "not allowed"
+      }
+    },
+    {
+      "name": "create rejects runState",
+      "schema": "CreateRunRequest",
+      "valid": false,
+      "value": {
+        "releaseRef": {
+          "agentId": "ops-readonly",
+          "releaseId": "bc2d667e-dfd8-4c09-9a38-c083344a5da7",
+          "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "inputs": {
+          "question": "查询沙箱服务的状态"
+        },
+        "limits": {
+          "maxTokens": 20000,
+          "lifetimeSeconds": 600
+        },
+        "clientReference": "sandbox-check-20260915-01",
+        "runState": "not allowed"
+      }
+    },
+    {
+      "name": "create rejects credentialRef",
+      "schema": "CreateRunRequest",
+      "valid": false,
+      "value": {
+        "releaseRef": {
+          "agentId": "ops-readonly",
+          "releaseId": "bc2d667e-dfd8-4c09-9a38-c083344a5da7",
+          "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "inputs": {
+          "question": "查询沙箱服务的状态"
+        },
+        "limits": {
+          "maxTokens": 20000,
+          "lifetimeSeconds": 600
+        },
+        "clientReference": "sandbox-check-20260915-01",
+        "credentialRef": "not allowed"
+      }
+    },
+    {
+      "name": "reject mutable release alias",
+      "schema": "CreateRunRequest",
+      "valid": false,
+      "value": {
+        "releaseRef": {
+          "agentId": "ops-readonly",
+          "releaseId": "latest",
+          "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "inputs": {
+          "question": "查询沙箱服务的状态"
+        },
+        "limits": {
+          "maxTokens": 20000,
+          "lifetimeSeconds": 600
+        },
+        "clientReference": "sandbox-check-20260915-01"
+      }
+    },
+    {
+      "name": "reject unknown release configuration",
+      "schema": "CreateRunRequest",
+      "valid": false,
+      "value": {
+        "releaseRef": {
+          "agentId": "ops-readonly",
+          "releaseId": "bc2d667e-dfd8-4c09-9a38-c083344a5da7",
+          "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "prompt": "override"
+        },
+        "inputs": {
+          "question": "查询沙箱服务的状态"
+        },
+        "limits": {
+          "maxTokens": 20000,
+          "lifetimeSeconds": 600
+        },
+        "clientReference": "sandbox-check-20260915-01"
+      }
+    },
+    {
+      "name": "reject malformed release digest",
+      "schema": "CreateRunRequest",
+      "valid": false,
+      "value": {
+        "releaseRef": {
+          "agentId": "ops-readonly",
+          "releaseId": "bc2d667e-dfd8-4c09-9a38-c083344a5da7",
+          "digest": "sha256:abc"
+        },
+        "inputs": {
+          "question": "查询沙箱服务的状态"
+        },
+        "limits": {
+          "maxTokens": 20000,
+          "lifetimeSeconds": 600
+        },
+        "clientReference": "sandbox-check-20260915-01"
+      }
+    },
+    {
+      "name": "reject exhausted negative limit",
+      "schema": "CreateRunRequest",
+      "valid": false,
+      "value": {
+        "releaseRef": {
+          "agentId": "ops-readonly",
+          "releaseId": "bc2d667e-dfd8-4c09-9a38-c083344a5da7",
+          "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "inputs": {
+          "question": "查询沙箱服务的状态"
+        },
+        "limits": {
+          "maxTokens": -1
+        },
+        "clientReference": "sandbox-check-20260915-01"
+      }
+    },
+    {
+      "name": "reject long run lifetime",
+      "schema": "CreateRunRequest",
+      "valid": false,
+      "value": {
+        "releaseRef": {
+          "agentId": "ops-readonly",
+          "releaseId": "bc2d667e-dfd8-4c09-9a38-c083344a5da7",
+          "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "inputs": {
+          "question": "查询沙箱服务的状态"
+        },
+        "limits": {
+          "lifetimeSeconds": 604801
+        },
+        "clientReference": "sandbox-check-20260915-01"
+      }
+    },
+    {
+      "name": "control accepts empty body",
+      "schema": "ControlRequest",
+      "valid": true,
+      "value": {}
+    },
+    {
+      "name": "control cannot reset budget",
+      "schema": "ControlRequest",
+      "valid": false,
+      "value": {
+        "maxTokens": 999999
+      }
+    },
+    {
+      "name": "approval accepts exact digest",
+      "schema": "ApprovalDecisionRequest",
+      "valid": true,
+      "value": {
+        "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "decision": "APPROVE",
+        "reason": "已核验仅限沙箱目标"
+      }
+    },
+    {
+      "name": "reject invalid approval decision",
+      "schema": "ApprovalDecisionRequest",
+      "valid": false,
+      "value": {
+        "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "decision": "RETRY",
+        "reason": "已核验仅限沙箱目标"
+      }
+    },
+    {
+      "name": "reject caller-supplied approver",
+      "schema": "ApprovalDecisionRequest",
+      "valid": false,
+      "value": {
+        "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "decision": "APPROVE",
+        "reason": "已核验仅限沙箱目标",
+        "actor": "admin"
+      }
+    },
+    {
+      "name": "reject input on rejection",
+      "schema": "ApprovalDecisionRequest",
+      "valid": false,
+      "value": {
+        "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "decision": "REJECT",
+        "reason": "已核验仅限沙箱目标",
+        "input": "force effect"
+      }
+    },
+    {
+      "name": "human input is literal text",
+      "schema": "ApprovalDecisionRequest",
+      "valid": true,
+      "value": {
+        "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "decision": "APPROVE",
+        "reason": "已核验仅限沙箱目标",
+        "input": "{\"input\":\"yes\"}"
+      }
+    },
+    {
+      "name": "reconcile verified evidence reference",
+      "schema": "ToolReconciliationRequest",
+      "valid": true,
+      "value": {
+        "invocationRef": "inv_45e397558b",
+        "invocationDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "evidenceRef": "evidence_sandbox_ticket_0042",
+        "reason": "已通过授权的只读对账器核验沙箱工单编号"
+      }
+    },
+    {
+      "name": "reconcile rejects remote evidence URL",
+      "schema": "ToolReconciliationRequest",
+      "valid": false,
+      "value": {
+        "invocationRef": "inv_45e397558b",
+        "invocationDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "evidenceRef": "https://untrusted.example/receipt",
+        "reason": "已通过授权的只读对账器核验沙箱工单编号"
+      }
+    },
+    {
+      "name": "reconcile rejects caller ToolResult",
+      "schema": "ToolReconciliationRequest",
+      "valid": false,
+      "value": {
+        "invocationRef": "inv_45e397558b",
+        "invocationDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "evidenceRef": "evidence_sandbox_ticket_0042",
+        "reason": "已通过授权的只读对账器核验沙箱工单编号",
+        "result": {
+          "output": {
+            "created": true
+          },
+          "error": false
+        }
+      }
+    },
+    {
+      "name": "reconcile requires invocation binding",
+      "schema": "ToolReconciliationRequest",
+      "valid": false,
+      "value": {
+        "evidenceRef": "evidence_sandbox_ticket_0042",
+        "reason": "verified"
+      }
+    },
+    {
+      "name": "redacted output contains no data",
+      "schema": "OutputView",
+      "valid": true,
+      "value": {
+        "visibility": "REDACTED"
+      }
+    },
+    {
+      "name": "reject value when redacted",
+      "schema": "OutputView",
+      "valid": false,
+      "value": {
+        "visibility": "REDACTED",
+        "value": "secret"
+      }
+    },
+    {
+      "name": "available output requires value",
+      "schema": "OutputView",
+      "valid": false,
+      "value": {
+        "visibility": "AVAILABLE"
+      }
+    },
+    {
+      "name": "available projected result",
+      "schema": "OutputView",
+      "valid": true,
+      "value": {
+        "visibility": "AVAILABLE",
+        "value": {
+          "answer": "ok"
+        }
+      }
+    },
+    {
+      "name": "revision avoids number precision",
+      "schema": "Revision",
+      "valid": true,
+      "value": "9223372036854775807"
+    },
+    {
+      "name": "revision rejects numeric JSON",
+      "schema": "Revision",
+      "valid": false,
+      "value": 123
+    },
+    {
+      "name": "public event rejects raw attributes",
+      "schema": "EventView",
+      "valid": false,
+      "value": {
+        "sequence": "3",
+        "type": "INVOCATION_STARTED",
+        "at": "2026-09-15T02:00:00Z",
+        "attributes": {
+          "prompt": "secret"
+        }
+      }
+    },
+    {
+      "name": "command receipt omits full output",
+      "schema": "RunCommandView",
+      "valid": false,
+      "value": {
+        "id": "51cf0f17-0d6a-4d04-bafb-417d558027f2",
+        "status": "QUEUED",
+        "revision": "1",
+        "controls": {
+          "pauseRequested": false,
+          "cancelRequested": false
+        },
+        "output": {
+          "visibility": "AVAILABLE",
+          "value": "private"
+        }
+      }
+    }
+  ]
+}

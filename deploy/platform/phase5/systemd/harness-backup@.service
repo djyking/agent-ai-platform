@@ -1,0 +1,17 @@
+[Unit]
+Description=Harness encrypted backup task (%i)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=harness-backup
+Group=harness-backup
+UMask=0077
+ExecStart=/usr/bin/flock -n /var/lib/harness/backup.lock /usr/bin/python3 /opt/harness-deploy/backup.py %i --config /etc/harness/backup.json
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/backups/harness /var/lib/harness /dev/shm/harness-backup
+# Install explicitly after editing private config and validating one manual backup.

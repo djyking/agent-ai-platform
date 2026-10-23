@@ -1,0 +1,299 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-09-18T07:00:00.668174+00:00",
+  "status": "PASSED_SCOPED_CHECKS",
+  "scope": "Supplementary phase-three checks owned by the client/support and deployment-example task; not a phase-three completion or CI report.",
+  "platformRevisionAtCapture": "0d5d06f79c7fa45632a09968302ba52bb1319499",
+  "branchAtCapture": "develop/harness-phase3",
+  "sourceHashAlgorithm": "SHA-256",
+  "sourceHashTiming": "Hashes capture the source files present when this report was written after the recorded commands. Final build and CI evidence are recorded separately by the root task.",
+  "checks": [
+    {
+      "id": "ops-identity-production-source-targeted-tests",
+      "repository": "opsagent",
+      "command": "C:\\Users\\77190\\.m2\\wrapper\\dists\\apache-maven-3.9.11\\03d7e36a140982eea48e22c1dcac01d8862b2550b2939e09a0809bbc5182a5bc\\bin\\mvn.cmd -pl ops-auth-service -am -Dtest=HarnessIdentityServiceTest -Dsurefire.failIfNoSpecifiedTests=false test",
+      "commandCompletedAt": "2026-09-18T14:38:37+08:00",
+      "exitCode": 0,
+      "status": "PASSED",
+      "observedResult": {
+        "tests": 7,
+        "passed": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "evidence": [
+        {
+          "path": "ops-auth-service/target/surefire-reports/TEST-com.opsagent.auth.HarnessIdentityServiceTest.xml",
+          "sha256": "b8b2ecb0bc9d65d4409efcb9f3f344f38fe104594b9d3bf005796b4ceb71e394",
+          "observedFileModifiedAt": "2026-09-18T06:38:37.149549+00:00",
+          "suite": "com.opsagent.auth.HarnessIdentityServiceTest",
+          "tests": 7,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testCases": [
+            "catalogPermissionsRequireAnExplicitGrantAndUnknownPermissionsStillFailClosed",
+            "currentUserRoleGrantAndDelegationRevocationFailClosed",
+            "existingLoginAndExplicitDatabaseGrantRequired",
+            "delegationSurvivesObjectReconstructionWithoutPersistedCredential",
+            "roleAndPermissionElevationCannotExpandExistingDelegation",
+            "runBindingCannotBeRetargetedOrUsedByAnotherApplication",
+            "catalogDelegationCannotGainLaterPermissionsAndObservesCurrentRevocation"
+          ]
+        }
+      ],
+      "sourceHashes": [
+        {
+          "path": "ops-auth-service/src/main/java/com/opsagent/auth/HarnessIdentityService.java",
+          "sha256": "7bac4e13ea3ebf43a1d5c6ebc0135f66b50d5ae1351f38a0d0ce6db267b5870a"
+        },
+        {
+          "path": "ops-auth-service/src/test/java/com/opsagent/auth/HarnessIdentityServiceTest.java",
+          "sha256": "ec140eb25c71900461b5687a64415d1c3e908cac371cae7374e537a838430d6d"
+        }
+      ],
+      "boundary": "JUnit tests against the production repository source; not a production deployment test. Only the permission whitelist and matching tests were changed; no commit was made in the opsagent repository."
+    },
+    {
+      "id": "java-client-and-support-package",
+      "repository": "agent-ai-platform",
+      "command": ".\\mvnw.cmd -pl support-pilot -am package",
+      "commandCompletedAt": "2026-09-18T14:52:01+08:00",
+      "exitCode": 0,
+      "status": "PASSED",
+      "observedResult": {
+        "tests": 16,
+        "passed": 16,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "evidence": [
+        {
+          "path": "harness-platform-client/target/surefire-reports/TEST-io.github.djyking.harness.client.PlatformClientTest.xml",
+          "sha256": "d7b68419e2932e680d1845fbfaf03def3a0d7d689c687eecc07bcc298122420e",
+          "observedFileModifiedAt": "2026-09-18T06:51:58.694482+00:00",
+          "suite": "io.github.djyking.harness.client.PlatformClientTest",
+          "tests": 8,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testCases": [
+            "redirectDoesNotForwardCredentialsOrReplayCommand",
+            "realSocketCloseAfterCommandIsAmbiguousAndNeverResent",
+            "allElevenRunOperationsAndDiscoveryUsePublishedRoutesAndExplicitConcurrencyHeaders",
+            "secretProvidersResolveAtRequestTimeAndConfigurationNeverRendersCredentials",
+            "invalidMutationKeysAndTagsAndPathInjectionFailBeforeSending",
+            "oversizedResponseIsBounded",
+            "originCannotContainCredentialsPathsOrRemotePlaintextTransport",
+            "unauthorizedStaleAndServiceFailuresExposeCodesWithoutProviderPayloadAndNeverRetry"
+          ]
+        },
+        {
+          "path": "support-pilot/target/surefire-reports/TEST-io.github.djyking.harness.support.SupportPilotTest.xml",
+          "sha256": "01b2507f27d56e060f59a8ea1be6562d6db577d01ab4a040c6655b6026fc2319",
+          "observedFileModifiedAt": "2026-09-18T06:52:00.682738+00:00",
+          "suite": "io.github.djyking.harness.support.SupportPilotTest",
+          "tests": 8,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testCases": [
+            "independentOperatorIdentityDiscoversPublishedAgentsAndCreatesExactRelease",
+            "unauthenticatedApiCannotUseServerCredentialsAndStaticPageHasRestrictivePolicy",
+            "mutationsRequireSameOriginAndSessionCsrfBeforeAnyUpstreamCall",
+            "logoutInvalidatesServerSessionAndOldCookieCannotBeReused",
+            "reviewerUsesOwnTokenAndExactApprovalTagWithoutOperatorPrivileges",
+            "forgedOrUnavailableReleaseCannotBeDispatched",
+            "duplicateJsonAndWrongHostAreRejected",
+            "ambiguousCommandTransportFailureIsExposedAndNotRetried"
+          ]
+        }
+      ],
+      "sourceHashes": [
+        {
+          "path": "harness-platform-client/pom.xml",
+          "sha256": "9c8f1744a3701b1b5e61f0cb39db141923a0c8d6083c2e26e9eb973a4f62fd2d"
+        },
+        {
+          "path": "harness-platform-client/src/main/java/io/github/djyking/harness/client/ApiResponse.java",
+          "sha256": "3eb0d08618b7f8ac15e25edb7e891aeed1792d21d8eb9992e7bd37c07e4c9d9d"
+        },
+        {
+          "path": "harness-platform-client/src/main/java/io/github/djyking/harness/client/ClientConfiguration.java",
+          "sha256": "2f0f83f9bc36031bacbef0701958705a065ad2b609c8b39dcea407bce3628c06"
+        },
+        {
+          "path": "harness-platform-client/src/main/java/io/github/djyking/harness/client/PlatformClient.java",
+          "sha256": "65f62312a887ac8913702e20e5f6f94ff0f7c321984eba9a78ed200c07f5b226"
+        },
+        {
+          "path": "harness-platform-client/src/main/java/io/github/djyking/harness/client/PlatformException.java",
+          "sha256": "53d51f64fa17a0803cc1902e66ae2a6cf0d578135a9cbb30f85bb35287e43a3d"
+        },
+        {
+          "path": "harness-platform-client/src/main/java/io/github/djyking/harness/client/SecretProvider.java",
+          "sha256": "4c13f3972f19676b254ab1991b7f4e9939e434dc72e7906d44818e58e107c750"
+        },
+        {
+          "path": "harness-platform-client/src/test/java/io/github/djyking/harness/client/PlatformClientTest.java",
+          "sha256": "79ce784d5216ccbf6022fe76bba6adc81829e6f726791896e66c289f4e2de95f"
+        },
+        {
+          "path": "support-pilot/pom.xml",
+          "sha256": "6498c763e5e44e3286fe839994ce5b5d1264ca665e223c1bfa2b5a20d2a58839"
+        },
+        {
+          "path": "support-pilot/src/main/java/io/github/djyking/harness/support/SupportPilot.java",
+          "sha256": "1d142eeb3cc4ccf10dd73ea536b17002e240e3eb485ca9ef2dca5a1fb961c762"
+        },
+        {
+          "path": "support-pilot/src/main/resources/web/app.css",
+          "sha256": "517edf29fc47a9b8a30ea1b463dcaf482cba219ebbe33be83fe2046db8856531"
+        },
+        {
+          "path": "support-pilot/src/main/resources/web/app.js",
+          "sha256": "bd185900d2a581400803c60c28291566967709eb40a30758335c8144cc9b2cfa"
+        },
+        {
+          "path": "support-pilot/src/main/resources/web/index.html",
+          "sha256": "acd22ca94c07d8cdd2aeede35f6963069154e7f67c38a103edd023a8f47bf796"
+        },
+        {
+          "path": "support-pilot/src/test/java/io/github/djyking/harness/support/SupportPilotTest.java",
+          "sha256": "afa4799dfe6d17715dfe5137ee1db1e1ca5c3da69b36b93b74a7306ec210230a"
+        }
+      ],
+      "artifactAtEvidenceCapture": {
+        "path": "support-pilot/target/support-pilot-0.1.0-SNAPSHOT.jar",
+        "sha256": "266a7314127ecc1548deadc8991aa6dfc66c8d3738051c9b59b224d2d7293613"
+      },
+      "boundary": "Client protocol and standalone support BFF tests use synthetic identities and local HTTP servers. This result does not assert real Ops authentication, browser acceptance, or full phase-three completion."
+    },
+    {
+      "id": "support-approval-dom",
+      "repository": "agent-ai-platform",
+      "command": "node --test support-pilot/src/test/js/approval.test.mjs",
+      "commandStartedAt": "2026-09-18T06:59:59.457806+00:00",
+      "commandCompletedAt": "2026-09-18T07:00:00.607642+00:00",
+      "exitCode": 0,
+      "status": "PASSED",
+      "observedResult": {
+        "tests": 10,
+        "passed": 10,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "outputSha256": "41932c6a2be907205f0385a7abf79d172f10de52b055301de6135f8d69aa9c9a",
+      "testCases": [
+        "changing run immediately clears and disables the previous decision",
+        "failed target query cannot leave the old approval or answer available",
+        "successful target query clears answer and reason and displays exact binding",
+        "a late response cannot replace a newer review target",
+        "query start clears old review even when target value did not change",
+        "submission rechecks target even when input event was not dispatched",
+        "mismatched approval response is never rendered or enabled",
+        "unknown decision retries only the original payload and clears approval on success",
+        "expired session clears old approval and pending writes without automatic replay",
+        "every browser request rejects redirects explicitly"
+      ],
+      "sourceHashes": [
+        {
+          "path": "platform-console/pnpm-lock.yaml",
+          "sha256": "9feb7c73733114d0229b2bbcfb58bde78c039352f37e9b23a538c6a94f07f7aa"
+        },
+        {
+          "path": "support-pilot/src/main/resources/web/app.css",
+          "sha256": "517edf29fc47a9b8a30ea1b463dcaf482cba219ebbe33be83fe2046db8856531"
+        },
+        {
+          "path": "support-pilot/src/main/resources/web/app.js",
+          "sha256": "bd185900d2a581400803c60c28291566967709eb40a30758335c8144cc9b2cfa"
+        },
+        {
+          "path": "support-pilot/src/main/resources/web/index.html",
+          "sha256": "acd22ca94c07d8cdd2aeede35f6963069154e7f67c38a103edd023a8f47bf796"
+        },
+        {
+          "path": "support-pilot/src/test/js/approval.test.mjs",
+          "sha256": "507ce20ba4009959c9fb24d4edf3546a7ed552c8f442c89fbdd179c65c8d8e49"
+        }
+      ],
+      "runtime": "v24.19.0",
+      "boundary": "Actual jsdom events exercise the shipped HTML and JavaScript against deterministic synthetic fetch responses; no external HTTP request or real approval is sent."
+    },
+    {
+      "id": "public-examples-real-catalog-publication",
+      "repository": "agent-ai-platform",
+      "command": ".\\mvnw.cmd -pl harness-platform-service -am -Dtest=Phase3ExamplesTest -Dsurefire.failIfNoSpecifiedTests=false test",
+      "commandCompletedAt": "2026-09-18T14:54:21+08:00",
+      "exitCode": 0,
+      "status": "PASSED",
+      "observedResult": {
+        "tests": 1,
+        "passed": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "resourceTypesPublished": 8
+      },
+      "evidence": [
+        {
+          "path": "harness-platform-service/target/surefire-reports/TEST-io.github.djyking.harness.platform.Phase3ExamplesTest.xml",
+          "sha256": "a117b67f1215b47ff6b9036f4d1b39c397b45e2b3d57cfac188cba9cf702f8d6",
+          "observedFileModifiedAt": "2026-09-18T06:54:21.396437+00:00",
+          "suite": "io.github.djyking.harness.platform.Phase3ExamplesTest",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "testCases": [
+            "publicExamplesPublishAgainstTheirUnmodifiedDeploymentAndFrozenCases"
+          ]
+        }
+      ],
+      "sourceHashes": [
+        {
+          "path": "harness-platform-service/src/test/java/io/github/djyking/harness/platform/Phase3ExamplesTest.java",
+          "sha256": "15ab5acf0c4577dc7b55331fe4334d6bec7fba4efbb96eac510706cc0ad3926e"
+        },
+        {
+          "path": "harness-platform-service/src/main/java/io/github/djyking/harness/platform/CatalogValidator.java",
+          "sha256": "b3b559ae17e8052144e097caec358428ebc40fa37a802e5d6f9cf9851619a7b5"
+        },
+        {
+          "path": "harness-platform-service/src/main/java/io/github/djyking/harness/platform/CatalogService.java",
+          "sha256": "621ba1aee895e57b62a348099199c8cacf05d15e4e6b1dec5bfe219270af6b61"
+        },
+        {
+          "path": "harness-platform-service/src/main/java/io/github/djyking/harness/platform/CatalogRepository.java",
+          "sha256": "490ea6b2570b661c41b4570f6b50bcda5b1b1e38e936c27d91c5da2587cb96a1"
+        },
+        {
+          "path": "harness-platform-service/src/main/java/io/github/djyking/harness/platform/Deployment.java",
+          "sha256": "c3b06ea42e37280260f0f7bb52a1d7445e93e50d6539c34a5f0127ac1cfb91e7"
+        },
+        {
+          "path": "deploy/platform/phase3-deployment.example.json",
+          "sha256": "9b8bce1fd51e2945960fe9fac194943a1ed304889e8424ae0ad680ab20ba88bc"
+        },
+        {
+          "path": "deploy/platform/phase3-catalog.examples.json",
+          "sha256": "34be8b0e6ad16e54ee41ab601baba664fe9ec3a6fe724f213522db602ff4df4b"
+        }
+      ],
+      "boundary": "The unmodified public JSON examples pass the actual CatalogService/CatalogValidator save, validate, publish and default-discovery flow in an isolated H2 database. Tool handlers throw if invoked. The FAQ Agent is tool-only; ModelProfile and Prompt are published separately and make no model request."
+    }
+  ],
+  "sensitiveDataExcluded": [
+    "credentials",
+    "user tokens",
+    "process environment",
+    "Surefire JVM properties",
+    "private deployment configuration",
+    "raw model or business payloads"
+  ],
+  "completionClaim": false
+}

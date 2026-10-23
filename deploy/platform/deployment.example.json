@@ -1,0 +1,205 @@
+{
+  "identityOrigin": "http://127.0.0.1:18081/",
+  "signingSecret": "env:HARNESS_SIGNING_KEY",
+  "applicationSecrets": {
+    "opsagent-pilot": "env:HARNESS_APP_CREDENTIAL"
+  },
+  "projects": [
+    {
+      "id": "ops-dev",
+      "applications": [
+        "opsagent-pilot"
+      ],
+      "maxActiveRuns": 20,
+      "maxReservedTokens": 160000,
+      "maxActiveRunsPerApplication": 20,
+      "maxReservedTokensPerApplication": 160000,
+      "concurrency": 2
+    }
+  ],
+  "releases": [
+    {
+      "projectId": "ops-dev",
+      "agentId": "development-docs",
+      "releaseId": "bde143ac-f0d9-4e99-85ba-7bb1a7365ac1",
+      "model": null,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object"
+      },
+      "toolKeys": [
+        "docs:search"
+      ],
+      "executionPermissions": [
+        "tool:docs:search"
+      ],
+      "approvers": [
+        "opsagent-pilot/20"
+      ],
+      "reviewFields": [],
+      "humanInputSchema": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1000
+      },
+      "publicOutput": true,
+      "limits": {
+        "maxTokens": 8000,
+        "maxModelCalls": 2,
+        "maxToolCalls": 4,
+        "maxSteps": 30,
+        "lifetimeSeconds": 3600
+      },
+      "workflow": {
+        "id": "development-docs",
+        "version": "1",
+        "start": "search",
+        "maxTransitions": 5,
+        "nodes": {
+          "search": {
+            "kind": "tool",
+            "toolName": "docs:search",
+            "argumentsJson": "{\"maxResults\":3}",
+            "argumentBindings": {
+              "query": "query"
+            },
+            "output": "result",
+            "next": "end"
+          },
+          "end": {
+            "kind": "end",
+            "output": "result"
+          }
+        }
+      }
+    },
+    {
+      "projectId": "ops-dev",
+      "agentId": "ops-readonly",
+      "releaseId": "a84b024d-0910-4be2-843b-c1367b651fcf",
+      "model": null,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "topK": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20
+          }
+        },
+        "required": [
+          "query",
+          "topK"
+        ],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "required": [
+          "evidence",
+          "citations"
+        ],
+        "properties": {
+          "evidence": {
+            "type": "string"
+          },
+          "citations": {
+            "type": "array",
+            "maxItems": 20
+          }
+        },
+        "additionalProperties": false
+      },
+      "toolKeys": [
+        "opsagent/rag-search"
+      ],
+      "executionPermissions": [
+        "tool:opsagent/rag-search",
+        "opsagent:rag:search"
+      ],
+      "approvers": [
+        "opsagent-pilot/20"
+      ],
+      "reviewFields": [],
+      "humanInputSchema": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1000
+      },
+      "publicOutput": false,
+      "limits": {
+        "maxTokens": 8000,
+        "maxModelCalls": 2,
+        "maxToolCalls": 4,
+        "maxSteps": 30,
+        "lifetimeSeconds": 3600
+      },
+      "workflow": {
+        "id": "ops-knowledge",
+        "version": "1",
+        "start": "search",
+        "maxTransitions": 5,
+        "nodes": {
+          "search": {
+            "kind": "tool",
+            "toolName": "opsagent/rag-search",
+            "argumentsJson": "{}",
+            "argumentBindings": {
+              "query": "query",
+              "topK": "topK"
+            },
+            "output": "result",
+            "next": "end"
+          },
+          "end": {
+            "kind": "end",
+            "output": "result"
+          }
+        }
+      }
+    }
+  ],
+  "disabledReleases": [],
+  "tools": [
+    {
+      "kind": "lexical-rag",
+      "key": "docs:search",
+      "modelName": "docs_search",
+      "documents": [
+        {
+          "id": "synthetic-sdk",
+          "scope": "ops-dev",
+          "title": "Synthetic SDK guide",
+          "uri": "https://example.invalid/sdk",
+          "text": "Synthetic development guide: freeze the release, retain the idempotency key, inspect approval before allowing a write."
+        }
+      ]
+    },
+    {
+      "kind": "opsagent-rag",
+      "origin": "http://127.0.0.1:18083/"
+    }
+  ],
+  "models": [],
+  "concurrency": 2,
+  "leaseMillis": 45000,
+  "workerEnabled": true
+}

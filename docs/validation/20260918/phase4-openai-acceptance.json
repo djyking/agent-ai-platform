@@ -1,0 +1,117 @@
+{
+  "status": "PASSED",
+  "mode": "ADDITIONAL_ONLY",
+  "attemptId": "68cca46033",
+  "syntheticInputs": true,
+  "externalWriteCalls": 0,
+  "identity": "local-test",
+  "opsAdapterEnabled": false,
+  "project": "studio-dev",
+  "checks": [
+    "second_provider_live_generation_evaluation_publication"
+  ],
+  "runs": [
+    {
+      "id": "8f4e590f-39b0-4198-9b04-5f2dfc787921",
+      "status": "COMPLETED",
+      "usage": {
+        "chargedTokens": 54,
+        "modelCalls": 1,
+        "toolCalls": 0,
+        "steps": 3,
+        "accounting": "CONSERVATIVE_LEDGER"
+      },
+      "releaseRef": {
+        "agentId": "provider-68cca46033",
+        "releaseId": "18b113b5-307a-4941-bce8-4dc8aecd9cd5",
+        "digest": "sha256:ec3cb71cc40197d948a1b1a7c0d2c1460fd307babae83f45c2ef07a8551b4efe"
+      },
+      "taskId": "2174ae82-69c4-4a5d-bdab-f483b9cca36f"
+    },
+    {
+      "id": "082935aa-41e9-46ba-bf20-767a798b848b",
+      "status": "COMPLETED",
+      "usage": {
+        "chargedTokens": 54,
+        "modelCalls": 1,
+        "toolCalls": 0,
+        "steps": 3,
+        "accounting": "CONSERVATIVE_LEDGER"
+      },
+      "taskId": "8e43e120-8c31-4189-be1c-e49906351f50",
+      "experimentId": "c4c3fcce-6404-4fc8-aa38-070f185ea680",
+      "side": "candidate"
+    }
+  ],
+  "experiments": [
+    {
+      "id": "c4c3fcce-6404-4fc8-aa38-070f185ea680",
+      "applicationId": "provider-68cca46033",
+      "status": "COMPLETED",
+      "passed": true,
+      "draftDigest": "26233f706a68a73f100a5e5e34908465e5e2b66f44ae848dc7d2e020174bfe3e",
+      "rows": [
+        {
+          "sampleId": "confirmation",
+          "candidate": {
+            "taskId": "8e43e120-8c31-4189-be1c-e49906351f50",
+            "runId": "082935aa-41e9-46ba-bf20-767a798b848b",
+            "status": "COMPLETED",
+            "visibility": "AVAILABLE",
+            "usage": {
+              "chargedTokens": 54,
+              "modelCalls": 1,
+              "toolCalls": 0,
+              "steps": 3,
+              "accounting": "CONSERVATIVE_LEDGER"
+            },
+            "passed": true,
+            "reason": "CHECKS_PASSED"
+          }
+        }
+      ]
+    }
+  ],
+  "commands": [
+    {
+      "method": "PUT",
+      "path": "/console/api/projects/studio-dev/studio/applications/provider-68cca46033",
+      "key": "00743aa5-bba1-4129-a1b8-2c94e96ce8c2",
+      "outcome": "ACCEPTED",
+      "httpStatus": 200
+    },
+    {
+      "method": "POST",
+      "path": "/console/api/projects/studio-dev/studio/applications/provider-68cca46033/preview",
+      "key": "f0151f78-ca5b-421d-9828-a658f55ef089",
+      "outcome": "ACCEPTED",
+      "httpStatus": 200
+    },
+    {
+      "method": "POST",
+      "path": "/console/api/projects/studio-dev/studio/applications/provider-68cca46033/evaluate",
+      "key": "b9bfeb27-eb8f-407e-981b-6bfcac730c39",
+      "outcome": "ACCEPTED",
+      "httpStatus": 200
+    },
+    {
+      "method": "POST",
+      "path": "/console/api/projects/studio-dev/studio/applications/provider-68cca46033/publish",
+      "key": "b680a33f-e21c-4c1c-9ee8-a95f165b916d",
+      "outcome": "ACCEPTED",
+      "httpStatus": 200
+    }
+  ],
+  "applications": [
+    "provider-68cca46033"
+  ],
+  "httpRequests": 14,
+  "additionalModelProfile": "openai-mini",
+  "updatedAt": "2026-09-18T10:55:34Z",
+  "lastHttp": {
+    "method": "POST",
+    "path": "/console/api/projects/studio-dev/studio/applications/provider-68cca46033/publish",
+    "status": 200
+  },
+  "lastCompletedCheck": "second_provider_live_generation_evaluation_publication"
+}

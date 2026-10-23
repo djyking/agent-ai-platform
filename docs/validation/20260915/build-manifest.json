@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-15T02:27:23.1500525Z",
+  "gitBranch": "codex/harness-foundation",
+  "gitHead": "7e83eefd68fb23612b00221d25c4a22cf04fb92d",
+  "uncommittedWorkspace": true,
+  "buildCommand": "mvnw.cmd clean install -B -ntp",
+  "junit": {
+    "tests": 135,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "artifacts": [
+    {
+      "module": "harness-core",
+      "version": "0.1.0-SNAPSHOT",
+      "sha256": "51d57f19259e1eece5533c00d466cab1a73ba68a1215969fa56f11ac2e440a09"
+    },
+    {
+      "module": "harness-storage-jdbc",
+      "version": "0.1.0-SNAPSHOT",
+      "sha256": "ec13ff8b5d9d24d3c49180f4f1b1b24dabc4a15ba0c4f0311ac58823d718c11e"
+    },
+    {
+      "module": "harness-adapters",
+      "version": "0.1.0-SNAPSHOT",
+      "sha256": "ff35486dae4b6939b9360dc40045b620c2b71fadbe1c94e04dce0fe69f31e84a"
+    },
+    {
+      "module": "harness-capabilities",
+      "version": "0.1.0-SNAPSHOT",
+      "sha256": "97c254dcd5bc9d8e02d8513278d0bcf60f0c874f57d90f79c42a9f090c9b71d4"
+    },
+    {
+      "module": "harness-examples",
+      "version": "0.1.0-SNAPSHOT",
+      "sha256": "25a2195f25274903860c4c311959c57c245aa6694c2bfaaaa4140803eca36028"
+    },
+    {
+      "module": "harness-integrations-opsagent",
+      "version": "0.1.0-SNAPSHOT",
+      "sha256": "56abd203cd54cb25ecacb3449d700200e528607bd2a4b7a0bd57be84670c9ed5"
+    },
+    {
+      "module": "harness-evals",
+      "version": "0.1.0-SNAPSHOT",
+      "sha256": "acf6a6f17768248779627104d6f72f1c510883b4f2c639d67b8d76d5f8e15a8f"
+    },
+    {
+      "module": "harness-validation",
+      "version": "0.1.0-SNAPSHOT",
+      "sha256": "5e80891c79e7f9d99f5747bee153f9c3c06e97d6926b07c960b6cf43a063bcc2"
+    }
+  ],
+  "note": "Local development build; not a tagged release or remote CI result. Isolated OpsAgent source integration is verified separately."
+}

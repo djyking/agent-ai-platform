@@ -1,0 +1,8 @@
+[Unit]
+Description=Verify Harness encrypted offsite copies every 5 minutes
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=5min
+Unit=harness-backup@offsite.service
+[Install]
+WantedBy=timers.target

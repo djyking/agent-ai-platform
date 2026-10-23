@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "at": "2026-09-15T02:36:16.552291+00:00",
+  "validationKind": "isolated-source-backed-opsagent-pilot",
+  "status": "PASSED",
+  "synthetic": true,
+  "testUserIds": [
+    10,
+    20
+  ],
+  "deployedOpsAgentValidated": false,
+  "mavenExitCode": 0,
+  "sourceManifestSha256": "a6f7aecd2a81f7d6933e85432409a92d95c6f1e725d2d7367595cc66f570573e",
+  "sourceFileCount": 158,
+  "originalRepositoryWritten": false,
+  "whitelistedSourceBytesUnchanged": true,
+  "changedSourcePaths": [],
+  "realImplementations": [
+    "InternalAgentController",
+    "InternalActorTokens",
+    "InternalActorAccess",
+    "InternalAgentSearchService",
+    "RerankService + NoOpRerankProvider",
+    "ContextAssembler",
+    "KnowledgeInternalAgentController",
+    "KnowledgeService",
+    "KnowledgeRepository",
+    "GlobalExceptionHandler",
+    "Harness + WorkflowProgram + OpsAgentRagTool"
+  ],
+  "fixturesAndBoundaries": [
+    "Manual loopback Spring MVC/Tomcat host; original application boot/configuration not loaded",
+    "Auth user storage is an independent two-user fixture; real signature, issuer and auth audience verification",
+    "InternalKnowledgeClient uses explicit loopback HTTP instead of Feign/service discovery",
+    "H2 synthetic seven-document database; real SQL visibility/publication/owner filtering",
+    "KnowledgeIndexService disabled mock selects real SQL fallback; no Elasticsearch/embedding calls",
+    "RagRateLimiter mock; distributed rate limit is not covered",
+    "Model/usage/file/parser/MQ dependencies are unused mocks; test asserts no model generation or write dependencies",
+    "Routing policy case, if present, is only an in-memory fixture; no deployed ingress migration"
+  ],
+  "externalCalls": 0,
+  "externalCallsEvidence": "Configured call graph uses loopback URLs only; remote rerank disabled and index mocked. This is not a packet-captured traffic count.",
+  "runtimeExternalServicesConfigured": false,
+  "networkTrafficCaptured": false,
+  "operatingSystemNetworkSandbox": false,
+  "dependencyDownloadsExcludedFromRuntimeClaim": true,
+  "secretHandling": "Fresh random signing key per test process; no original config/credentials copied; ledger assertions exclude key and generated bearer credentials",
+  "cases": [
+    {
+      "name": "newRequestRoutingFreezesOwnershipAndDoesNotFallbackAfterFailure",
+      "status": "passed"
+    },
+    {
+      "name": "wrongAudienceNeverReachesAuthOrKnowledge",
+      "status": "passed"
+    },
+    {
+      "name": "currentPublicationVisibilityIsQueriedAgainForNextRun",
+      "status": "passed"
+    },
+    {
+      "name": "userTwentySeesDifferentPrivateScopeWithoutChangingHarness",
+      "status": "passed"
+    },
+    {
+      "name": "revocationBetweenRagAndKnowledgeIsRevalidatedAtKnowledge",
+      "status": "passed"
+    },
+    {
+      "name": "invalidSignatureIsRejectedByRealInternalController",
+      "status": "passed"
+    },
+    {
+      "name": "currentRoleElevationDoesNotExpandFrozenIdentityCeiling",
+      "status": "passed"
+    },
+    {
+      "name": "claimedAdminIsReducedToCurrentRoleAndDraftsRemainExcluded",
+      "status": "passed"
+    },
+    {
+      "name": "disabledUserFailsBeforeKnowledgeTransport",
+      "status": "passed"
+    },
+    {
+      "name": "userTenSeesPublicAndOwnPrivateWithRealHttpCitations",
+      "status": "passed"
+    },
+    {
+      "name": "roleRevocationFailsBeforeKnowledgeTransport",
+      "status": "passed"
+    }
+  ],
+  "summary": {
+    "passed": 11,
+    "failed": 0,
+    "skipped": 0
+  }
+}

@@ -1,0 +1,90 @@
+{
+  "restoredWorkersStarted": false,
+  "schemaVersion": 1,
+  "boundary": "Logical backup restored into a fresh isolated schema; no external action replay, production RPO/RTO, or identity database restore claimed",
+  "status": "PASSED",
+  "sourceDatabase": "harness_platform_phase3",
+  "checks": [
+    {
+      "exactMatch": true,
+      "tableGroup": "schema",
+      "sha256": "4ef5ee364cf263868efd3ef02483b0f22ee22b4fbe3585a8b08f891613ba1aab"
+    },
+    {
+      "exactMatch": true,
+      "tableGroup": "runs",
+      "sha256": "d5f0e17b80eb82d37d0984b52ff43d41f2967417dfa88df8a5b86c915310e4ef"
+    },
+    {
+      "exactMatch": true,
+      "tableGroup": "events",
+      "sha256": "5f00f2201aab30428cab2db3ed0993bdb0fe54a90266be0eadf9d9878fd36a6f"
+    },
+    {
+      "exactMatch": true,
+      "tableGroup": "owners",
+      "sha256": "4aded1f8c18bd1ca2eb2445f086fb407960c974aedb3cab4e5ba968787665334"
+    },
+    {
+      "exactMatch": true,
+      "tableGroup": "commands",
+      "sha256": "7e1cdcd22f395dd2ffa945a550954fb2c73bf0d80a5bfd8fd657b6b9b5bfc6f2"
+    },
+    {
+      "exactMatch": true,
+      "tableGroup": "audit",
+      "sha256": "7b19994ad1797a802f00fe990e975e7fc3beccbbe8e457fcc62008be5065926e"
+    },
+    {
+      "exactMatch": true,
+      "tableGroup": "evidence",
+      "sha256": "c794052ae68cf06bd276c281700139c163b0bb752ab05d6d00425693b1224f7a"
+    },
+    {
+      "exactMatch": true,
+      "tableGroup": "releases",
+      "sha256": "38abe080691f412f947fe2dab8570bf3430f9512d8a468a668c80e800214c3eb"
+    },
+    {
+      "exactMatch": true,
+      "tableGroup": "scopes",
+      "sha256": "0ffc7f13a9fec38186cb6127fc9a8785a2f5f4760ede8f9e3d2dc41da1f6982a"
+    },
+    {
+      "exactMatch": true,
+      "tableGroup": "slots",
+      "sha256": "14646bd8127fa36ea1f6a828d5c8bd964595a6f83bf9c763b60a8e724982c36b"
+    },
+    {
+      "exactMatch": true,
+      "tableGroup": "catalogResources",
+      "sha256": "a6aff0ed7477634cffbb178020a9bf2fdf5625f1ee6fbad15215bbcd772196ec"
+    },
+    {
+      "exactMatch": true,
+      "tableGroup": "catalogVersions",
+      "sha256": "ce7930b5512a04c4ef5f3950568f4096ac7b782f0b04c46aeac9a3f88282c7f8"
+    },
+    {
+      "exactMatch": true,
+      "tableGroup": "catalogReleaseLinks",
+      "sha256": "6b6c937b072fb587b73c63f05d78bd4f76aa475d0d866dba04cd7d4595745b66"
+    },
+    {
+      "exactMatch": true,
+      "tableGroup": "catalogCommands",
+      "sha256": "7c795a197feff50d8b22804fc6da00daa109bca2cc74b5b981de110e22bd9708"
+    },
+    {
+      "exactMatch": true,
+      "tableGroup": "trace",
+      "sha256": "819e2b0f600bf047d56783543425d02a60b7031cecca6db1b3a7dd63472a56d7"
+    }
+  ],
+  "mysqlVersion": "8.0.46",
+  "backupSha256": "de05a8fd757d3b17495f85f5bf8d281ef842e98523877bb65980136fb3dd4906",
+  "restoredDatabase": "harness_restore_6eaaa0d7147c4d98",
+  "at": "2026-09-18T07:04:59.6832112Z",
+  "privateBackupRetained": true,
+  "sourceDatabaseOverwritten": false
+}
